@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea580c;
+  --color-brand-700: #c2410c;
+  --color-navy-800: #12263f;
+  --color-navy-900: #0b1f3a;
+  --color-navy-950: #071527;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+::selection {
+  background: var(--color-brand-200);
+}
+
+/* --- Corrección para el fondo blanco del Autocompletar (Autofill) en navegadores --- */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  /* Mantiene el color del texto según el modo (claro/oscuro) */
+  -webkit-text-fill-color: inherit !important;
+
+  /* Elimina la caja de color inyectada por el navegador */
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+
+  /* Retrasa la aparición del fondo nativo del navegador por 5000 segundos */
+  transition: background-color 5000s ease-in-out 0s !important;
+
+  /* Asegura que el fondo siga siendo transparente para que Tailwind haga su trabajo */
+  background-color: transparent !important;
+}

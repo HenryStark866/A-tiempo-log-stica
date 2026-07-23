@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind v4 usa prefers-color-scheme por defecto; next-themes controla el tema
+   con la clase .dark en <html>, así que la variante debe basarse en esa clase. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-brand-50: #fff7ed;
   --color-brand-100: #ffedd5;
@@ -19,7 +23,7 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-[#F2F2F7] text-slate-900 antialiased dark:bg-[#1C1C1E] dark:text-slate-100;
 }
 
 ::selection {

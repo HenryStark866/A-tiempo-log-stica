@@ -2,12 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, MapPin, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
+import { CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatCOP } from "@/lib/utils";
-import type { Guide, GuideStatus } from "@/lib/types";
+import {
+  NAV_HANDOFF_ENABLED,
+  NAV_PROVIDER_LABELS,
+  buildNavUrl,
+  getNavProvider,
+  orderRoute,
+  saveNavProvider,
+  type NavProvider,
+} from "@/lib/nav";
+import type { Guide } from "@/lib/types";
 
 export default function MyRoutePage() {
   const profile = useProfile();
@@ -16,6 +25,16 @@ export default function MyRoutePage() {
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [navProvider, setNavProvider] = useState<NavProvider | null>(null);
+
+  useEffect(() => {
+    setNavProvider(getNavProvider());
+  }, []);
+
+  function chooseProvider(p: NavProvider) {
+    saveNavProvider(p);
+    setNavProvider(p);
+  }
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -33,25 +52,92 @@ export default function MyRoutePage() {
     load();
   }, [load]);
 
-  async function change(guideId: string, to: GuideStatus, n?: string) {
+  const zonificadas = orderRoute((guides ?? []).filter((g) => g.status === "zonificada"));
+  const enRuta = orderRoute((guides ?? []).filter((g) => g.status === "en_ruta"));
+  const novedades = (guides ?? []).filter((g) => g.status === "novedad");
+
+  // Abre la pestaña de forma síncrona (dentro del gesto del usuario) y le pone
+  // destino solo si el cambio de estado en el servidor fue exitoso.
+  function openNavWindow(): Window | null {
+    if (!NAV_HANDOFF_ENABLED || !navProvider) return null;
+    return window.open("", "_blank");
+  }
+
+  function navigateTo(w: Window | null, g: Guide | null) {
+    if (!w) return;
+    if (g && navProvider) w.location.href = buildNavUrl(navProvider, g.recipient_address, g.recipient_city);
+    else w.close();
+  }
+
+  async function startRoute(g: Guide) {
+    const w = openNavWindow();
     setBusy(true);
     setMsg(null);
     const supabase = createClient();
     const { error } = await supabase.rpc("at_change_guide_status", {
-      p_guide_id: guideId,
-      p_new_status: to,
-      p_note: n || null,
+      p_guide_id: g.id,
+      p_new_status: "en_ruta",
+      p_note: null,
     });
     setBusy(false);
-    if (error) setMsg(error.message);
+    if (error) {
+      navigateTo(w, null);
+      setMsg(error.message);
+    } else {
+      navigateTo(w, g);
+    }
+    load();
+  }
+
+  async function startFullRoute() {
+    if (zonificadas.length === 0) return;
+    const w = openNavWindow();
+    setBusy(true);
+    setMsg(null);
+    const supabase = createClient();
+    let failed = false;
+    for (const g of zonificadas) {
+      const { error } = await supabase.rpc("at_change_guide_status", {
+        p_guide_id: g.id,
+        p_new_status: "en_ruta",
+        p_note: null,
+      });
+      if (error) {
+        setMsg(error.message);
+        failed = true;
+        break;
+      }
+    }
+    setBusy(false);
+    navigateTo(w, failed ? null : zonificadas[0]);
+    load();
+  }
+
+  async function confirmModalAction() {
+    if (!modal) return;
+    const isDelivery = modal.action === "entregada";
+    // Siguiente parada pendiente en el orden de la ruta, excluyendo la actual
+    const next = isDelivery ? enRuta.filter((x) => x.id !== modal.guide.id)[0] ?? null : null;
+    const w = isDelivery && next ? openNavWindow() : null;
+    setBusy(true);
+    setMsg(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_change_guide_status", {
+      p_guide_id: modal.guide.id,
+      p_new_status: modal.action,
+      p_note: note || null,
+    });
+    setBusy(false);
+    if (error) {
+      navigateTo(w, null);
+      setMsg(error.message);
+    } else {
+      navigateTo(w, next);
+    }
     setModal(null);
     setNote("");
     load();
   }
-
-  const zonificadas = (guides ?? []).filter((g) => g.status === "zonificada");
-  const enRuta = (guides ?? []).filter((g) => g.status === "en_ruta");
-  const novedades = (guides ?? []).filter((g) => g.status === "novedad");
 
   return (
     <div className="pb-10 space-y-6 font-sans">
@@ -62,6 +148,46 @@ export default function MyRoutePage() {
           Fase 4: gestión de ruta en última milla — tu carga digital del día
         </p>
       </div>
+
+      {NAV_HANDOFF_ENABLED && (
+        <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-4 sm:p-5 shadow-sm transition-colors duration-300 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">Navegador preferido</p>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {navProvider
+                ? `Cada parada se abrirá automáticamente en ${NAV_PROVIDER_LABELS[navProvider]}.`
+                : "Elige tu app de mapas para guiarte parada a parada."}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-xl p-1">
+              {(Object.keys(NAV_PROVIDER_LABELS) as NavProvider[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => chooseProvider(p)}
+                  className={`min-h-[40px] px-4 rounded-lg text-[14px] font-semibold transition-all active:scale-95 ${
+                    navProvider === p
+                      ? "bg-[#ff812c] text-[#1C1C1E] shadow-sm"
+                      : "text-slate-600 dark:text-slate-300"
+                  }`}
+                >
+                  {NAV_PROVIDER_LABELS[p]}
+                </button>
+              ))}
+            </div>
+            {zonificadas.length > 0 && (
+              <button
+                disabled={busy}
+                onClick={startFullRoute}
+                className="min-h-[48px] px-4 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100 whitespace-nowrap"
+              >
+                {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
+                <span>Iniciar ruta ({zonificadas.length})</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {msg && (
         <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
@@ -91,12 +217,19 @@ export default function MyRoutePage() {
                 <section key={sec.title} className="space-y-3">
                   <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white px-1">{sec.title}</h2>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {sec.list.map((g) => (
+                    {sec.list.map((g, i) => (
                       <div key={g.id} className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 shadow-sm transition-colors duration-300 flex flex-col">
                         <div className="mb-3 flex items-start justify-between gap-2">
-                          <Link href={`/guias/${g.id}`} className="text-[17px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity truncate">
-                            {g.guide_number}
-                          </Link>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {NAV_HANDOFF_ENABLED && g.status === "en_ruta" && (
+                              <span className="shrink-0 w-7 h-7 rounded-full bg-[#ff812c]/10 text-[#ff812c] text-[13px] font-bold flex items-center justify-center">
+                                {i + 1}
+                              </span>
+                            )}
+                            <Link href={`/guias/${g.id}`} className="text-[17px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity truncate">
+                              {g.guide_number}
+                            </Link>
+                          </div>
                           <div className="shrink-0"><StatusBadge status={g.status} /></div>
                         </div>
                         
@@ -125,18 +258,29 @@ export default function MyRoutePage() {
 
                         <div className="mt-auto pt-2 flex flex-col sm:flex-row gap-2">
                           {g.status === "zonificada" && (
-                            <button 
-                              disabled={busy} 
-                              onClick={() => change(g.id, "en_ruta")}
+                            <button
+                              disabled={busy}
+                              onClick={() => startRoute(g)}
                               className="w-full min-h-[48px] rounded-xl font-semibold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100"
                             >
                               {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlayCircle className="w-5 h-5" />}
                               <span>Iniciar ruta</span>
                             </button>
                           )}
-                          
+
                           {g.status === "en_ruta" && (
                             <>
+                              {NAV_HANDOFF_ENABLED && navProvider && (
+                                <a
+                                  href={buildNavUrl(navProvider, g.recipient_address, g.recipient_city)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 min-h-[48px] rounded-xl font-semibold flex items-center justify-center gap-2 bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white hover:opacity-90 active:scale-[0.98] transition-all"
+                                >
+                                  <Navigation className="w-5 h-5 text-[#ff812c]" />
+                                  <span>Navegar</span>
+                                </a>
+                              )}
                               <button
                                 disabled={busy}
                                 onClick={() => setModal({ guide: g, action: "entregada" })}
@@ -229,7 +373,7 @@ export default function MyRoutePage() {
                 </button>
                 <button
                   disabled={busy || (modal.action === "novedad" && !note.trim())}
-                  onClick={() => change(modal.guide.id, modal.action, note)}
+                  onClick={confirmModalAction}
                   className="flex-1 min-h-[52px] rounded-2xl font-bold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center"
                 >
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirmar"}

@@ -34,6 +34,12 @@ export interface Profile {
   max_capacity: number;
   active: boolean;
   created_at: string;
+  // Solicitud de registro (se llenan al registrarse; se limpian al aprobar)
+  requested_role: Role | null;
+  business_type: string | null;
+  business_name: string | null;
+  business_nit: string | null;
+  business_address: string | null;
 }
 
 export interface Client {

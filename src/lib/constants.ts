@@ -62,3 +62,19 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 export const STAFF_ROLES: Role[] = ["admin", "coordinador", "operario", "mensajero"];
 export const OPS_ROLES: Role[] = ["admin", "coordinador"];
+
+// Roles que una persona puede solicitar al registrarse por su cuenta.
+// El resto (operario, coordinador, admin) se asignan internamente desde Usuarios.
+export const REQUESTABLE_ROLES: Extract<Role, "cliente" | "mensajero">[] = ["cliente", "mensajero"];
+
+// Catálogo inicial de tipos de negocio para clientes e-commerce (editable).
+export const BUSINESS_TYPES = [
+  "Moda / Ropa",
+  "Tecnología",
+  "Alimentos",
+  "Belleza y cuidado",
+  "Hogar",
+  "Accesorios",
+  "Otro",
+] as const;
+export type BusinessType = (typeof BUSINESS_TYPES)[number];

@@ -2,27 +2,60 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LoaderCircle, UserPlus } from "lucide-react";
+import { LoaderCircle, UserPlus, Store, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
+import { BUSINESS_TYPES } from "@/lib/constants";
+
+type RequestedRole = "cliente" | "mensajero";
 
 export default function RegisterPage() {
+  const [requestedRole, setRequestedRole] = useState<RequestedRole>("cliente");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Datos del negocio (solo cliente e-commerce)
+  const [businessType, setBusinessType] = useState<string>("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessNit, setBusinessNit] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const isClient = requestedRole === "cliente";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (isClient && !businessType) {
+      setError("Selecciona el tipo de negocio.");
+      return;
+    }
+
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: {
+          full_name: fullName,
+          phone: phone || null,
+          requested_role: requestedRole,
+          ...(isClient
+            ? {
+                business_type: businessType,
+                business_name: businessName,
+                business_nit: businessNit || null,
+                business_address: businessAddress || null,
+              }
+            : {}),
+        },
+      },
     });
     setLoading(false);
     if (error) {
@@ -32,8 +65,14 @@ export default function RegisterPage() {
     setDone(true);
   }
 
+  const fieldRow =
+    "flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors";
+  const fieldInput =
+    "flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white";
+  const fieldLabel = "w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0";
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 py-10 transition-colors duration-300">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <div className="mb-6">
@@ -41,7 +80,7 @@ export default function RegisterPage() {
           </div>
           {done ? (
             <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
-              ¡Cuenta creada!
+              ¡Solicitud enviada!
             </h1>
           ) : (
             <>
@@ -49,7 +88,7 @@ export default function RegisterPage() {
                 Crear cuenta
               </h1>
               <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400">
-                Un administrador activará tu rol después del registro
+                Administración verificará tus datos y aprobará tu acceso
               </p>
             </>
           )}
@@ -59,8 +98,12 @@ export default function RegisterPage() {
           {done ? (
             <div className="text-center space-y-8">
               <p className="text-[16px] leading-relaxed text-slate-500 dark:text-slate-400">
-                Si tu proyecto exige confirmación, revisa tu correo. Luego un
-                administrador de A Tiempo activará tu rol para que puedas operar.
+                Recibimos tu solicitud como{" "}
+                <strong className="text-slate-700 dark:text-slate-300">
+                  {isClient ? "Cliente e-commerce" : "Mensajero"}
+                </strong>
+                . Un administrador de A Tiempo verificará tus datos y activará tu
+                rol. Te avisaremos cuando puedas ingresar.
               </p>
               <Link
                 href="/login"
@@ -71,41 +114,142 @@ export default function RegisterPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Selector de rol solicitado */}
+              <div>
+                <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
+                  ¿Cómo te vas a registrar?
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(
+                    [
+                      { value: "cliente", label: "Cliente e-commerce", icon: Store },
+                      { value: "mensajero", label: "Mensajero", icon: Bike },
+                    ] as { value: RequestedRole; label: string; icon: typeof Store }[]
+                  ).map((opt) => {
+                    const selected = requestedRole === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setRequestedRole(opt.value)}
+                        className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-3 py-4 border transition-all active:scale-[0.98] ${
+                          selected
+                            ? "border-[#ff812c] bg-[#ff812c]/10 text-[#ff812c]"
+                            : "border-transparent bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-600 dark:text-slate-300 shadow-sm"
+                        }`}
+                      >
+                        <opt.icon className="w-6 h-6" />
+                        <span className="text-[14px] font-semibold leading-tight text-center">
+                          {opt.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Datos de la persona */}
               <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
-                  <label className="w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0">Nombre</label>
+                <div className={fieldRow}>
+                  <label className={fieldLabel}>Nombre</label>
                   <input
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                    className={fieldInput}
                     placeholder="Nombre y apellido"
                   />
                 </div>
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
-                  <label className="w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0">Correo</label>
+                <div className={fieldRow}>
+                  <label className={fieldLabel}>Teléfono</label>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={fieldInput}
+                    placeholder="3001234567"
+                  />
+                </div>
+                <div className={fieldRow}>
+                  <label className={fieldLabel}>Correo</label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                    className={fieldInput}
                     placeholder="tu@empresa.co"
                   />
                 </div>
-                <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
-                  <label className="w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0">Contraseña</label>
+                <div className={`${fieldRow} border-b-0`}>
+                  <label className={fieldLabel}>Contraseña</label>
                   <input
                     type="password"
                     required
                     minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                    className={fieldInput}
                     placeholder="Mínimo 8 caracteres"
                   />
                 </div>
               </div>
+
+              {/* Datos del negocio (solo cliente e-commerce) */}
+              {isClient && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
+                    Datos de tu negocio
+                  </p>
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                    <div className={fieldRow}>
+                      <label className={fieldLabel}>Tipo</label>
+                      <select
+                        required
+                        value={businessType}
+                        onChange={(e) => setBusinessType(e.target.value)}
+                        className={`${fieldInput} appearance-none cursor-pointer ${
+                          businessType ? "" : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      >
+                        <option value="">Selecciona el tipo de negocio…</option>
+                        {BUSINESS_TYPES.map((t) => (
+                          <option key={t} value={t} className="text-slate-900">
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className={fieldRow}>
+                      <label className={fieldLabel}>Comercio</label>
+                      <input
+                        required
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        className={fieldInput}
+                        placeholder="Razón social o marca"
+                      />
+                    </div>
+                    <div className={fieldRow}>
+                      <label className={fieldLabel}>NIT</label>
+                      <input
+                        value={businessNit}
+                        onChange={(e) => setBusinessNit(e.target.value)}
+                        className={fieldInput}
+                        placeholder="123456789-0 (opcional)"
+                      />
+                    </div>
+                    <div className={`${fieldRow} border-b-0`}>
+                      <label className={fieldLabel}>Dirección</label>
+                      <input
+                        value={businessAddress}
+                        onChange={(e) => setBusinessAddress(e.target.value)}
+                        className={fieldInput}
+                        placeholder="Dirección del comercio (opcional)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
@@ -125,7 +269,7 @@ export default function RegisterPage() {
                 ) : (
                   <UserPlus className="w-5 h-5 text-[#1C1C1E]" />
                 )}
-                <span>Registrarme</span>
+                <span>Enviar solicitud</span>
               </button>
 
               <p className="text-center text-[15px] text-slate-500 dark:text-slate-400">

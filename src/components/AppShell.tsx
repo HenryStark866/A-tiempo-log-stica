@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -59,6 +59,18 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [pendingRequests, setPendingRequests] = useState(0);
+
+  useEffect(() => {
+    if (profile.role !== "admin") return;
+    const supabase = createClient();
+    supabase
+      .from("at_profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "pendiente")
+      .not("requested_role", "is", null)
+      .then(({ count }) => setPendingRequests(count ?? 0));
+  }, [profile.role, pathname]);
 
   async function signOut() {
     const supabase = createClient();
@@ -128,7 +140,12 @@ export function AppShell({
                     )}
                   >
                     <item.icon className={cn("w-5 h-5 shrink-0", active && "text-[#ff812c]")} />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.href === "/usuarios" && pendingRequests > 0 && (
+                      <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#ff812c] text-white text-[11px] font-bold">
+                        {pendingRequests}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -172,12 +189,19 @@ export function AppShell({
                     href={item.href}
                     className="flex flex-col items-center justify-center min-w-[72px] h-full space-y-1 active:scale-95 transition-transform"
                   >
-                    <item.icon
-                      className={cn(
-                         "w-6 h-6",
-                        active ? "text-[#ff812c]" : "text-slate-400 dark:text-slate-500"
+                    <span className="relative">
+                      <item.icon
+                        className={cn(
+                           "w-6 h-6",
+                          active ? "text-[#ff812c]" : "text-slate-400 dark:text-slate-500"
+                        )}
+                      />
+                      {item.href === "/usuarios" && pendingRequests > 0 && (
+                        <span className="absolute -top-1 -right-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-[#ff812c] text-white text-[10px] font-bold leading-none">
+                          {pendingRequests}
+                        </span>
                       )}
-                    />
+                    </span>
                     <span
                       className={cn(
                         "text-[10px] font-medium tracking-wide",

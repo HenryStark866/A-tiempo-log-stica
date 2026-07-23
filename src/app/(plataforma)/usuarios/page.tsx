@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ShieldCheck, Loader2, Users, X } from "lucide-react";
+import { ShieldCheck, Loader2, Users, X, BellRing, Store, Bike, Check, Ban } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Pill } from "@/components/StatusBadge";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -16,6 +16,8 @@ export default function UsersPage() {
   const [form, setForm] = useState({ role: "pendiente", client_id: "", zone_id: "", active: true, max_capacity: 30 });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [reqError, setReqError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -26,20 +28,24 @@ export default function UsersPage() {
     setProfiles((data as Profile[]) ?? []);
   }, []);
 
+  const loadClients = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("at_clients").select("*").order("business_name");
+    setClients((data as Client[]) ?? []);
+  }, []);
+
   useEffect(() => {
     load();
+    loadClients();
     const supabase = createClient();
-    supabase
-      .from("at_clients")
-      .select("*")
-      .order("business_name")
-      .then(({ data }) => setClients((data as Client[]) ?? []));
     supabase
       .from("at_zones")
       .select("*")
       .order("name")
       .then(({ data }) => setZones((data as Zone[]) ?? []));
-  }, [load]);
+  }, [load, loadClients]);
+
+  const pending = (profiles ?? []).filter((p) => p.role === "pendiente" && p.requested_role);
 
   function openEdit(p: Profile) {
     setEditing(p);
@@ -51,6 +57,63 @@ export default function UsersPage() {
       active: p.active,
       max_capacity: p.max_capacity ?? 30,
     });
+  }
+
+  // ── Aprobar solicitud: asigna el rol pedido y, para cliente, crea su comercio ──
+  async function approve(p: Profile) {
+    setActingId(p.id);
+    setReqError(null);
+    const supabase = createClient();
+    try {
+      let clientId: string | null = null;
+      if (p.requested_role === "cliente") {
+        const { data, error } = await supabase
+          .from("at_clients")
+          .insert({
+            business_name: p.business_name?.trim() || p.full_name?.trim() || "Comercio sin nombre",
+            nit: p.business_nit?.trim() || null,
+            contact_name: p.full_name?.trim() || null,
+            phone: p.phone?.trim() || null,
+            address: p.business_address?.trim() || null,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        clientId = data.id;
+      }
+      const { error: upErr } = await supabase
+        .from("at_profiles")
+        .update({
+          role: p.requested_role as Role,
+          client_id: clientId,
+          active: true,
+          requested_role: null,
+        })
+        .eq("id", p.id);
+      if (upErr) throw upErr;
+      await Promise.all([load(), loadClients()]);
+    } catch (e: unknown) {
+      setReqError(e instanceof Error ? e.message : "No se pudo aprobar la solicitud");
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  // ── Rechazar solicitud: deja la cuenta inactiva y la saca de la cola ──
+  async function reject(p: Profile) {
+    setActingId(p.id);
+    setReqError(null);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("at_profiles")
+      .update({ active: false, requested_role: null })
+      .eq("id", p.id);
+    setActingId(null);
+    if (error) {
+      setReqError(error.message);
+      return;
+    }
+    load();
   }
 
   async function save(e: React.FormEvent) {
@@ -81,12 +144,104 @@ export default function UsersPage() {
   return (
     <div className="pb-10 space-y-6 font-sans">
       {/* Page Header */}
-      <div className="flex flex-col">
-        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Usuarios y roles</h1>
-        <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-          Activa cuentas nuevas y asigna roles operativos
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[24px] sm:text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Usuarios y roles</h1>
+          <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
+            Verifica solicitudes de registro y asigna roles operativos
+          </p>
+        </div>
+        {pending.length > 0 && (
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#ff812c]/10 text-[#ff812c] px-3.5 py-2 text-[13px] font-bold shrink-0">
+            <BellRing className="w-4 h-4" />
+            {pending.length} solicitud{pending.length !== 1 ? "es" : ""}
+          </div>
+        )}
       </div>
+
+      {/* ── Solicitudes pendientes de verificación ── */}
+      {pending.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-[13px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ml-1">
+            Solicitudes de registro
+          </h2>
+
+          {reqError && (
+            <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4 border border-rose-100 dark:border-rose-500/20">
+              <p className="text-[14px] text-rose-700 dark:text-rose-400 font-medium">{reqError}</p>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {pending.map((p) => {
+              const isClient = p.requested_role === "cliente";
+              const acting = actingId === p.id;
+              return (
+                <div
+                  key={p.id}
+                  className="bg-white dark:bg-[#2C2C2E] rounded-3xl shadow-sm p-5 flex flex-col gap-4 border border-[#ff812c]/20"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${isClient ? "bg-[#ff812c]/10 text-[#ff812c]" : "bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400"}`}>
+                      {isClient ? <Store className="w-5 h-5" /> : <Bike className="w-5 h-5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[16px] font-bold text-slate-900 dark:text-white truncate">
+                        {p.full_name || "(sin nombre)"}
+                      </p>
+                      <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                        Solicita: <span className="font-semibold">{ROLE_LABELS[p.requested_role as Role]}</span>
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0">
+                      {formatDate(p.created_at)}
+                    </span>
+                  </div>
+
+                  {/* Datos declarados */}
+                  <div className="rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-3.5 space-y-1.5 text-[13px]">
+                    {isClient ? (
+                      <>
+                        <Row label="Negocio" value={p.business_name} />
+                        <Row label="Tipo" value={p.business_type} />
+                        <Row label="NIT" value={p.business_nit} />
+                        <Row label="Dirección" value={p.business_address} />
+                        <Row label="Teléfono" value={p.phone} />
+                      </>
+                    ) : (
+                      <Row label="Teléfono" value={p.phone} />
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => reject(p)}
+                      disabled={acting}
+                      className="flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-slate-600 dark:text-slate-300 bg-[#F2F2F7] dark:bg-[#1C1C1E] hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      <Ban className="w-4 h-4" /> Rechazar
+                    </button>
+                    <button
+                      onClick={() => approve(p)}
+                      disabled={acting}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-bold text-[#1C1C1E] bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-95 transition-all disabled:opacity-60"
+                    >
+                      {acting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4" />
+                          {isClient ? "Aprobar y crear comercio" : "Aprobar"}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
         {profiles === null ? (
@@ -120,7 +275,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <Pill
-                        label={ROLE_LABELS[p.role]}
+                        label={p.role === "pendiente" && p.requested_role ? `Solicita ${ROLE_LABELS[p.requested_role]}` : ROLE_LABELS[p.role]}
                         tone={p.role === "pendiente" ? "amber" : p.role === "admin" ? "blue" : "slate"}
                       />
                     </td>
@@ -131,7 +286,7 @@ export default function UsersPage() {
                       {formatDate(p.created_at)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
+                      <button
                         onClick={() => openEdit(p)}
                         className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
                       >
@@ -149,14 +304,14 @@ export default function UsersPage() {
       {/* Action Modal (Apple HIG Style Bottom Sheet/Alert) */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
-            
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[92vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
               <div>
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate pr-4">Gestionar usuario</h3>
                 <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{editing.full_name || "Usuario"}</p>
               </div>
-              <button 
+              <button
                 type="button"
                 onClick={() => setEditing(null)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
@@ -166,6 +321,18 @@ export default function UsersPage() {
             </div>
 
             <form onSubmit={save} className="p-6 space-y-5">
+              {/* Datos declarados en la solicitud (contexto) */}
+              {editing.requested_role && (
+                <div className="rounded-2xl bg-[#ff812c]/10 border border-[#ff812c]/20 p-4 space-y-1.5">
+                  <p className="text-[12px] font-bold uppercase tracking-wide text-[#ff812c]">
+                    Solicitó registrarse como {ROLE_LABELS[editing.requested_role]}
+                  </p>
+                  {editing.business_name && <Row label="Negocio" value={editing.business_name} />}
+                  {editing.business_type && <Row label="Tipo" value={editing.business_type} />}
+                  {editing.business_nit && <Row label="NIT" value={editing.business_nit} />}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
                   Rol en la plataforma
@@ -186,7 +353,7 @@ export default function UsersPage() {
               {form.role === "cliente" && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                    Cliente e-commerce vinculado
+                    Comercio vinculado
                   </label>
                   <select
                     required
@@ -201,6 +368,9 @@ export default function UsersPage() {
                       </option>
                     ))}
                   </select>
+                  <p className="text-[12px] text-slate-400 dark:text-slate-500">
+                    Para clientes nuevos usa el botón “Aprobar y crear comercio” en la solicitud; el comercio se crea solo.
+                  </p>
                 </div>
               )}
 
@@ -273,6 +443,18 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Fila etiqueta/valor para los datos declarados
+function Row({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="text-slate-400 dark:text-slate-500 shrink-0 w-[70px]">{label}</span>
+      <span className="text-slate-700 dark:text-slate-200 font-medium break-words min-w-0">
+        {value?.trim() ? value : "—"}
+      </span>
     </div>
   );
 }

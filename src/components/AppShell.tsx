@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Banknote,
   Building2,
   Hourglass,
@@ -28,19 +29,40 @@ import type { Profile, Role } from "@/lib/types";
 interface NavItem {
   href: string;
   label: string;
+  /** Override label for specific roles (e.g. "cliente" sees "Mis envíos" instead of "Guías") */
+  labelByRole?: Partial<Record<Role, string>>;
   icon: React.ElementType;
   roles: Role[];
 }
 
+// ── Navegación estructurada por rol ────────────────────────────────────────
+// Cada rol ve EXACTAMENTE las herramientas de su función:
+//
+// 👑 Admin:        Dashboard → Guías → Recogidas → CEDI → Ruteo → Novedades → Recaudo → Facturación → Clientes → Usuarios
+// 🧭 Coordinador:  Dashboard → Guías → Recogidas → CEDI → Ruteo → Novedades → Recaudo → Facturación → Clientes
+// 🏭 Operario:     Dashboard → Guías → Recogidas → CEDI → Ruteo → Novedades
+// 🛵 Mensajero:    Mi ruta → Recaudo
+// 🛍️ Cliente:      Mi panel → Mis envíos → Mis recogidas → Mi facturación
+
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente"] },
-  { href: "/guias", label: "Guías", icon: Package, roles: ["admin", "coordinador", "operario", "cliente"] },
-  { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente"] },
+  // ── Dashboards (por rol) ────────────────────────────────────────────────
+  { href: "/dashboard", label: "Dashboard", labelByRole: { cliente: "Mi panel" }, icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "cliente"] },
+
+  // ── Flujo operativo (staff) ─────────────────────────────────────────────
+  { href: "/guias", label: "Guías", labelByRole: { cliente: "Mis envíos" }, icon: Package, roles: ["admin", "coordinador", "operario", "cliente"] },
+  { href: "/recogidas", label: "Recogidas", labelByRole: { cliente: "Mis recogidas" }, icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente"] },
   { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario"] },
   { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario"] },
+  { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
+
+  // ── Mensajero (su mundo) ────────────────────────────────────────────────
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
-  { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
-  { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
+
+  // ── Financiero ──────────────────────────────────────────────────────────
+  { href: "/recaudo", label: "Recaudo", labelByRole: { mensajero: "Mi caja" }, icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
+  { href: "/facturacion", label: "Facturación", labelByRole: { cliente: "Mi facturación" }, icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
+
+  // ── Administración ──────────────────────────────────────────────────────
   { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador"] },
   { href: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
 ];
@@ -88,6 +110,7 @@ export function AppShell({
   }
 
   const items = NAV.filter((i) => i.roles.includes(profile.role));
+  const getLabel = (item: NavItem) => item.labelByRole?.[profile.role] ?? item.label;
 
   return (
     <ProfileProvider profile={profile}>
@@ -95,20 +118,18 @@ export function AppShell({
           
           {/* Top Header (Mobile Only) */}
           <header className="md:hidden flex items-center justify-between px-6 py-4 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-200/60 dark:border-gray-800/60">
-            <div className="flex items-center gap-2">
-              <Truck className="w-6 h-6 text-[#10B981]" />
-              <span className="font-bold text-[18px] tracking-tight text-slate-900 dark:text-white">ATL</span>
-            </div>
+            <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex items-center gap-2">
+              <img src="/logo-atiempo.svg" alt="A Tiempo Logística" className="h-8 w-auto" />
+            </Link>
             <ThemeToggle />
           </header>
 
           {/* Desktop Left Sidebar */}
           <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
-            <div className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Truck className="w-7 h-7 text-[#10B981]" />
-                <span className="font-bold text-[22px] tracking-tight text-slate-900 dark:text-white">ATL</span>
-              </div>
+            <div className="p-5 flex items-center justify-between border-b border-gray-100 dark:border-gray-800/80 mb-2">
+              <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex items-center gap-2">
+                <img src="/logo-atiempo.svg" alt="A Tiempo Logística" className="h-10 w-auto" />
+              </Link>
               <ThemeToggle />
             </div>
 
@@ -127,7 +148,7 @@ export function AppShell({
                     )}
                   >
                     <item.icon className={cn("w-5 h-5 shrink-0", active && "text-[#ff812c]")} />
-                    {item.label}
+                    {getLabel(item)}
                   </Link>
                 );
               })}
@@ -183,7 +204,7 @@ export function AppShell({
                         active ? "text-[#ff812c]" : "text-slate-500 dark:text-slate-400"
                       )}
                     >
-                      {item.label}
+                      {getLabel(item)}
                     </span>
                   </Link>
                 );

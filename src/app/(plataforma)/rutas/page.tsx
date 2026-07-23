@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Route as RouteIcon, Map, Truck, Loader2 } from "lucide-react";
+import { Route as RouteIcon, Map, Truck, Loader2, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCOP } from "@/lib/utils";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
@@ -29,6 +29,7 @@ export default function RoutesPage() {
   const [active, setActive] = useState<Guide[] | null>(null);
   const [couriers, setCouriers] = useState<Profile[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
+  const [courierLoad, setCourierLoad] = useState<Record<string, number>>({});
   const [sel, setSel] = useState<Record<string, { courier_id: string; zone_id: string }>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,6 +50,12 @@ export default function RoutesPage() {
     ]);
     setPending((p as Guide[]) ?? []);
     setActive((a as Guide[]) ?? []);
+
+    const counts: Record<string, number> = {};
+    for (const g of (a as Guide[]) ?? []) {
+      if (g.courier_id) counts[g.courier_id] = (counts[g.courier_id] ?? 0) + 1;
+    }
+    setCourierLoad(counts);
   }, []);
 
   useEffect(() => {
@@ -147,11 +154,15 @@ export default function RoutesPage() {
                           className="w-full bg-transparent text-[15px] text-slate-900 dark:text-white focus:outline-none appearance-none"
                         >
                           <option value="" className="text-slate-500 dark:text-slate-400">Mensajero…</option>
-                          {couriers.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.full_name}
-                            </option>
-                          ))}
+                          {couriers.map((c) => {
+                            const load = courierLoad[c.id] ?? 0;
+                            const atLimit = load >= c.max_capacity;
+                            return (
+                              <option key={c.id} value={c.id}>
+                                {c.full_name} ({load}/{c.max_capacity}{atLimit ? " · al límite" : ""})
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                       <div className="flex-1 bg-transparent dark:bg-[#3A3A3C] border border-slate-300 dark:border-slate-500 rounded-lg overflow-hidden min-h-[48px] flex items-center px-3 focus-within:border-[#ff812c] transition-colors">
@@ -182,6 +193,14 @@ export default function RoutesPage() {
                         <span>Asignar</span>
                       </button>
                     </div>
+                    {sel[g.id]?.courier_id &&
+                      (courierLoad[sel[g.id].courier_id] ?? 0) >=
+                        (couriers.find((c) => c.id === sel[g.id].courier_id)?.max_capacity ?? Infinity) && (
+                        <p className="flex items-center gap-1.5 text-[13px] font-medium text-amber-600 dark:text-amber-400">
+                          <TriangleAlert className="w-3.5 h-3.5 shrink-0" />
+                          Este mensajero ya está en su capacidad máxima. Puedes asignar igual, pero revisa su carga.
+                        </p>
+                      )}
                   </li>
                 ))}
               </ul>

@@ -13,7 +13,7 @@ export default function UsersPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [editing, setEditing] = useState<Profile | null>(null);
-  const [form, setForm] = useState({ role: "pendiente", client_id: "", zone_id: "", active: true });
+  const [form, setForm] = useState({ role: "pendiente", client_id: "", zone_id: "", active: true, max_capacity: 30 });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -49,6 +49,7 @@ export default function UsersPage() {
       client_id: p.client_id ?? "",
       zone_id: p.zone_id ?? "",
       active: p.active,
+      max_capacity: p.max_capacity ?? 30,
     });
   }
 
@@ -65,6 +66,7 @@ export default function UsersPage() {
         client_id: form.role === "cliente" ? form.client_id || null : null,
         zone_id: form.role === "mensajero" ? form.zone_id || null : null,
         active: form.active,
+        max_capacity: form.role === "mensajero" ? form.max_capacity : editing.max_capacity,
       })
       .eq("id", editing.id);
     setBusy(false);
@@ -219,6 +221,17 @@ export default function UsersPage() {
                       </option>
                     ))}
                   </select>
+
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white block mt-4">
+                    Capacidad máxima (paquetes simultáneos en ruta)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.max_capacity}
+                    onChange={(e) => setForm((f) => ({ ...f, max_capacity: Math.max(1, Number(e.target.value) || 1) }))}
+                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  />
                 </div>
               )}
 

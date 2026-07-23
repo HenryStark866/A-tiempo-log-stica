@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  Camera,
   CheckCircle2,
   Circle,
   ExternalLink,
@@ -15,11 +16,12 @@ import { PageHeader, Card, Loading, Button, Modal, Field, inputCls } from "@/com
 import { StatusBadge } from "@/components/StatusBadge";
 import { GUIDE_STATUS_LABELS, OPS_ROLES } from "@/lib/constants";
 import { formatCOP, formatDateTime } from "@/lib/utils";
+import { uploadDeliveryEvidence } from "@/lib/evidence";
 import type { Guide, GuideEvent, GuideStatus, Profile, Zone } from "@/lib/types";
 
 // Acciones disponibles según estado y rol (la BD valida de nuevo en el RPC)
 function actionsFor(guide: Guide, role: string, userId: string) {
-  const acts: { to: GuideStatus; label: string; needsNote?: boolean }[] = [];
+  const acts: { to: GuideStatus; label: string; needsNote?: boolean; needsEvidence?: boolean }[] = [];
   const isOps = OPS_ROLES.includes(role as never);
   const isOp = role === "operario" || isOps;
   const isMyCourier = role === "mensajero" && guide.courier_id === userId;
@@ -37,7 +39,7 @@ function actionsFor(guide: Guide, role: string, userId: string) {
       break;
     case "en_ruta":
       if (isMyCourier || isOps) {
-        acts.push({ to: "entregada", label: "Marcar entregada" });
+        acts.push({ to: "entregada", label: "Marcar entregada", needsEvidence: true });
         acts.push({ to: "novedad", label: "Reportar novedad", needsNote: true });
       }
       break;
@@ -57,6 +59,10 @@ export default function GuideDetailPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [noteModal, setNoteModal] = useState<{ to: GuideStatus; label: string } | null>(null);
   const [note, setNote] = useState("");
+  const [deliveryModal, setDeliveryModal] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [assign, setAssign] = useState({ courier_id: "", zone_id: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -113,6 +119,40 @@ export default function GuideDetailPage() {
     setNoteModal(null);
     setNote("");
     load();
+  }
+
+  async function confirmDelivery() {
+    setBusy(true);
+    setError(null);
+    try {
+      let evidenceUrl: string | null = null;
+      if (evidenceFile) {
+        setUploading(true);
+        evidenceUrl = await uploadDeliveryEvidence(id, evidenceFile);
+        setUploading(false);
+      }
+      const supabase = createClient();
+      const { error } = await supabase.rpc("at_confirm_delivery", {
+        p_guide_id: id,
+        p_evidence_url: evidenceUrl,
+        p_signature_name: signatureName || null,
+        p_note: note || null,
+      });
+      if (error) {
+        setError(error.message);
+      } else {
+        setDeliveryModal(false);
+        setNote("");
+        setSignatureName("");
+        setEvidenceFile(null);
+        load();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo subir la evidencia");
+    } finally {
+      setUploading(false);
+      setBusy(false);
+    }
   }
 
   async function processReturn() {
@@ -219,6 +259,26 @@ export default function GuideDetailPage() {
                   <dd className="text-slate-700">{guide.notes}</dd>
                 </div>
               )}
+              {(guide.delivery_evidence_url || guide.delivery_signature_name) && (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-400">Evidencia de entrega</dt>
+                  {guide.delivery_signature_name && (
+                    <dd className="font-medium text-navy-900">Recibió: {guide.delivery_signature_name}</dd>
+                  )}
+                  {guide.delivery_evidence_url && (
+                    <dd>
+                      <a
+                        href={guide.delivery_evidence_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline"
+                      >
+                        Ver foto <ExternalLink className="size-3.5" />
+                      </a>
+                    </dd>
+                  )}
+                </div>
+              )}
             </dl>
           </Card>
 
@@ -287,7 +347,11 @@ export default function GuideDetailPage() {
                     variant={a.to === "cancelada" || a.to === "novedad" ? "danger" : "primary"}
                     disabled={busy}
                     onClick={() =>
-                      a.needsNote ? setNoteModal({ to: a.to, label: a.label }) : changeStatus(a.to)
+                      a.needsEvidence
+                        ? setDeliveryModal(true)
+                        : a.needsNote
+                        ? setNoteModal({ to: a.to, label: a.label })
+                        : changeStatus(a.to)
                     }
                   >
                     {a.label}
@@ -350,6 +414,70 @@ export default function GuideDetailPage() {
             </Button>
             <Button disabled={busy || !note.trim()} onClick={() => changeStatus(noteModal.to, note)}>
               Confirmar
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {deliveryModal && guide && (
+        <Modal
+          title="Confirmar entrega"
+          onClose={() => {
+            setDeliveryModal(false);
+            setEvidenceFile(null);
+            setSignatureName("");
+            setNote("");
+          }}
+        >
+          {guide.is_cod && (
+            <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+              Contraentrega: la foto de evidencia es obligatoria. Recaudo {formatCOP(guide.cod_amount)}.
+            </p>
+          )}
+          <Field label={`Foto de evidencia ${guide.is_cod ? "*" : "(opcional)"}`}>
+            <label className={inputCls + " flex items-center gap-2 cursor-pointer"}>
+              <Camera className="size-4 shrink-0 text-brand-600" />
+              <span className="truncate">{evidenceFile ? evidenceFile.name : "Adjuntar foto del paquete entregado"}</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          </Field>
+          <Field label="Nombre de quien recibe (opcional)">
+            <input
+              value={signatureName}
+              onChange={(e) => setSignatureName(e.target.value)}
+              className={inputCls}
+              placeholder="Ej: Carlos Restrepo (portero)"
+            />
+          </Field>
+          <Field label="Observación (opcional)">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className={inputCls}
+              rows={2}
+            />
+          </Field>
+          {error && <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+          <div className="mt-4 flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDeliveryModal(false);
+                setEvidenceFile(null);
+                setSignatureName("");
+                setNote("");
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={busy || (guide.is_cod && !evidenceFile)} onClick={confirmDelivery}>
+              {uploading ? "Subiendo…" : "Confirmar"}
             </Button>
           </div>
         </Modal>

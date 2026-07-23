@@ -31,6 +31,7 @@ export interface Profile {
   role: Role;
   client_id: string | null;
   zone_id: string | null;
+  max_capacity: number;
   active: boolean;
   created_at: string;
 }
@@ -67,6 +68,7 @@ export interface Pickup {
   notes: string | null;
   status: PickupStatus;
   operator_id: string | null;
+  package_count: number | null;
   requested_at: string;
   completed_at: string | null;
   at_clients?: { business_name: string } | null;
@@ -95,6 +97,8 @@ export interface Guide {
   received_cedi_at: string | null;
   delivered_at: string | null;
   returned_at: string | null;
+  delivery_evidence_url: string | null;
+  delivery_signature_name: string | null;
   notes: string | null;
   created_at: string;
   at_clients?: { business_name: string } | null;

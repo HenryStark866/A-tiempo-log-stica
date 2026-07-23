@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
+import { Camera, CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatCOP } from "@/lib/utils";
+import { uploadDeliveryEvidence } from "@/lib/evidence";
 import {
   NAV_HANDOFF_ENABLED,
   NAV_PROVIDER_LABELS,
@@ -23,9 +24,19 @@ export default function MyRoutePage() {
   const [guides, setGuides] = useState<Guide[] | null>(null);
   const [modal, setModal] = useState<{ guide: Guide; action: "entregada" | "novedad" } | null>(null);
   const [note, setNote] = useState("");
+  const [signatureName, setSignatureName] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [navProvider, setNavProvider] = useState<NavProvider | null>(null);
+
+  function closeModal() {
+    setModal(null);
+    setNote("");
+    setSignatureName("");
+    setEvidenceFile(null);
+  }
 
   useEffect(() => {
     setNavProvider(getNavProvider());
@@ -115,28 +126,58 @@ export default function MyRoutePage() {
 
   async function confirmModalAction() {
     if (!modal) return;
-    const isDelivery = modal.action === "entregada";
-    // Siguiente parada pendiente en el orden de la ruta, excluyendo la actual
-    const next = isDelivery ? enRuta.filter((x) => x.id !== modal.guide.id)[0] ?? null : null;
-    const w = isDelivery && next ? openNavWindow() : null;
+
+    if (modal.action === "novedad") {
+      setBusy(true);
+      setMsg(null);
+      const supabase = createClient();
+      const { error } = await supabase.rpc("at_change_guide_status", {
+        p_guide_id: modal.guide.id,
+        p_new_status: "novedad",
+        p_note: note || null,
+      });
+      setBusy(false);
+      if (error) setMsg(error.message);
+      closeModal();
+      load();
+      return;
+    }
+
+    // Entrega: sube evidencia primero (si hay foto) y confirma con el RPC dedicado,
+    // que exige la foto cuando la guía es contraentrega.
+    const next = enRuta.filter((x) => x.id !== modal.guide.id)[0] ?? null;
+    const w = next ? openNavWindow() : null;
     setBusy(true);
     setMsg(null);
-    const supabase = createClient();
-    const { error } = await supabase.rpc("at_change_guide_status", {
-      p_guide_id: modal.guide.id,
-      p_new_status: modal.action,
-      p_note: note || null,
-    });
-    setBusy(false);
-    if (error) {
+    try {
+      let evidenceUrl: string | null = null;
+      if (evidenceFile) {
+        setUploading(true);
+        evidenceUrl = await uploadDeliveryEvidence(modal.guide.id, evidenceFile);
+        setUploading(false);
+      }
+      const supabase = createClient();
+      const { error } = await supabase.rpc("at_confirm_delivery", {
+        p_guide_id: modal.guide.id,
+        p_evidence_url: evidenceUrl,
+        p_signature_name: signatureName || null,
+        p_note: note || null,
+      });
+      if (error) {
+        navigateTo(w, null);
+        setMsg(error.message);
+      } else {
+        navigateTo(w, next);
+        closeModal();
+      }
+    } catch (err) {
       navigateTo(w, null);
-      setMsg(error.message);
-    } else {
-      navigateTo(w, next);
+      setMsg(err instanceof Error ? err.message : "No se pudo subir la evidencia");
+    } finally {
+      setUploading(false);
+      setBusy(false);
+      load();
     }
-    setModal(null);
-    setNote("");
-    load();
   }
 
   return (
@@ -325,8 +366,8 @@ export default function MyRoutePage() {
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate pr-4">
                 {modal.action === "entregada" ? "Confirmar entrega" : "Reportar novedad"}
               </h3>
-              <button 
-                onClick={() => setModal(null)}
+              <button
+                onClick={closeModal}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
@@ -343,6 +384,41 @@ export default function MyRoutePage() {
                   <p className="text-[15px] font-bold text-amber-800 dark:text-amber-500 leading-snug">
                     Esta guía es contraentrega. Confirma el recaudo de {formatCOP(modal.guide.cod_amount)} (efectivo o digital).
                   </p>
+                </div>
+              )}
+
+              {modal.action === "entregada" && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                      Foto de evidencia {modal.guide.is_cod && <span className="text-rose-500">*</span>}
+                    </label>
+                    <label className="flex items-center gap-3 min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] cursor-pointer active:opacity-80 transition-opacity">
+                      <Camera className="w-5 h-5 text-[#ff812c] shrink-0" />
+                      <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">
+                        {evidenceFile ? evidenceFile.name : "Tomar o adjuntar foto del paquete entregado"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                      Nombre de quien recibe (opcional)
+                    </label>
+                    <input
+                      value={signatureName}
+                      onChange={(e) => setSignatureName(e.target.value)}
+                      placeholder="Ej: Carlos Restrepo (portero)"
+                      className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -366,17 +442,21 @@ export default function MyRoutePage() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setModal(null)}
+                  onClick={closeModal}
                   className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>
                 <button
-                  disabled={busy || (modal.action === "novedad" && !note.trim())}
+                  disabled={
+                    busy ||
+                    (modal.action === "novedad" && !note.trim()) ||
+                    (modal.action === "entregada" && modal.guide.is_cod && !evidenceFile)
+                  }
                   onClick={confirmModalAction}
                   className="flex-1 min-h-[52px] rounded-2xl font-bold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center"
                 >
-                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirmar"}
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : uploading ? "Subiendo…" : "Confirmar"}
                 </button>
               </div>
             </div>

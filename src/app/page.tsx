@@ -51,7 +51,7 @@ export default function LandingPage() {
 
       {/* Welcoming Header */}
       <header className="px-6 py-10 flex flex-col items-center text-center bg-[#FFFFFF] dark:bg-[#2C2C2E] shadow-sm rounded-b-[32px] mb-10 transition-colors duration-300">
-        <Logo />
+        <Logo variant="vertical" className="mb-2 scale-110" />
         <h1 className="mt-6 text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Bienvenido a ATL</h1>
         <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
           Tu paquete a tiempo y con trazabilidad de punta a punta.

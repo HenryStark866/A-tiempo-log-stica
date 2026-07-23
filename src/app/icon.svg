@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-14 8 200 160" fill="none" stroke="#ff812c" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Estela de velocidad -->
+  <line x1="-8" y1="100" x2="56" y2="100" stroke-width="14"/>
+  <line x1="10" y1="80" x2="52" y2="80" stroke-width="12" stroke-opacity="0.85"/>
+  <line x1="10" y1="120" x2="52" y2="120" stroke-width="12" stroke-opacity="0.85"/>
+  <!-- Bisel exterior, abierto por la izquierda -->
+  <path d="M 63.62 79.48 A 60 60 0 1 1 63.62 120.52" stroke-width="13"/>
+  <!-- Corona / botón superior -->
+  <line x1="120" y1="40" x2="120" y2="26" stroke-width="9"/>
+  <line x1="105" y1="19" x2="135" y2="19" stroke-width="11"/>
+  <!-- Manecillas -->
+  <line x1="120" y1="100" x2="124" y2="66" stroke-width="9"/>
+  <line x1="120" y1="100" x2="158" y2="70" stroke-width="7"/>
+  <!-- Pivote -->
+  <circle cx="120" cy="100" r="8" fill="#ff812c" stroke="none"/>
+</svg>

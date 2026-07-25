@@ -6,12 +6,20 @@
 export type CsvRow = Record<string, string>;
 
 /** Campos que la app necesita para poder crear una guía. */
-export type RecipientField = "full_name" | "phone" | "address" | "city" | "external_id" | "notes";
+export type RecipientField =
+  | "full_name"
+  | "phone"
+  | "address"
+  | "address_2"
+  | "city"
+  | "external_id"
+  | "notes";
 
 export const RECIPIENT_FIELD_LABELS: Record<RecipientField, string> = {
   full_name: "Nombre del destinatario",
   phone: "Teléfono",
   address: "Dirección",
+  address_2: "Complemento (apto, barrio, torre)",
   city: "Ciudad",
   external_id: "ID en tu sistema",
   notes: "Notas",
@@ -20,14 +28,36 @@ export const RECIPIENT_FIELD_LABELS: Record<RecipientField, string> = {
 export const REQUIRED_FIELDS: RecipientField[] = ["full_name", "address"];
 
 // Encabezados que se ven en exportaciones reales, normalizados (sin tildes).
+//
+// external_id NO se adivina a propósito. Adivinarlo causó un daño real: en una
+// importación, una columna con la segunda mitad de la dirección ("apt 1510 unidad
+// reserva del parque") se mapeó a ID por coincidir con la pista "id", y esas
+// direcciones quedaron truncadas. Si alguien necesita el ID, lo elige a mano.
 const HEADER_HINTS: Record<RecipientField, string[]> = {
   full_name: ["nombre", "nombre completo", "destinatario", "cliente", "name", "full name", "customer", "shipping name", "comprador"],
   phone: ["telefono", "celular", "movil", "phone", "mobile", "shipping phone", "contacto"],
-  address: ["direccion", "dir", "address", "shipping address", "address1", "direccion de envio"],
+  address: ["direccion", "dir", "address", "shipping address", "address1", "direccion de envio", "direccion 1"],
+  address_2: ["complemento", "direccion 2", "address2", "shipping address2", "barrio", "apto", "apartamento", "detalle", "referencia de direccion"],
   city: ["ciudad", "municipio", "city", "shipping city", "localidad"],
-  external_id: ["id", "codigo", "external id", "customer id", "order id", "pedido", "referencia"],
+  external_id: [],
   notes: ["notas", "nota", "observaciones", "comentarios", "notes", "note"],
 };
+
+/**
+ * Decodifica el archivo tolerando la codificación con que lo exportó el cliente.
+ *
+ * Excel en español guarda CSV en ANSI (Windows-1252) por defecto, no en UTF-8.
+ * Leerlo como UTF-8 destruye tildes y ñ: una importación real dejó guardado
+ * "santa M?nica" en vez de "santa Mónica". Se intenta UTF-8 estricto y, si el
+ * archivo no es UTF-8 válido, se reintenta como Windows-1252.
+ */
+export function decodeCsvBytes(bytes: ArrayBuffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
 
 export function normalizeHeader(h: string): string {
   return h
@@ -140,6 +170,7 @@ export function guessMapping(headers: string[]): Partial<Record<RecipientField, 
 
   for (const field of Object.keys(HEADER_HINTS) as RecipientField[]) {
     const hints = HEADER_HINTS[field];
+    if (hints.length === 0) continue; // external_id: nunca se adivina
     const exact = normalized.find((h) => !used.has(h.raw) && hints.includes(h.norm));
     if (exact) {
       mapping[field] = exact.raw;
@@ -157,7 +188,11 @@ export function guessMapping(headers: string[]): Partial<Record<RecipientField, 
   return mapping;
 }
 
-/** Convierte las filas del archivo al payload que espera at_sync_recipients. */
+/**
+ * Convierte las filas del archivo al payload que espera at_sync_recipients.
+ * El complemento se pega a la dirección: al mensajero le sirve la dirección
+ * completa en un solo campo, no partida en dos columnas.
+ */
 export function toRecipientPayload(
   rows: CsvRow[],
   mapping: Partial<Record<RecipientField, string>>
@@ -165,8 +200,15 @@ export function toRecipientPayload(
   return rows.map((row) => {
     const out: Record<string, string> = {};
     for (const field of Object.keys(RECIPIENT_FIELD_LABELS) as RecipientField[]) {
+      if (field === "address_2") continue; // se fusiona abajo
       const col = mapping[field];
       if (col && row[col]) out[field] = row[col];
+    }
+
+    const compCol = mapping.address_2;
+    const complemento = compCol ? (row[compCol] ?? "").trim() : "";
+    if (complemento) {
+      out.address = out.address ? `${out.address} ${complemento}` : complemento;
     }
     return out;
   });

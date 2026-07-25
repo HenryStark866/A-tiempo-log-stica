@@ -59,44 +59,27 @@ export default function UsersPage() {
     });
   }
 
-  // ── Aprobar solicitud: asigna el rol pedido y, para cliente, crea su comercio ──
+  // ── Aprobar solicitud: solo asigna el rol ──
+  // Si el rol es cliente, el trigger at_profiles_autoclient crea su comercio y lo
+  // enlaza en el mismo movimiento: aquí no se toca at_clients ni client_id.
   async function approve(p: Profile) {
     setActingId(p.id);
     setReqError(null);
     const supabase = createClient();
-    try {
-      let clientId: string | null = null;
-      if (p.requested_role === "cliente") {
-        const { data, error } = await supabase
-          .from("at_clients")
-          .insert({
-            business_name: p.business_name?.trim() || p.full_name?.trim() || "Comercio sin nombre",
-            nit: p.business_nit?.trim() || null,
-            contact_name: p.full_name?.trim() || null,
-            phone: p.phone?.trim() || null,
-            address: p.business_address?.trim() || null,
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        clientId = data.id;
-      }
-      const { error: upErr } = await supabase
-        .from("at_profiles")
-        .update({
-          role: p.requested_role as Role,
-          client_id: clientId,
-          active: true,
-          requested_role: null,
-        })
-        .eq("id", p.id);
-      if (upErr) throw upErr;
-      await Promise.all([load(), loadClients()]);
-    } catch (e: unknown) {
-      setReqError(e instanceof Error ? e.message : "No se pudo aprobar la solicitud");
-    } finally {
-      setActingId(null);
+    const { error } = await supabase
+      .from("at_profiles")
+      .update({
+        role: p.requested_role as Role,
+        active: true,
+        requested_role: null,
+      })
+      .eq("id", p.id);
+    setActingId(null);
+    if (error) {
+      setReqError(error.message);
+      return;
     }
+    await Promise.all([load(), loadClients()]);
   }
 
   // ── Rechazar solicitud: deja la cuenta inactiva y la saca de la cola ──
@@ -126,7 +109,9 @@ export default function UsersPage() {
       .from("at_profiles")
       .update({
         role: form.role as Role,
-        client_id: form.role === "cliente" ? form.client_id || null : null,
+        // client_id no se envía: lo resuelve el trigger at_profiles_autoclient
+        // cuando el rol pasa a cliente, y se limpia cuando deja de serlo.
+        client_id: form.role === "cliente" ? editing.client_id : null,
         zone_id: form.role === "mensajero" ? form.zone_id || null : null,
         active: form.active,
         max_capacity: form.role === "mensajero" ? form.max_capacity : editing.max_capacity,
@@ -231,7 +216,7 @@ export default function UsersPage() {
                       ) : (
                         <>
                           <Check className="w-4 h-4" />
-                          {isClient ? "Aprobar y crear comercio" : "Aprobar"}
+                          Aprobar
                         </>
                       )}
                     </button>
@@ -351,25 +336,11 @@ export default function UsersPage() {
               </div>
 
               {form.role === "cliente" && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                    Comercio vinculado
-                  </label>
-                  <select
-                    required
-                    value={form.client_id}
-                    onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="">Selecciona…</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.business_name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[12px] text-slate-400 dark:text-slate-500">
-                    Para clientes nuevos usa el botón “Aprobar y crear comercio” en la solicitud; el comercio se crea solo.
+                <div className="rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Store className="w-5 h-5 text-[#ff812c] shrink-0 mt-0.5" />
+                  <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
+                    Todo usuario con rol cliente <strong>es</strong> un e-commerce: su comercio se
+                    crea automáticamente y aparece en la lista de Clientes. No hay que vincular nada.
                   </p>
                 </div>
               )}

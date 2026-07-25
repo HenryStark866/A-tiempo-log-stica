@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
 import {
   parseCsv,
+  decodeCsvBytes,
   guessMapping,
   toRecipientPayload,
   RECIPIENT_FIELD_LABELS,
@@ -28,9 +29,9 @@ import type { Recipient, SyncRecipientsResult } from "@/lib/types";
 const CHUNK = 400; // filas por llamada, para no mandar un payload gigante
 
 const PLANTILLA = [
-  "nombre,telefono,direccion,ciudad,id,notas",
-  "María Restrepo,3001234567,Cra 43 #10-25 apto 501,Envigado,CLI-001,Portería entrega",
-  "Juan Osorio,3109876543,Cl 50 #38-14,Medellín,CLI-002,",
+  "nombre,telefono,direccion,complemento,ciudad,notas",
+  '"María Restrepo",3001234567,"Cra 43 #10-25","apto 501 torre 2",Envigado,"Dejar en portería"',
+  '"Juan Osorio",3109876543,"Cl 50 #38-14","barrio Castilla",Medellín,',
 ].join("\n");
 
 export default function RecipientsPage() {
@@ -76,7 +77,10 @@ export default function RecipientsPage() {
     setResult(null);
     const reader = new FileReader();
     reader.onload = () => {
-      const { headers: h, rows: r } = parseCsv(String(reader.result ?? ""));
+      // Se decodifica desde bytes: Excel en español exporta ANSI, no UTF-8, y
+      // leerlo como UTF-8 destruye tildes y ñ.
+      const texto = decodeCsvBytes(reader.result as ArrayBuffer);
+      const { headers: h, rows: r } = parseCsv(texto);
       if (h.length === 0 || r.length === 0) {
         setError("El archivo no tiene filas legibles. Revisa que sea un CSV con encabezados.");
         setHeaders([]);
@@ -89,8 +93,7 @@ export default function RecipientsPage() {
       setMapping(guessMapping(h));
     };
     reader.onerror = () => setError("No se pudo leer el archivo.");
-    // UTF-8 cubre exportaciones modernas; Excel viejo en latin1 puede perder tildes.
-    reader.readAsText(file, "UTF-8");
+    reader.readAsArrayBuffer(file);
   }
 
   const faltantes = REQUIRED_FIELDS.filter((f) => !mapping[f]);
@@ -288,7 +291,12 @@ export default function RecipientsPage() {
                       <tr key={i}>
                         <td className="px-4 py-2.5 text-slate-900 dark:text-white">{mapping.full_name ? r[mapping.full_name] : "—"}</td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{mapping.phone ? r[mapping.phone] || "—" : "—"}</td>
-                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{mapping.address ? r[mapping.address] : "—"}</td>
+                        {/* Muestra la dirección ya fusionada con el complemento: es lo que se va a guardar. */}
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">
+                          {[mapping.address ? r[mapping.address] : "", mapping.address_2 ? r[mapping.address_2] : ""]
+                            .filter(Boolean)
+                            .join(" ") || "—"}
+                        </td>
                         <td className="px-4 py-2.5 text-slate-600 dark:text-slate-400">{mapping.city ? r[mapping.city] || "Medellín" : "Medellín"}</td>
                       </tr>
                     ))}

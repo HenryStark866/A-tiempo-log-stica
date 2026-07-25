@@ -199,6 +199,28 @@ export interface InvoiceItem {
   amount: number;
 }
 
+/** Envío activo visto por el e-commerce (retorno de at_my_shipments). */
+export interface Shipment {
+  id: string;
+  guide_number: string;
+  status: GuideStatus;
+  recipient_name: string;
+  recipient_address: string;
+  recipient_city: string;
+  is_cod: boolean;
+  cod_amount: number;
+  delivery_attempts: number;
+  created_at: string;
+  delivered_at: string | null;
+  zone_name: string | null;
+  delivery_rate: number | null;
+  courier_name: string | null;
+  /** Solo llega con valor mientras la guía está en_ruta. */
+  courier_lat: number | null;
+  courier_lng: number | null;
+  courier_position_at: string | null;
+}
+
 export interface DashboardKpis {
   by_status: Partial<Record<GuideStatus, number>>;
   guides_today: number;

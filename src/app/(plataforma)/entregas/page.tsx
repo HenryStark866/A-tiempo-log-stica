@@ -6,6 +6,7 @@ import { Camera, CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAl
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { StatusBadge } from "@/components/StatusBadge";
+import { PositionReporter } from "@/components/PositionReporter";
 import { formatCOP } from "@/lib/utils";
 import { uploadDeliveryEvidence } from "@/lib/evidence";
 import {
@@ -189,6 +190,9 @@ export default function MyRoutePage() {
           Fase 4: gestión de ruta en última milla — tu carga digital del día
         </p>
       </div>
+
+      {/* Ubicación en vivo para que el comercio pueda seguir su paquete */}
+      <PositionReporter />
 
       {NAV_HANDOFF_ENABLED && (
         <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-4 sm:p-5 shadow-sm transition-colors duration-300 flex flex-col sm:flex-row sm:items-center gap-4">

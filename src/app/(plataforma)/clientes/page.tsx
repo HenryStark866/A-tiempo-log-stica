@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Pencil, Plus, Store } from "lucide-react";
+import { Pencil, Sparkles, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Pill } from "@/components/StatusBadge";
 import { useProfile } from "@/components/ProfileContext";
@@ -27,7 +27,8 @@ export default function ClientsPage() {
   // ya existente solo los toca ops (impactan facturación). Ver migración 0007.
   const canEdit = profile.role !== "mensajero";
   const [clients, setClients] = useState<Client[] | null>(null);
-  const [editing, setEditing] = useState<Client | "new" | null>(null);
+  // Solo edición: la creación desapareció, los comercios nacen del registro.
+  const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,29 +46,26 @@ export default function ClientsPage() {
     load();
   }, [load]);
 
-  function openEdit(c: Client | "new") {
+  function openEdit(c: Client) {
     setEditing(c);
     setError(null);
-    setForm(
-      c === "new"
-        ? { ...EMPTY_FORM }
-        : {
-            business_name: c.business_name,
-            nit: c.nit ?? "",
-            contact_name: c.contact_name ?? "",
-            email: c.email ?? "",
-            phone: c.phone ?? "",
-            address: c.address ?? "",
-            billing_cycle: c.billing_cycle,
-            delivery_rate: String(c.delivery_rate),
-            return_rate: String(c.return_rate),
-            active: c.active,
-          }
-    );
+    setForm({
+      business_name: c.business_name,
+      nit: c.nit ?? "",
+      contact_name: c.contact_name ?? "",
+      email: c.email ?? "",
+      phone: c.phone ?? "",
+      address: c.address ?? "",
+      billing_cycle: c.billing_cycle,
+      delivery_rate: String(c.delivery_rate),
+      return_rate: String(c.return_rate),
+      active: c.active,
+    });
   }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!editing) return;
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -83,10 +81,7 @@ export default function ClientsPage() {
       return_rate: Number(form.return_rate) || 0,
       active: form.active,
     };
-    const { error } =
-      editing === "new"
-        ? await supabase.from("at_clients").insert(payload)
-        : await supabase.from("at_clients").update(payload).eq("id", (editing as Client).id);
+    const { error } = await supabase.from("at_clients").update(payload).eq("id", editing.id);
     setBusy(false);
     if (error) {
       setError(error.message);
@@ -109,13 +104,14 @@ export default function ClientsPage() {
             Comercios aliados, tarifas y ciclo de facturación
           </p>
         </div>
-        <button
-          onClick={() => openEdit("new")}
-          className="flex items-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl px-4 min-h-[44px] shadow-sm"
-        >
-          <Plus className="w-4 h-4 text-[#1C1C1E]" />
-          <span className="text-[15px]">Nuevo cliente</span>
-        </button>
+        {/* Sin botón de "Nuevo cliente": los e-commerce se registran solos y su
+            comercio se crea automáticamente. No hay política de INSERT en at_clients. */}
+        <div className="hidden sm:flex items-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-2.5 shrink-0">
+          <Sparkles className="w-4 h-4 text-[#ff812c] shrink-0" />
+          <p className="text-[13px] text-slate-500 dark:text-slate-400">
+            Se crean solos al registrarse
+          </p>
+        </div>
       </div>
 
       {/* Clients List */}
@@ -128,7 +124,10 @@ export default function ClientsPage() {
         ) : clients.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Store className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-            <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay clientes registrados</p>
+            <p className="text-[16px] text-slate-500 dark:text-slate-400">Todavía no hay comercios registrados</p>
+            <p className="max-w-sm px-6 text-center text-[14px] text-slate-400 dark:text-slate-500">
+              Aparecerán aquí solos cuando un e-commerce se registre y su solicitud sea aprobada.
+            </p>
           </div>
         ) : (
           <>
@@ -243,7 +242,7 @@ export default function ClientsPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
-                {editing === "new" ? "Nuevo cliente" : `Editar ${(editing as Client).business_name}`}
+                Editar {editing.business_name}
               </h2>
               <button
                 onClick={() => setEditing(null)}

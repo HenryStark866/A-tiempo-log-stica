@@ -234,10 +234,6 @@ export default function GuideDetailPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-400">Valor declarado</dt>
-                <dd className="font-medium text-navy-900">{formatCOP(guide.declared_value)}</dd>
-              </div>
-              <div>
                 <dt className="text-slate-400">Contraentrega</dt>
                 <dd className="font-medium text-navy-900">
                   {guide.is_cod ? formatCOP(guide.cod_amount) : "No aplica"}

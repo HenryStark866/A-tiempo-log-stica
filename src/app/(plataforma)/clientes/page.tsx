@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pencil, Plus, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Pill } from "@/components/StatusBadge";
+import { useProfile } from "@/components/ProfileContext";
 import { formatCOP } from "@/lib/utils";
 import type { Client } from "@/lib/types";
 
@@ -21,6 +22,10 @@ const EMPTY_FORM = {
 };
 
 export default function ClientsPage() {
+  const profile = useProfile();
+  // El mensajero da de alta comercios nuevos, pero tarifas y estado de un cliente
+  // ya existente solo los toca ops (impactan facturación). Ver migración 0007.
+  const canEdit = profile.role !== "mensajero";
   const [clients, setClients] = useState<Client[] | null>(null);
   const [editing, setEditing] = useState<Client | "new" | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -138,7 +143,9 @@ export default function ClientsPage() {
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">T. Entrega</th>
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">T. Devolución</th>
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
-                    <th className="px-5 py-3 text-right text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Editar</th>
+                    {canEdit && (
+                      <th className="px-5 py-3 text-right text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Editar</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -161,14 +168,16 @@ export default function ClientsPage() {
                       <td className="px-5 py-3.5">
                         <Pill label={c.active ? "Activo" : "Inactivo"} tone={c.active ? "green" : "red"} />
                       </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ff812c] transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      </td>
+                      {canEdit && (
+                        <td className="px-5 py-3.5 text-right">
+                          <button
+                            onClick={() => openEdit(c)}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ff812c] transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -186,12 +195,14 @@ export default function ClientsPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Pill label={c.active ? "Activo" : "Inactivo"} tone={c.active ? "green" : "red"} />
-                      <button
-                        onClick={() => openEdit(c)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ff812c] transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 dark:text-slate-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ff812c] transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">

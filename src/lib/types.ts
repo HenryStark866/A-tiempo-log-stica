@@ -61,7 +61,42 @@ export interface Zone {
   id: string;
   name: string;
   description: string | null;
+  /** Municipios/sectores cubiertos, separados por coma. */
+  coverage: string | null;
+  /** Tarifa cobrada al e-commerce por entrega (modelo financiero V2). */
+  delivery_rate: number;
+  sort_order: number;
   active: boolean;
+}
+
+/** Pago al domiciliario. Vive aparte de Zone: el rol cliente no puede leerlo. */
+export interface ZoneCost {
+  zone_id: string;
+  courier_fee: number;
+}
+
+/** Destinatario predeterminado sincronizado por el e-commerce. */
+export interface Recipient {
+  id: string;
+  client_id: string;
+  external_id: string | null;
+  full_name: string;
+  phone: string | null;
+  address: string;
+  city: string;
+  zone_id: string | null;
+  notes: string | null;
+  times_used: number;
+  last_used_at: string | null;
+  active: boolean;
+  created_at: string;
+  at_zones?: { name: string } | null;
+}
+
+export interface SyncRecipientsResult {
+  creados: number;
+  actualizados: number;
+  omitidos: number;
 }
 
 export interface Pickup {

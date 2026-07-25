@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Banknote,
   Building2,
+  Contact,
   Hourglass,
   LayoutDashboard,
   LogOut,
@@ -39,12 +40,13 @@ const NAV: NavItem[] = [
   { href: "/guias", label: "Guías", icon: Package, roles: ["admin", "coordinador", "operario", "cliente"] },
   { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente"] },
   { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario"] },
-  { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario"] },
+  { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario", "mensajero"] },
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
+  { href: "/destinatarios", label: "Destinatarios", icon: Contact, roles: ["cliente"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
   { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
-  { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador"] },
+  { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador", "mensajero"] },
   { href: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
 ];
 

@@ -10,6 +10,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@/components/ProfileContext";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
 import { formatCOP } from "@/lib/utils";
 import type { DashboardKpis, GuideStatus } from "@/lib/types";
@@ -81,6 +82,9 @@ function Kpi({
 }
 
 export default function DashboardPage() {
+  const profile = useProfile();
+  // El cliente ve solo lo suyo: sin métricas internas de tesorería ni de flota.
+  const esCliente = profile.role === "cliente";
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
 
   useEffect(() => {
@@ -94,9 +98,13 @@ export default function DashboardPage() {
     return (
       <div className="pb-10 space-y-6 font-sans">
         <div className="flex flex-col">
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Dashboard operativo</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+            {esCliente ? "Mi operación" : "Dashboard operativo"}
+          </h1>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-            Métricas clave del flujograma: recogida, CEDI, última milla y recaudo
+            {esCliente
+              ? "Métricas de tus envíos: recogida, última milla y recaudo"
+              : "Métricas clave del flujograma: recogida, CEDI, última milla y recaudo"}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
@@ -144,15 +152,17 @@ export default function DashboardPage() {
         />
         <Kpi
           icon={Banknote}
-          label="Recaudo por consignar"
+          label={esCliente ? "Recaudo contraentrega pendiente" : "Recaudo por consignar"}
           value={formatCOP(kpis.cod_pending)}
-          hint={`${kpis.settlements_pending} cierre(s) de caja en proceso`}
+          hint={esCliente ? "De tus guías entregadas, aún sin liquidar" : `${kpis.settlements_pending} cierre(s) de caja en proceso`}
         />
-        <Kpi
-          icon={Bike}
-          label="Mensajeros con carga activa"
-          value={String(kpis.active_couriers)}
-        />
+        {!esCliente && (
+          <Kpi
+            icon={Bike}
+            label="Mensajeros con carga activa"
+            value={String(kpis.active_couriers)}
+          />
+        )}
       </div>
 
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">

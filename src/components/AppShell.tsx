@@ -44,7 +44,7 @@ const NAV: NavItem[] = [
   { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario", "mensajero"] },
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
   { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador"] },
-  { href: "/destinatarios", label: "Destinatarios", icon: Contact, roles: ["cliente"] },
+  { href: "/destinatarios", label: "Mis clientes", icon: Contact, roles: ["cliente"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
   { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },

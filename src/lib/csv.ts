@@ -35,13 +35,50 @@ export const REQUIRED_FIELDS: RecipientField[] = ["full_name", "address"];
 // direcciones quedaron truncadas. Si alguien necesita el ID, lo elige a mano.
 const HEADER_HINTS: Record<RecipientField, string[]> = {
   full_name: ["nombre", "nombre completo", "destinatario", "cliente", "name", "full name", "customer", "shipping name", "comprador"],
-  phone: ["telefono", "celular", "movil", "phone", "mobile", "shipping phone", "contacto"],
+  phone: ["telefono", "telefonos", "tel", "celular", "cel", "movil", "whatsapp", "wpp", "numero", "num", "phone", "mobile", "shipping phone", "contacto"],
   address: ["direccion", "dir", "address", "shipping address", "address1", "direccion de envio", "direccion 1"],
-  address_2: ["complemento", "direccion 2", "address2", "shipping address2", "barrio", "apto", "apartamento", "detalle", "referencia de direccion"],
+  // "referencia" cae acá y no en external_id: en los CSV colombianos es el
+  // complemento de la dirección (apto, torre, barrio), no un identificador.
+  address_2: ["complemento", "referencia", "direccion 2", "address2", "shipping address2", "barrio", "apto", "apartamento", "torre", "unidad", "conjunto", "detalle", "punto de referencia"],
   city: ["ciudad", "municipio", "city", "shipping city", "localidad"],
   external_id: [],
   notes: ["notas", "nota", "observaciones", "comentarios", "notes", "note"],
 };
+
+/** ¿El valor parece un número de teléfono colombiano (fijo o celular)? */
+function looksLikePhone(v: string): boolean {
+  const limpio = v.replace(/[\s()+\-.]/g, "");
+  return /^\d{7,13}$/.test(limpio);
+}
+
+/**
+ * Detecta la columna del teléfono por su CONTENIDO cuando el encabezado no
+ * coincide con ninguna pista.
+ *
+ * Hace falta porque en una importación real la columna del teléfono no se
+ * detectó y los 9 destinatarios quedaron sin número: sin teléfono el mensajero
+ * no puede avisar que llegó. El encabezado puede llamarse cualquier cosa, pero
+ * los datos siempre parecen teléfonos.
+ */
+export function sniffPhoneColumn(
+  headers: string[],
+  rows: CsvRow[],
+  yaUsadas: Set<string>
+): string | undefined {
+  const muestra = rows.slice(0, 50);
+  if (muestra.length === 0) return undefined;
+
+  let mejor: { header: string; ratio: number } | null = null;
+  for (const h of headers) {
+    if (yaUsadas.has(h)) continue;
+    const valores = muestra.map((r) => (r[h] ?? "").trim()).filter(Boolean);
+    if (valores.length === 0) continue;
+    const aciertos = valores.filter(looksLikePhone).length;
+    const ratio = aciertos / valores.length;
+    if (ratio >= 0.6 && (!mejor || ratio > mejor.ratio)) mejor = { header: h, ratio };
+  }
+  return mejor?.header;
+}
 
 /**
  * Decodifica el archivo tolerando la codificación con que lo exportó el cliente.
@@ -161,9 +198,13 @@ export function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
 
 /**
  * Adivina qué columna del archivo corresponde a cada campo de la app.
- * Primero exacto, luego por inclusión, para que "Shipping Address 1" caiga en address.
+ * Primero exacto, luego por inclusión, para que "Shipping Address 1" caiga en
+ * address. Si se pasan las filas, el teléfono se detecta también por contenido.
  */
-export function guessMapping(headers: string[]): Partial<Record<RecipientField, string>> {
+export function guessMapping(
+  headers: string[],
+  rows?: CsvRow[]
+): Partial<Record<RecipientField, string>> {
   const mapping: Partial<Record<RecipientField, string>> = {};
   const used = new Set<string>();
   const normalized = headers.map((h) => ({ raw: h, norm: normalizeHeader(h) }));
@@ -185,6 +226,16 @@ export function guessMapping(headers: string[]): Partial<Record<RecipientField, 
       used.add(partial.raw);
     }
   }
+
+  // Último recurso para el teléfono: mirar los datos.
+  if (!mapping.phone && rows && rows.length > 0) {
+    const porContenido = sniffPhoneColumn(headers, rows, used);
+    if (porContenido) {
+      mapping.phone = porContenido;
+      used.add(porContenido);
+    }
+  }
+
   return mapping;
 }
 

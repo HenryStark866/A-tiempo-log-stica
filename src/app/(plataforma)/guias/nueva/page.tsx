@@ -267,7 +267,7 @@ export default function NewGuidePage() {
           {esCliente && (
             <section>
               <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
-                Mis destinatarios
+                Mis clientes
               </h3>
               <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
                 {recipients.length === 0 ? (

@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert } from "lucide-react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { useMyClient } from "@/components/useMyClient";
 import { PICKUP_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import type { Client, Pickup, PickupStatus } from "@/lib/types";
+import type { Client, Pickup, PickupStatus, Guide } from "@/lib/types";
 
 const MIN_PACKAGES = 5;
 
@@ -37,6 +39,10 @@ function PickupBadge({ status }: { status: PickupStatus }) {
 
 export default function PickupsPage() {
   const profile = useProfile();
+  const esCliente = profile.role === "cliente";
+  // La recogida siempre la solicita un comercio: si es un cliente, se autoaprovisiona.
+  const { client: miComercio, clientId, loading: cargandoComercio } = useMyClient();
+
   const [pickups, setPickups] = useState<Pickup[] | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [showNew, setShowNew] = useState(false);
@@ -44,9 +50,15 @@ export default function PickupsPage() {
   const [packageCount, setPackageCount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Guías del comercio listas para recoger (creadas y sin recogida asociada).
+  const [pendientes, setPendientes] = useState<Guide[]>([]);
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+
   const [form, setForm] = useState({
     client_id: "",
     scheduled_date: new Date().toISOString().slice(0, 10),
+    scheduled_time: "",
     address: "",
     contact_name: "",
     contact_phone: "",
@@ -59,7 +71,10 @@ export default function PickupsPage() {
     const supabase = createClient();
     const { data } = await supabase
       .from("at_pickups")
-      .select("*, at_clients(business_name), operator:at_profiles!at_pickups_operator_id_fkey(full_name)")
+      // at_guides(id) en vez de at_guides(count): el agregado embebido depende de
+      // que PostgREST tenga habilitados los agregados, y si no lo está la consulta
+      // entera falla y la lista queda vacía. El conteo se hace en cliente.
+      .select("*, at_clients(business_name), operator:at_profiles!at_pickups_operator_id_fkey(full_name), at_guides(id)")
       .order("requested_at", { ascending: false })
       .limit(100);
     setPickups((data as Pickup[]) ?? []);
@@ -67,6 +82,10 @@ export default function PickupsPage() {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  // Datos del comercio solicitante: para el cliente se cargan solos.
+  useEffect(() => {
     const supabase = createClient();
     supabase
       .from("at_clients")
@@ -76,34 +95,73 @@ export default function PickupsPage() {
       .then(({ data }) => {
         const list = (data as Client[]) ?? [];
         setClients(list);
+        const propio = esCliente ? miComercio ?? list[0] : list[0];
         setForm((f) => ({
           ...f,
-          client_id: profile.role === "cliente" ? profile.client_id ?? "" : list[0]?.id ?? "",
-          address: profile.role === "cliente" ? list[0]?.address ?? "" : "",
+          client_id: esCliente ? clientId ?? "" : f.client_id || list[0]?.id || "",
+          address: f.address || propio?.address || "",
+          contact_name: f.contact_name || propio?.contact_name || "",
+          contact_phone: f.contact_phone || propio?.phone || "",
         }));
       });
-  }, [load, profile]);
+  }, [esCliente, clientId, miComercio]);
+
+  // Guías que se pueden incluir en la solicitud.
+  useEffect(() => {
+    if (!form.client_id) return;
+    const supabase = createClient();
+    supabase
+      .from("at_guides")
+      .select("*, at_zones(name)")
+      .eq("client_id", form.client_id)
+      .eq("status", "creada")
+      .is("pickup_id", null)
+      .order("created_at", { ascending: false })
+      .limit(300)
+      .then(({ data }) => {
+        const list = (data as Guide[]) ?? [];
+        setPendientes(list);
+        // Por defecto se incluyen todas: es lo que el comercio espera.
+        setSeleccionadas(new Set(list.map((g) => g.id)));
+      });
+  }, [form.client_id, showNew]);
+
+  function toggleGuia(id: string) {
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function createPickup(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.from("at_pickups").insert({
-      client_id: form.client_id,
-      scheduled_date: form.scheduled_date,
-      address: form.address,
-      contact_name: form.contact_name || null,
-      contact_phone: form.contact_phone || null,
-      notes: form.notes || null,
-      created_by: profile.id,
+
+    // Pasa por RPC: enlazar guías a la recogida requiere update sobre at_guides,
+    // que la política "ops edita guías" no permite al cliente.
+    const { error } = await supabase.rpc("at_request_pickup", {
+      // El cliente no puede suplantar: la RPC ignora este valor si el rol es cliente.
+      p_client_id: form.client_id || null,
+      p_scheduled_date: form.scheduled_date,
+      p_scheduled_time: form.scheduled_time || null,
+      p_address: form.address || null,
+      p_contact_name: form.contact_name || null,
+      p_contact_phone: form.contact_phone || null,
+      p_notes: form.notes || null,
+      p_guide_ids: Array.from(seleccionadas),
     });
+
     setBusy(false);
     if (error) {
       setError(error.message);
       return;
     }
     setShowNew(false);
+    setSeleccionadas(new Set());
     load();
   }
 
@@ -142,7 +200,9 @@ export default function PickupsPage() {
         <div className="flex flex-col">
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Recogidas</h1>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400 max-w-lg">
-            Fase 1: solicitudes de recogida en el comercio del cliente
+            {esCliente
+              ? "Solicita al CEDI de A Tiempo que recoja tus paquetes"
+              : "Fase 1: solicitudes de recogida en el comercio del cliente"}
           </p>
         </div>
 
@@ -186,8 +246,25 @@ export default function PickupsPage() {
                       <p className="font-bold text-[16px] text-slate-900 dark:text-white">{p.at_clients?.business_name}</p>
                       {p.notes && <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">{p.notes}</p>}
                     </td>
-                    <td className="px-6 py-4 text-[15px] font-medium text-slate-700 dark:text-slate-200">
-                      {formatDate(p.scheduled_date)}
+                    <td className="px-6 py-4">
+                      <p className="text-[15px] font-medium text-slate-700 dark:text-slate-200">
+                        {formatDate(p.scheduled_date)}
+                      </p>
+                      {p.scheduled_time && (
+                        <p className="mt-0.5 flex items-center gap-1 text-[13px] font-medium text-[#ff812c]">
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                          {p.scheduled_time.slice(0, 5)}
+                        </p>
+                      )}
+                      <p className="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">
+                        Solicitada {formatDateTime(p.requested_at)}
+                      </p>
+                      {(p.at_guides?.length ?? 0) > 0 && (
+                        <p className="mt-0.5 flex items-center gap-1 text-[12px] text-slate-500 dark:text-slate-400">
+                          <Package className="w-3.5 h-3.5 shrink-0" />
+                          {p.at_guides!.length} guía(s)
+                        </p>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-[15px] text-slate-700 dark:text-slate-200">
                       {p.address}
@@ -257,8 +334,12 @@ export default function PickupsPage() {
           <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
 
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between sticky top-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] z-10">
-              <div>
-                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white pr-4">Solicitar recogida</h3>
+              <div className="pr-4">
+                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">Solicitar recogida</h3>
+                <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
+                  <Warehouse className="w-3.5 h-3.5 shrink-0" />
+                  Solicitud dirigida al CEDI de A Tiempo
+                </p>
               </div>
               <button
                 type="button"
@@ -270,29 +351,39 @@ export default function PickupsPage() {
             </div>
 
             <form onSubmit={createPickup} className="p-6 space-y-5">
+              {/* Comercio solicitante: el cliente no lo elige, se carga solo. */}
               <div className="space-y-2">
                 <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                  Cliente
+                  Comercio que solicita
                 </label>
-                <select
-                  required
-                  value={form.client_id}
-                  onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
-                  disabled={profile.role === "cliente"}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all disabled:opacity-50"
-                >
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.business_name}
-                    </option>
-                  ))}
-                </select>
+                {esCliente ? (
+                  <div className="w-full min-h-[52px] flex items-center gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-lg px-4">
+                    <Warehouse className="w-4 h-4 text-[#ff812c] shrink-0" />
+                    <span className="text-[16px] font-semibold text-slate-900 dark:text-white truncate">
+                      {miComercio?.business_name ?? (cargandoComercio ? "Preparando…" : "—")}
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={form.client_id}
+                    onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
+                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  >
+                    <option value="" disabled>Selecciona el comercio…</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.business_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                    Fecha programada
+                    Fecha de recogida
                   </label>
                   <input
                     type="date"
@@ -304,14 +395,99 @@ export default function PickupsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                    Teléfono de contacto
+                    Hora deseada
                   </label>
                   <input
-                    value={form.contact_phone}
-                    onChange={(e) => setForm((f) => ({ ...f, contact_phone: e.target.value }))}
+                    type="time"
+                    value={form.scheduled_time}
+                    onChange={(e) => setForm((f) => ({ ...f, scheduled_time: e.target.value }))}
                     className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  Teléfono de contacto
+                </label>
+                <input
+                  value={form.contact_phone}
+                  onChange={(e) => setForm((f) => ({ ...f, contact_phone: e.target.value }))}
+                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Guías que se van a recoger */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                    Guías a recoger
+                  </label>
+                  {pendientes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSeleccionadas(
+                          seleccionadas.size === pendientes.length
+                            ? new Set()
+                            : new Set(pendientes.map((g) => g.id))
+                        )
+                      }
+                      className="text-[13px] font-semibold text-[#ff812c] active:opacity-70"
+                    >
+                      {seleccionadas.size === pendientes.length ? "Quitar todas" : "Seleccionar todas"}
+                    </button>
+                  )}
+                </div>
+
+                {pendientes.length === 0 ? (
+                  <div className="rounded-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-4 space-y-3">
+                    <p className="text-[14px] text-slate-500 dark:text-slate-400">
+                      No hay guías pendientes de recoger. Puedes solicitar la recogida igual y
+                      registrar las guías después, o crearlas ahora.
+                    </p>
+                    <Link
+                      href="/guias/nueva"
+                      className="inline-flex items-center gap-2 text-[14px] font-semibold text-[#ff812c] active:opacity-70"
+                    >
+                      <Package className="w-4 h-4" /> Crear una guía
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                      {pendientes.map((g) => (
+                        <label
+                          key={g.id}
+                          className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#F2F2F7]/60 dark:hover:bg-[#1C1C1E]/60 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={seleccionadas.has(g.id)}
+                            onChange={() => toggleGuia(g.id)}
+                            className="w-5 h-5 shrink-0 accent-[#ff812c]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white truncate">
+                              {g.guide_number} · {g.recipient_name}
+                            </p>
+                            <p className="text-[13px] text-slate-500 dark:text-slate-400 truncate">
+                              {g.recipient_address} · {g.at_zones?.name ?? "sin zona"}
+                            </p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      {seleccionadas.size} de {pendientes.length} guía(s) incluidas
+                      {seleccionadas.size > 0 && seleccionadas.size < MIN_PACKAGES && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {" "}· el mínimo operativo de recogida es {MIN_PACKAGES}
+                        </span>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="space-y-2">

@@ -11,10 +11,9 @@ import {
   TriangleAlert,
   Loader2,
   FileSpreadsheet,
-  Link2Off,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useProfile } from "@/components/ProfileContext";
+import { useMyClient } from "@/components/useMyClient";
 import {
   parseCsv,
   guessMapping,
@@ -35,7 +34,8 @@ const PLANTILLA = [
 ].join("\n");
 
 export default function RecipientsPage() {
-  const profile = useProfile();
+  // Autoaprovisiona el comercio si la cuenta todavía no lo tiene enlazado.
+  const { clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [recipients, setRecipients] = useState<Recipient[] | null>(null);
@@ -51,23 +51,19 @@ export default function RecipientsPage() {
   const [result, setResult] = useState<SyncRecipientsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const sinComercio = !profile.client_id;
-
   const load = useCallback(async () => {
-    if (sinComercio) {
-      setRecipients([]);
-      return;
-    }
+    if (!clientId) return;
     const supabase = createClient();
     const { data } = await supabase
       .from("at_recipients")
       .select("*, at_zones(name)")
+      .eq("client_id", clientId)
       .eq("active", true)
       .order("times_used", { ascending: false })
       .order("full_name")
       .limit(1000);
     setRecipients((data as Recipient[]) ?? []);
-  }, [sinComercio]);
+  }, [clientId]);
 
   useEffect(() => {
     load();
@@ -177,20 +173,11 @@ export default function RecipientsPage() {
     );
   });
 
-  if (sinComercio) {
+  if (cargandoComercio) {
     return (
-      <div className="pb-10 font-sans">
-        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Mis destinatarios</h1>
-        <div className="mt-6 rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm">
-          <Link2Off className="mx-auto mb-4 size-10 text-amber-500" />
-          <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">
-            Tu cuenta aún no está enlazada a un comercio
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
-            Para sincronizar tu base de compradores y crear guías, un administrador debe
-            enlazar tu usuario con tu comercio desde <strong>Usuarios</strong>.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500 dark:text-slate-400 font-sans">
+        <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[15px]">Preparando tu comercio…</p>
       </div>
     );
   }
@@ -340,9 +327,9 @@ export default function RecipientsPage() {
           </div>
         )}
 
-        {error && (
+        {(error || errorComercio) && (
           <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
-            <p className="text-[14px] font-medium text-rose-600 dark:text-rose-400">{error}</p>
+            <p className="text-[14px] font-medium text-rose-600 dark:text-rose-400">{error ?? errorComercio}</p>
           </div>
         )}
       </section>

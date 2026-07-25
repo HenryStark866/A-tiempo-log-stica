@@ -103,6 +103,8 @@ export interface Pickup {
   id: string;
   client_id: string;
   scheduled_date: string;
+  /** Hora deseada de recogida (requested_at guarda cuándo se solicitó). */
+  scheduled_time: string | null;
   address: string;
   contact_name: string | null;
   contact_phone: string | null;
@@ -114,6 +116,8 @@ export interface Pickup {
   completed_at: string | null;
   at_clients?: { business_name: string } | null;
   operator?: { full_name: string } | null;
+  /** Guías asociadas a la recogida; se embeben solo los ids para contarlas. */
+  at_guides?: { id: string }[];
 }
 
 export interface Guide {

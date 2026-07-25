@@ -14,12 +14,14 @@ import {
   Banknote,
   FileText,
   Contact,
-  Link2Off,
   Search,
   X,
+  Upload,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { useMyClient } from "@/components/useMyClient";
+import { PriceList } from "@/components/PriceList";
 import { formatCOP } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
 import type { Client, Zone, Recipient } from "@/lib/types";
@@ -28,6 +30,8 @@ export default function NewGuidePage() {
   const router = useRouter();
   const profile = useProfile();
   const esCliente = profile.role === "cliente";
+  // Autoaprovisiona el comercio: una cuenta cliente nunca queda bloqueada.
+  const { client: miComercio, clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
 
   const [clients, setClients] = useState<Client[] | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
@@ -36,7 +40,6 @@ export default function NewGuidePage() {
   const [buscador, setBuscador] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  // Distingue "el usuario eligió zona" de "la sugerimos por la dirección".
   const [zonaManual, setZonaManual] = useState(false);
 
   const [form, setForm] = useState({
@@ -51,9 +54,24 @@ export default function NewGuidePage() {
     notes: "",
   });
 
+  // Zonas y tarifas: el cliente ve el listado de precios completo.
   useEffect(() => {
     const supabase = createClient();
+    supabase
+      .from("at_zones")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order")
+      .then(({ data }) => setZones((data as Zone[]) ?? []));
+  }, []);
 
+  // Comercios: el cliente no elige, se le carga el suyo automáticamente.
+  useEffect(() => {
+    if (esCliente) {
+      if (clientId) setForm((f) => ({ ...f, client_id: clientId }));
+      return;
+    }
+    const supabase = createClient();
     supabase
       .from("at_clients")
       .select("*")
@@ -62,34 +80,26 @@ export default function NewGuidePage() {
       .then(({ data }) => {
         const list = (data as Client[]) ?? [];
         setClients(list);
-        if (esCliente && profile.client_id) {
-          setForm((f) => ({ ...f, client_id: profile.client_id! }));
-        } else if (list.length) {
-          setForm((f) => ({ ...f, client_id: f.client_id || list[0].id }));
-        }
+        if (list.length) setForm((f) => ({ ...f, client_id: f.client_id || list[0].id }));
       });
+  }, [esCliente, clientId]);
 
+  // Destinatarios guardados del comercio (si ya sincronizó su base).
+  useEffect(() => {
+    if (!clientId) return;
+    const supabase = createClient();
     supabase
-      .from("at_zones")
-      .select("*")
+      .from("at_recipients")
+      .select("*, at_zones(name)")
+      .eq("client_id", clientId)
       .eq("active", true)
-      .order("sort_order")
-      .then(({ data }) => setZones((data as Zone[]) ?? []));
+      .order("times_used", { ascending: false })
+      .order("full_name")
+      .limit(1000)
+      .then(({ data }) => setRecipients((data as Recipient[]) ?? []));
+  }, [clientId]);
 
-    if (profile.client_id) {
-      supabase
-        .from("at_recipients")
-        .select("*, at_zones(name)")
-        .eq("client_id", profile.client_id)
-        .eq("active", true)
-        .order("times_used", { ascending: false })
-        .order("full_name")
-        .limit(1000)
-        .then(({ data }) => setRecipients((data as Recipient[]) ?? []));
-    }
-  }, [esCliente, profile.client_id]);
-
-  // Sugerencia de zona a partir de la dirección/ciudad, mientras no la fijen a mano.
+  // Sugerencia de zona por dirección/ciudad mientras no la fijen a mano.
   useEffect(() => {
     if (zonaManual || zones.length === 0) return;
     const z = zoneForText(zones, `${form.recipient_city} ${form.recipient_address}`);
@@ -97,6 +107,10 @@ export default function NewGuidePage() {
   }, [form.recipient_city, form.recipient_address, zones, zonaManual]);
 
   const zonaElegida = zones.find((z) => z.id === form.zone_id) ?? null;
+
+  const nombreComercio = esCliente
+    ? miComercio?.business_name ?? ""
+    : clients?.find((c) => c.id === form.client_id)?.business_name ?? "";
 
   const coincidencias = useMemo(() => {
     const s = buscador.trim().toLowerCase();
@@ -114,7 +128,7 @@ export default function NewGuidePage() {
   function usarDestinatario(r: Recipient) {
     setRecipientId(r.id);
     setBuscador("");
-    setZonaManual(true); // la zona guardada del destinatario manda
+    setZonaManual(true);
     setForm((f) => ({
       ...f,
       recipient_name: r.full_name,
@@ -142,14 +156,8 @@ export default function NewGuidePage() {
     e.preventDefault();
     setError(null);
 
-    // Antes esto no se validaba: si client_id venía vacío el <select required>
-    // bloqueaba el submit en silencio y el botón "Crear guía" no hacía nada.
     if (!form.client_id) {
-      setError(
-        esCliente
-          ? "Tu cuenta no está enlazada a un comercio. Pide al administrador que la enlace desde Usuarios."
-          : "Selecciona el cliente e-commerce al que pertenece la guía."
-      );
+      setError("Todavía estamos preparando tu comercio. Espera un segundo y vuelve a intentar.");
       return;
     }
 
@@ -178,8 +186,7 @@ export default function NewGuidePage() {
       return;
     }
 
-    // Contador de uso del destinatario: ordena la lista por los más frecuentes.
-    // Si falla no afecta la guía, que ya quedó creada.
+    // Contador de uso: ordena los destinatarios por los más frecuentes.
     if (recipientId) {
       const usado = recipients.find((r) => r.id === recipientId);
       await supabase
@@ -196,29 +203,16 @@ export default function NewGuidePage() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  // Cliente sin comercio enlazado: no tiene sentido mostrarle el formulario.
-  if (esCliente && !profile.client_id) {
+  if (esCliente && cargandoComercio) {
     return (
-      <div className="pb-10 max-w-2xl mx-auto w-full font-sans px-4">
-        <button onClick={() => router.back()} className="flex items-center text-[#ff812c] py-4">
-          <ChevronLeft className="w-6 h-6 -ml-2" />
-          <span className="text-[17px]">Atrás</span>
-        </button>
-        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm">
-          <Link2Off className="mx-auto mb-4 size-10 text-amber-500" />
-          <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">
-            Tu cuenta aún no está enlazada a un comercio
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
-            No podemos crear guías a tu nombre hasta que un administrador enlace tu usuario
-            con tu comercio desde <strong>Usuarios</strong>.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500 dark:text-slate-400 font-sans">
+        <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[15px]">Preparando tu comercio…</p>
       </div>
     );
   }
 
-  // Staff sin ningún comercio cargado: igual de bloqueante, pero con otra salida.
+  // Staff sin comercios: una guía siempre pertenece a un cliente e-commerce.
   if (!esCliente && clients !== null && clients.length === 0) {
     return (
       <div className="pb-10 max-w-2xl mx-auto w-full font-sans px-4">
@@ -228,12 +222,10 @@ export default function NewGuidePage() {
         </button>
         <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm">
           <Store className="mx-auto mb-4 size-10 text-slate-400" />
-          <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">
-            No hay comercios registrados
-          </h2>
+          <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">No hay comercios registrados</h2>
           <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
-            Una guía siempre pertenece a un cliente e-commerce. Crea el primero para poder
-            empezar a registrar envíos.
+            Una guía siempre pertenece a un cliente e-commerce. Crea el primero para empezar a
+            registrar envíos.
           </p>
           <Link
             href="/clientes"
@@ -263,16 +255,35 @@ export default function NewGuidePage() {
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">Registra un envío para última milla</p>
         </div>
 
+        {errorComercio && (
+          <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
+            <p className="text-[14px] font-medium text-rose-600 dark:text-rose-400">{errorComercio}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Destinatarios guardados */}
-          {recipients.length > 0 && (
+          {/* Destinatarios guardados, o invitación a sincronizar si no hay */}
+          {esCliente && (
             <section>
               <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
                 Mis destinatarios
               </h3>
               <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
-                {recipientId ? (
+                {recipients.length === 0 ? (
+                  <div className="px-4 py-4 space-y-3">
+                    <p className="text-[14px] text-slate-500 dark:text-slate-400">
+                      Puedes escribir los datos a mano abajo, o subir tu base de compradores una
+                      sola vez para que se autocompleten.
+                    </p>
+                    <Link
+                      href="/destinatarios"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 min-h-[44px] text-[15px] font-semibold text-[#ff812c] active:scale-[0.98] transition-transform"
+                    >
+                      <Upload className="w-4 h-4" /> Subir mi base de clientes
+                    </Link>
+                  </div>
+                ) : recipientId ? (
                   <div className="flex items-center gap-3 px-4 min-h-[56px]">
                     <Contact className="w-5 h-5 text-[#ff812c] shrink-0" />
                     <p className="flex-1 text-[15px] text-slate-900 dark:text-white truncate">
@@ -327,20 +338,29 @@ export default function NewGuidePage() {
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">Información de Envío</h3>
             <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              {/* El comercio que crea la guía se carga solo; el cliente no lo elige. */}
+              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
                 <Store className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
-                <select
-                  required
-                  value={form.client_id}
-                  onChange={set("client_id")}
-                  disabled={esCliente}
-                  className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none disabled:opacity-60"
-                >
-                  <option value="" disabled>Cliente e-commerce...</option>
-                  {(clients ?? []).map((c) => (
-                    <option key={c.id} value={c.id}>{c.business_name}</option>
-                  ))}
-                </select>
+                {esCliente ? (
+                  <div className="flex-1 min-w-0 py-3">
+                    <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-none">Comercio remitente</p>
+                    <p className="mt-1 text-[17px] font-semibold text-slate-900 dark:text-white truncate">
+                      {nombreComercio || "…"}
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    required
+                    value={form.client_id}
+                    onChange={set("client_id")}
+                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
+                  >
+                    <option value="" disabled>Cliente e-commerce...</option>
+                    {(clients ?? []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.business_name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
@@ -404,7 +424,6 @@ export default function NewGuidePage() {
 
             </div>
 
-            {/* Tarifa vigente de la zona detectada */}
             {zonaElegida ? (
               <div className="mt-2 mx-1 flex items-center justify-between gap-3 rounded-2xl bg-[#ff812c]/10 px-4 py-3">
                 <div className="min-w-0">
@@ -470,6 +489,8 @@ export default function NewGuidePage() {
 
             </div>
           </section>
+
+          <PriceList zones={zones} activeZoneId={form.zone_id || null} />
 
           {error && (
             <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">

@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LoaderCircle, UserPlus, Store, Bike } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
 
-type RequestedRole = "cliente" | "mensajero";
+type RequestedRole = "cliente" | "mensajero" | "operario";
 
 export default function RegisterPage() {
   const [requestedRole, setRequestedRole] = useState<RequestedRole>("cliente");
@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verPassword, setVerPassword] = useState(false);
   // Datos del negocio (solo cliente e-commerce)
   const [businessType, setBusinessType] = useState<string>("");
   const [businessName, setBusinessName] = useState("");
@@ -42,6 +43,9 @@ export default function RegisterPage() {
       email,
       password,
       options: {
+        // Al confirmar, Supabase manda aquí; la ruta canjea el token y lleva
+        // a la bienvenida con la sesión ya iniciada.
+        emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/bienvenido`,
         data: {
           full_name: fullName,
           phone: phone || null,
@@ -80,7 +84,7 @@ export default function RegisterPage() {
           </div>
           {done ? (
             <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
-              ¡Solicitud enviada!
+              Revisa tu correo
             </h1>
           ) : (
             <>
@@ -88,7 +92,9 @@ export default function RegisterPage() {
                 Crear cuenta
               </h1>
               <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400">
-                Administración verificará tus datos y aprobará tu acceso
+                {requestedRole === "operario"
+                  ? "Administración verificará tus datos y aprobará tu acceso"
+                  : "Confirma tu correo y entras de una vez"}
               </p>
             </>
           )}
@@ -98,12 +104,27 @@ export default function RegisterPage() {
           {done ? (
             <div className="text-center space-y-8">
               <p className="text-[16px] leading-relaxed text-slate-500 dark:text-slate-400">
-                Recibimos tu solicitud como{" "}
-                <strong className="text-slate-700 dark:text-slate-300">
-                  {isClient ? "Cliente e-commerce" : "Mensajero"}
-                </strong>
-                . Un administrador de A Tiempo verificará tus datos y activará tu
-                rol. Te avisaremos cuando puedas ingresar.
+                Te enviamos un correo a{" "}
+                <strong className="text-slate-700 dark:text-slate-300">{email}</strong>.
+                Abre el enlace para confirmar tu cuenta
+                {requestedRole === "operario" ? (
+                  <>
+                    . Como te registraste como personal de A Tiempo, un
+                    administrador revisará tus datos y activará tu acceso.
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    y entra de inmediato como{" "}
+                    <strong className="text-slate-700 dark:text-slate-300">
+                      {isClient ? "Cliente e-commerce" : "Mensajero"}
+                    </strong>
+                    .
+                  </>
+                )}
+              </p>
+              <p className="text-[14px] text-slate-400 dark:text-slate-500">
+                ¿No te llegó? Revisa la carpeta de spam.
               </p>
               <Link
                 href="/login"
@@ -119,11 +140,12 @@ export default function RegisterPage() {
                 <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                   ¿Cómo te vas a registrar?
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {(
                     [
                       { value: "cliente", label: "Cliente e-commerce", icon: Store },
                       { value: "mensajero", label: "Mensajero", icon: Bike },
+                      { value: "operario", label: "Personal ATL", icon: IdCard },
                     ] as { value: RequestedRole; label: string; icon: typeof Store }[]
                   ).map((opt) => {
                     const selected = requestedRole === opt.value;
@@ -183,7 +205,7 @@ export default function RegisterPage() {
                 <div className={`${fieldRow} border-b-0`}>
                   <label className={fieldLabel}>Contraseña</label>
                   <input
-                    type="password"
+                    type={verPassword ? "text" : "password"}
                     required
                     minLength={8}
                     value={password}
@@ -191,6 +213,15 @@ export default function RegisterPage() {
                     className={fieldInput}
                     placeholder="Mínimo 8 caracteres"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setVerPassword((v) => !v)}
+                    aria-label={verPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                    aria-pressed={verPassword}
+                    className="shrink-0 -mr-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:opacity-70 transition-colors"
+                  >
+                    {verPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 

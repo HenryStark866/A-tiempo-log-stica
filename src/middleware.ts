@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo"];
+// /auth/* es público porque el enlace del correo llega sin sesión: es
+// justamente la ruta que la crea.
+const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo", "/auth"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(

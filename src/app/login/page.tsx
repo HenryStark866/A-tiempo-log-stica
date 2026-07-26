@@ -3,16 +3,25 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle, LogIn } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
+
+/** Mensajes de los enlaces de correo que no se pudieron canjear. */
+const ERRORES_ENLACE: Record<string, string> = {
+  enlace_invalido: "El enlace de confirmación no es válido. Solicita uno nuevo registrándote otra vez.",
+  enlace_expirado: "El enlace de confirmación venció. Regístrate de nuevo para recibir uno nuevo.",
+};
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [verPassword, setVerPassword] = useState(false);
+  const [error, setError] = useState<string | null>(
+    ERRORES_ENLACE[params.get("error") ?? ""] ?? null
+  );
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -51,13 +60,22 @@ function LoginForm() {
         <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
           <label className="w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0">Contraseña</label>
           <input
-            type="password"
+            type={verPassword ? "text" : "password"}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
             placeholder="••••••••"
           />
+          <button
+            type="button"
+            onClick={() => setVerPassword((v) => !v)}
+            aria-label={verPassword ? "Ocultar contraseña" : "Ver contraseña"}
+            aria-pressed={verPassword}
+            className="shrink-0 -mr-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:opacity-70 transition-colors"
+          >
+            {verPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 

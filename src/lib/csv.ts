@@ -53,9 +53,9 @@ const PRODUCT_HINTS: Record<ProductField, string[]> = {
 // reserva del parque") se mapeó a ID por coincidir con la pista "id", y esas
 // direcciones quedaron truncadas. Si alguien necesita el ID, lo elige a mano.
 const HEADER_HINTS: Record<RecipientField, string[]> = {
-  full_name: ["nombre", "nombre completo", "destinatario", "cliente", "name", "full name", "customer", "shipping name", "comprador"],
-  phone: ["telefono", "telefonos", "tel", "celular", "cel", "movil", "whatsapp", "wpp", "numero", "num", "phone", "mobile", "shipping phone", "contacto"],
-  address: ["direccion", "dir", "address", "shipping address", "address1", "direccion de envio", "direccion 1"],
+  full_name: ["nombre", "nombres", "apellido", "apellidos", "nombre completo", "nombre y apellido", "destinatario", "cliente", "name", "full name", "customer", "shipping name", "comprador", "razon social", "recibe", "quien recibe", "beneficiario", "titular"],
+  phone: ["telefono", "telefonos", "tel", "celular", "cel", "movil", "whatsapp", "wpp", "numero", "num", "phone", "mobile", "shipping phone", "contacto", "fono", "telefono de contacto", "numero de contacto"],
+  address: ["direccion", "dir", "address", "shipping address", "address1", "direccion de envio", "direccion 1", "direccion completa", "direccion de entrega"],
   // "referencia" cae acá y no en external_id: en los CSV colombianos es el
   // complemento de la dirección (apto, torre, barrio), no un identificador.
   address_2: ["complemento", "referencia", "direccion 2", "address2", "shipping address2", "barrio", "apto", "apartamento", "torre", "unidad", "conjunto", "detalle", "punto de referencia"],

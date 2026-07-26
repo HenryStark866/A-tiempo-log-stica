@@ -204,6 +204,13 @@ export default function RecipientsPage() {
 
   const faltantes = REQUIRED_FIELDS.filter((f) => !mapping[f]);
 
+  // Columnas del archivo que no quedaron asignadas a ningún campo. Si no hay
+  // ninguna, el archivo simplemente no trae el dato que falta.
+  const columnasLibres = useMemo(() => {
+    const usadas = new Set(Object.values(mapping).filter(Boolean) as string[]);
+    return headers.filter((h) => !usadas.has(h));
+  }, [headers, mapping]);
+
   const filasValidas = useMemo(() => {
     if (faltantes.length > 0) return 0;
     const nameCol = mapping.full_name!;
@@ -414,8 +421,9 @@ export default function RecipientsPage() {
                 <div className="flex items-start gap-2 rounded-2xl bg-amber-50 dark:bg-amber-500/10 p-4">
                   <Phone className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <p className="text-[14px] text-amber-700 dark:text-amber-400">
-                    No encontramos la columna del teléfono. Elígela arriba: sin número el mensajero
-                    no puede avisar que llegó.
+                    {columnasLibres.length === 0
+                      ? "Tu archivo no trae columna de teléfono. Se importará sin número, pero así el mensajero no puede avisar que llegó."
+                      : "No encontramos la columna del teléfono. Elígela arriba: sin número el mensajero no puede avisar que llegó."}
                   </p>
                 </div>
               )}
@@ -423,9 +431,27 @@ export default function RecipientsPage() {
               {faltantes.length > 0 ? (
                 <div className="flex items-start gap-2 rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
                   <TriangleAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                  <p className="text-[14px] text-rose-700 dark:text-rose-400">
-                    Falta indicar: <strong>{faltantes.map((f) => RECIPIENT_FIELD_LABELS[f]).join(" y ")}</strong>.
-                  </p>
+                  <div className="text-[14px] text-rose-700 dark:text-rose-400 min-w-0">
+                    <p>
+                      Falta indicar:{" "}
+                      <strong>{faltantes.map((f) => RECIPIENT_FIELD_LABELS[f]).join(" y ")}</strong>.
+                    </p>
+                    {/* Sin columnas libres, el problema está en el archivo y no en
+                        el mapeo: decirlo evita que la persona busque un desplegable
+                        que no la va a salvar. */}
+                    {columnasLibres.length === 0 ? (
+                      <p className="mt-1.5 leading-relaxed">
+                        Tu archivo no trae esa información. Sus columnas son{" "}
+                        <strong>{headers.join(", ")}</strong>. Agrégale una columna con
+                        el nombre de quien recibe y vuelve a subirlo.
+                      </p>
+                    ) : (
+                      <p className="mt-1.5 leading-relaxed">
+                        Elígela arriba entre las columnas que quedan sin usar:{" "}
+                        <strong>{columnasLibres.join(", ")}</strong>.
+                      </p>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>

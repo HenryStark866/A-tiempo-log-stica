@@ -67,6 +67,21 @@ export const OPS_ROLES: Role[] = ["admin", "coordinador"];
 // El resto (operario, coordinador, admin) se asignan internamente desde Usuarios.
 export const REQUESTABLE_ROLES: Extract<Role, "cliente" | "mensajero">[] = ["cliente", "mensajero"];
 
+// Medios de pago que el comercio puede publicar en el QR de pago.
+// `hint` es lo que se le pide escribir en el campo del identificador.
+export const PAYMENT_KINDS = [
+  { value: "nequi",       label: "Nequi",             hint: "Número de celular" },
+  { value: "daviplata",   label: "Daviplata",         hint: "Número de celular" },
+  { value: "bancolombia", label: "Bancolombia",       hint: "Número de cuenta" },
+  { value: "otro_banco",  label: "Otro banco",        hint: "Banco y número de cuenta" },
+  { value: "link",        label: "Link de pago",      hint: "https://…" },
+  { value: "efectivo",    label: "Efectivo al mensajero", hint: "" },
+] as const;
+
+export const PAYMENT_KIND_LABELS: Record<string, string> = Object.fromEntries(
+  PAYMENT_KINDS.map((k) => [k.value, k.label])
+);
+
 // Catálogo inicial de tipos de negocio para clientes e-commerce (editable).
 export const BUSINESS_TYPES = [
   "Moda / Ropa",

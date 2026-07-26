@@ -108,6 +108,38 @@ export interface Product {
   created_at: string;
 }
 
+/** Cómo quiere el comercio que le paguen lo que se recauda contraentrega. */
+export type PaymentKind =
+  | "nequi"
+  | "daviplata"
+  | "bancolombia"
+  | "otro_banco"
+  | "link"
+  | "efectivo";
+
+export interface PaymentMethod {
+  id: string;
+  client_id: string;
+  kind: PaymentKind;
+  holder: string | null;
+  identifier: string | null;
+  instructions: string | null;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+/** Lo que devuelve at_payment_info: la vista pública del QR de pago. */
+export interface PaymentInfo {
+  guide_number: string;
+  status: GuideStatus;
+  is_cod: boolean;
+  cod_amount: number;
+  recipient_name: string;
+  business_name: string;
+  methods: Pick<PaymentMethod, "kind" | "holder" | "identifier" | "instructions">[];
+}
+
 export interface AppNotification {
   id: string;
   user_id: string;
@@ -171,6 +203,8 @@ export interface Guide {
   delivery_signature_name: string | null;
   notes: string | null;
   created_at: string;
+  /** Token aleatorio del QR de pago; no se deriva del número de guía. */
+  payment_token: string;
   at_clients?: { business_name: string } | null;
   at_zones?: { name: string } | null;
   courier?: { full_name: string } | null;

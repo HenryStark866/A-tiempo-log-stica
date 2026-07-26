@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // /auth/* es público porque el enlace del correo llega sin sesión: es
 // justamente la ruta que la crea.
-const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo", "/auth"];
+// /pagar/<token> lo abre el destinatario desde el QR, sin cuenta.
+const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo", "/auth", "/pagar"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(

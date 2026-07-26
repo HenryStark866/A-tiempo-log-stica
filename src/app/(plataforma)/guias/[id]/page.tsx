@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { PageHeader, Card, Loading, Button, Modal, Field, inputCls } from "@/components/ui";
 import { StatusBadge } from "@/components/StatusBadge";
+import { GuiaQR } from "@/components/GuiaQR";
 import { GUIDE_STATUS_LABELS, OPS_ROLES } from "@/lib/constants";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import { uploadDeliveryEvidence } from "@/lib/evidence";
@@ -362,6 +363,12 @@ export default function GuideDetailPage() {
               )}
             </Card>
           )}
+          <GuiaQR
+            guideNumber={guide.guide_number}
+            paymentToken={guide.payment_token}
+            isCod={guide.is_cod}
+            codAmount={guide.cod_amount}
+          />
         </div>
 
         <Card className="p-6 lg:col-span-2">

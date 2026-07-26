@@ -23,7 +23,9 @@ import {
   parseCsv,
   decodeCsvBytes,
   guessMapping,
+  guessProductMapping,
   toRecipientPayload,
+  toProductPayload,
   RECIPIENT_FIELD_LABELS,
   REQUIRED_FIELDS,
   type CsvRow,
@@ -35,9 +37,9 @@ import type { Recipient, SyncRecipientsResult, Zone } from "@/lib/types";
 const CHUNK = 400;
 
 const PLANTILLA = [
-  "nombre,telefono,direccion,complemento,ciudad,notas",
-  '"María Restrepo",3001234567,"Cra 43 #10-25","apto 501 torre 2",Envigado,"Dejar en portería"',
-  '"Juan Osorio",3109876543,"Cl 50 #38-14","barrio Castilla",Medellín,',
+  "nombre,telefono,direccion,complemento,ciudad,notas,producto,sku,precio,descripcion",
+  '"María Restrepo",3001234567,"Cra 43 #10-25","apto 501 torre 2",Envigado,"Dejar en portería","Vestido flores","VF-001","$ 89.900","Talla S, algodón"',
+  '"Juan Osorio",3109876543,"Cl 50 #38-14","barrio Castilla",Medellín,,"Bolso cuero","BC-014","145000","Cuero natural, negro"',
 ].join("\n");
 
 const FORM_VACIO = {
@@ -243,6 +245,17 @@ export default function RecipientsPage() {
       acumulado.omitidos += r.omitidos;
     }
 
+    // Sincronizar catálogo de productos si el archivo incluye columnas de producto
+    const productMapping = guessProductMapping(headers);
+    if (productMapping.name) {
+      const productPayload = toProductPayload(rows, productMapping);
+      for (let i = 0; i < productPayload.length; i += CHUNK) {
+        await supabase.rpc("at_sync_products", {
+          p_rows: productPayload.slice(i, i + CHUNK),
+        });
+      }
+    }
+
     setProgress(null);
     setBusy(false);
     setResult(acumulado);
@@ -259,7 +272,7 @@ export default function RecipientsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "plantilla-destinatarios-atiempo.csv";
+    a.download = "plantilla-clientes-atiempo.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -292,7 +305,7 @@ export default function RecipientsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
-            Mis clientes
+            Clientes
           </h1>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
             {recipients === null
@@ -337,7 +350,7 @@ export default function RecipientsPage() {
         <div className="flex items-start gap-2 rounded-2xl bg-amber-50 dark:bg-amber-500/10 p-4">
           <TriangleAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <p className="text-[14px] text-amber-700 dark:text-amber-400">
-            <strong>{sinTelefono}</strong> destinatario(s) sin teléfono. Sin número el mensajero no
+            <strong>{sinTelefono}</strong> cliente(s) sin teléfono. Sin número el mensajero no
             puede avisar que llegó, y la entrega se cae más seguido.
           </p>
         </div>
@@ -368,7 +381,9 @@ export default function RecipientsPage() {
             <div className="space-y-4 border-t border-gray-100 dark:border-gray-800 pt-4">
               <p className="text-[14px] text-slate-600 dark:text-slate-400">
                 <strong className="text-slate-900 dark:text-white">{fileName}</strong> · {rows.length} fila(s).
-                Confirma a qué corresponde cada columna:
+                Confirma a qué corresponde cada columna. Las que dejes sin asignar{" "}
+                <strong className="text-slate-900 dark:text-white">también se guardan</strong>: no se
+                pierde nada de tu archivo.
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -415,7 +430,7 @@ export default function RecipientsPage() {
               ) : (
                 <>
                   <p className="text-[14px] text-slate-500 dark:text-slate-400">
-                    Se sincronizarán <strong className="text-slate-900 dark:text-white">{filasValidas}</strong> destinatario(s).
+                    Se sincronizarán <strong className="text-slate-900 dark:text-white">{filasValidas}</strong> cliente(s).
                     {rows.length - filasValidas > 0 &&
                       ` ${rows.length - filasValidas} fila(s) se omitirán por venir sin nombre o sin dirección.`}
                   </p>
@@ -529,6 +544,17 @@ export default function RecipientsPage() {
 
                     {r.notes && (
                       <p className="text-[13px] text-slate-500 dark:text-slate-400 italic">{r.notes}</p>
+                    )}
+
+                    {/* Todo lo demás que venía en el archivo del cliente */}
+                    {Object.keys(r.extra ?? {}).length > 0 && (
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 pt-0.5">
+                        {Object.entries(r.extra).map(([k, v]) => (
+                          <span key={k} className="text-[12px] text-slate-400 dark:text-slate-500">
+                            {k}: <span className="text-slate-600 dark:text-slate-300">{v}</span>
+                          </span>
+                        ))}
+                      </div>
                     )}
 
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">

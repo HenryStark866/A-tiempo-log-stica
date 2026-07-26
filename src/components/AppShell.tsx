@@ -18,9 +18,11 @@ import {
   Receipt,
   Route,
   Clock,
+  Tag,
   Users,
   Warehouse,
 } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 import { ProfileProvider } from "@/components/ProfileContext";
 import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -44,7 +46,8 @@ const NAV: NavItem[] = [
   { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario", "mensajero"] },
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
   { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador"] },
-  { href: "/destinatarios", label: "Mis clientes", icon: Contact, roles: ["cliente"] },
+  { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },
+  { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
   { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
@@ -117,7 +120,10 @@ export function AppShell({
             <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex items-center gap-2">
               <Logo className="scale-[0.8] origin-left" />
             </Link>
-            <ThemeToggle />
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
           </header>
 
           {/* Desktop Left Sidebar */}
@@ -126,7 +132,10 @@ export function AppShell({
               <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex items-center gap-2">
                 <Logo className="scale-90 origin-left" />
               </Link>
-              <ThemeToggle />
+              <div className="flex items-center gap-1">
+                <NotificationBell />
+                <ThemeToggle />
+              </div>
             </div>
 
             <nav className="flex-1 px-4 py-2 space-y-2 overflow-y-auto no-scrollbar">

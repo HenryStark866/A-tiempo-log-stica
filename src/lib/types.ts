@@ -90,7 +90,32 @@ export interface Recipient {
   last_used_at: string | null;
   active: boolean;
   created_at: string;
+  /** Columnas del archivo del cliente que no mapean a un campo propio. */
+  extra: Record<string, string>;
   at_zones?: { name: string } | null;
+}
+
+/** Producto del catálogo del e-commerce. */
+export interface Product {
+  id: string;
+  client_id: string;
+  sku: string | null;
+  name: string;
+  description: string | null;
+  price: number;
+  extra: Record<string, string>;
+  active: boolean;
+  created_at: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
 }
 
 export interface SyncRecipientsResult {

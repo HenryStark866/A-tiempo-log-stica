@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Search, Map } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@/components/ProfileContext";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import type { Guide, GuideStatus } from "@/lib/types";
@@ -29,6 +30,8 @@ function GuideBadge({ status }: { status: GuideStatus }) {
 }
 
 export default function GuidesPage() {
+  const profile = useProfile();
+  const esCliente = profile.role === "cliente";
   const [guides, setGuides] = useState<Guide[] | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<GuideStatus | "todas">("todas");
@@ -72,12 +75,14 @@ export default function GuidesPage() {
           </p>
         </div>
 
-        <Link href="/guias/nueva" className="shrink-0">
-          <button className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform w-full md:w-auto">
-            <Plus className="w-5 h-5" />
-            <span>Nueva guía</span>
-          </button>
-        </Link>
+        {esCliente && (
+          <Link href="/guias/nueva" className="shrink-0">
+            <button className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform w-full md:w-auto">
+              <Plus className="w-5 h-5" />
+              <span>Nueva guía</span>
+            </button>
+          </Link>
+        )}
       </div>
 
       {/* Filter Card */}
@@ -87,7 +92,7 @@ export default function GuidesPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por guía, destinatario o cliente…"
+            placeholder="Buscar por guía, cliente o comercio…"
             className="w-full min-h-[48px] pl-11 pr-4 bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] dark:focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] transition-all"
           />
         </div>
@@ -123,8 +128,8 @@ export default function GuidesPage() {
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700/50 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Guía</th>
+                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comercio</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Destinatario</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Zona</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">COD</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>

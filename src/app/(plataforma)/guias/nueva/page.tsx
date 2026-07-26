@@ -17,6 +17,7 @@ import {
   Search,
   X,
   Upload,
+  Tag,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
@@ -24,7 +25,7 @@ import { useMyClient } from "@/components/useMyClient";
 import { PriceList } from "@/components/PriceList";
 import { formatCOP } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
-import type { Client, Zone, Recipient } from "@/lib/types";
+import type { Client, Zone, Recipient, Product } from "@/lib/types";
 
 export default function NewGuidePage() {
   const router = useRouter();
@@ -37,6 +38,8 @@ export default function NewGuidePage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientId, setRecipientId] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [buscador, setBuscador] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -84,7 +87,7 @@ export default function NewGuidePage() {
       });
   }, [esCliente, clientId]);
 
-  // Destinatarios guardados del comercio (si ya sincronizó su base).
+  // Clientes guardados del comercio (si ya sincronizó su base).
   useEffect(() => {
     if (!clientId) return;
     const supabase = createClient();
@@ -98,6 +101,21 @@ export default function NewGuidePage() {
       .limit(1000)
       .then(({ data }) => setRecipients((data as Recipient[]) ?? []));
   }, [clientId]);
+
+  // Catálogo de productos del comercio
+  useEffect(() => {
+    const cid = esCliente ? clientId : form.client_id;
+    if (!cid) return;
+    const supabase = createClient();
+    supabase
+      .from("at_products")
+      .select("*")
+      .eq("client_id", cid)
+      .eq("active", true)
+      .order("name")
+      .limit(500)
+      .then(({ data }) => setProducts((data as Product[]) ?? []));
+  }, [esCliente, clientId, form.client_id]);
 
   // Sugerencia de zona por dirección/ciudad mientras no la fijen a mano.
   useEffect(() => {
@@ -212,26 +230,25 @@ export default function NewGuidePage() {
     );
   }
 
-  // Staff sin comercios: una guía siempre pertenece a un cliente e-commerce.
-  if (!esCliente && clients !== null && clients.length === 0) {
+  // Admin/Staff no crean guías directamente, las gestionan.
+  if (!esCliente) {
     return (
       <div className="pb-10 max-w-2xl mx-auto w-full font-sans px-4">
         <button onClick={() => router.back()} className="flex items-center text-[#ff812c] py-4">
           <ChevronLeft className="w-6 h-6 -ml-2" />
           <span className="text-[17px]">Atrás</span>
         </button>
-        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm">
-          <Store className="mx-auto mb-4 size-10 text-slate-400" />
-          <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">No hay comercios registrados</h2>
+        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+          <PackagePlus className="mx-auto mb-4 size-10 text-slate-400" />
+          <h2 className="text-[19px] font-bold text-slate-900 dark:text-white">Creación de guías reservada a comercios</h2>
           <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
-            Una guía siempre pertenece a un cliente e-commerce. Crea el primero para empezar a
-            registrar envíos.
+            Los administradores de A Tiempo Logística gestionan el flujo operativo, pero no crean guías directamente. Cada guía es registrada por el comercio correspondiente.
           </p>
           <Link
-            href="/clientes"
+            href="/guias"
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#ff812c] px-6 min-h-[48px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
           >
-            Ir a Clientes
+            Ver guías existentes
           </Link>
         </div>
       </div>
@@ -263,7 +280,69 @@ export default function NewGuidePage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Destinatarios guardados, o invitación a sincronizar si no hay */}
+          {/* Catálogo de Productos */}
+          {products.length > 0 && (
+            <section>
+              <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-[#ff812c]" />
+                Catálogo de Productos ({products.length})
+              </h3>
+              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm p-4 space-y-3 transition-colors duration-300">
+                <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                  Selecciona un producto para autocompletar su valor y descripción:
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2 max-h-56 overflow-y-auto pr-1">
+                  {products.map((p) => {
+                    const seleccionado = selectedProductId === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          if (seleccionado) {
+                            setSelectedProductId(null);
+                          } else {
+                            setSelectedProductId(p.id);
+                            const notaProd = `${p.name}${p.sku ? ` (SKU: ${p.sku})` : ""}${p.description ? ` - ${p.description}` : ""}`;
+                            setForm((f) => ({
+                              ...f,
+                              is_cod: true,
+                              cod_amount: String(p.price ?? 0),
+                              notes: f.notes ? `${f.notes}\n${notaProd}` : notaProd,
+                            }));
+                          }
+                        }}
+                        className={`text-left p-3 rounded-xl border transition-all ${
+                          seleccionado
+                            ? "border-[#ff812c] bg-[#ff812c]/10 text-slate-900 dark:text-white"
+                            : "border-slate-200 dark:border-slate-700 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50 hover:border-[#ff812c]/50 text-slate-700 dark:text-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-bold text-[14px] text-slate-900 dark:text-white line-clamp-1">{p.name}</p>
+                          <span className="font-bold text-[14px] text-[#ff812c] shrink-0">
+                            {formatCOP(p.price)}
+                          </span>
+                        </div>
+                        {p.sku && (
+                          <p className="text-[12px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                            SKU: {p.sku}
+                          </p>
+                        )}
+                        {p.description && (
+                          <p className="text-[12px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
+                            {p.description}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Clientes guardados, o invitación a sincronizar si no hay */}
           {esCliente && (
             <section>
               <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
@@ -305,7 +384,7 @@ export default function NewGuidePage() {
                       <input
                         value={buscador}
                         onChange={(e) => setBuscador(e.target.value)}
-                        placeholder={`Buscar entre ${recipients.length} destinatario(s)…`}
+                        placeholder={`Buscar entre ${recipients.length} cliente(s)…`}
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
                     </div>

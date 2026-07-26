@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package } from "lucide-react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { PICKUP_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import type { Client, Pickup, PickupStatus, Guide } from "@/lib/types";
+import type { Client, Pickup, PickupStatus, Guide, Profile } from "@/lib/types";
 
 const MIN_PACKAGES = 5;
 
@@ -45,6 +45,9 @@ export default function PickupsPage() {
 
   const [pickups, setPickups] = useState<Pickup[] | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [couriers, setCouriers] = useState<Profile[]>([]);
+  const [assigningPickup, setAssigningPickup] = useState<Pickup | null>(null);
+  const [selectedCourierId, setSelectedCourierId] = useState<string>("");
   const [showNew, setShowNew] = useState(false);
   const [completing, setCompleting] = useState<Pickup | null>(null);
   const [packageCount, setPackageCount] = useState("");
@@ -165,12 +168,36 @@ export default function PickupsPage() {
     load();
   }
 
-  async function assignToMe(p: Pickup) {
+  // Carga de mensajeros para asignación por parte del Admin
+  useEffect(() => {
+    if (!isStaff) return;
     const supabase = createClient();
-    await supabase
-      .from("at_pickups")
-      .update({ status: "asignada", operator_id: profile.id })
-      .eq("id", p.id);
+    supabase
+      .from("at_profiles")
+      .select("*")
+      .eq("role", "mensajero")
+      .eq("active", true)
+      .order("full_name")
+      .then(({ data }) => setCouriers((data as Profile[]) ?? []));
+  }, [isStaff]);
+
+  async function handleAssignPickup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!assigningPickup || !selectedCourierId) return;
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_assign_pickup", {
+      p_pickup_id: assigningPickup.id,
+      p_courier_id: selectedCourierId,
+    });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setAssigningPickup(null);
+    setSelectedCourierId("");
     load();
   }
 
@@ -206,13 +233,15 @@ export default function PickupsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowNew(true)}
-          className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform shrink-0"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Solicitar recogida</span>
-        </button>
+        {esCliente && (
+          <button
+            onClick={() => setShowNew(true)}
+            className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform shrink-0"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Solicitar recogida</span>
+          </button>
+        )}
       </div>
 
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
@@ -301,18 +330,22 @@ export default function PickupsPage() {
                               <MessageCircle className="w-4 h-4 fill-[#25D366] text-[#25D366]" />
                             </a>
                           )}
-                          {p.status === "pendiente" && (
+                          {p.status !== "completada" && p.status !== "cancelada" && (
                             <button
-                              onClick={() => assignToMe(p)}
-                              className="inline-flex items-center min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all"
+                              onClick={() => {
+                                setAssigningPickup(p);
+                                setSelectedCourierId(p.operator_id || "");
+                              }}
+                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
                             >
-                              Asignarme
+                              <UserCheck className="w-4 h-4 text-[#ff812c]" />
+                              {p.operator ? "Reasignar" : "Asignar mensajero"}
                             </button>
                           )}
                           {p.status === "asignada" && (
                             <button
                               onClick={() => setCompleting(p)}
-                              className="inline-flex items-center min-h-[40px] px-4 rounded-xl font-semibold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-all"
+                              className="inline-flex items-center min-h-[40px] px-4 rounded-xl font-semibold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-all text-xs sm:text-sm"
                             >
                               Completar
                             </button>
@@ -606,6 +639,81 @@ export default function PickupsPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Pickup Modal */}
+      {assigningPickup && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in fade-in duration-200">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+              <div>
+                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
+                  Asignar recogida a mensajero
+                </h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {assigningPickup.at_clients?.business_name} · {assigningPickup.address}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAssigningPickup(null);
+                  setSelectedCourierId("");
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAssignPickup} className="p-6 space-y-5">
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  Selecciona el mensajero
+                </label>
+                <select
+                  required
+                  value={selectedCourierId}
+                  onChange={(e) => setSelectedCourierId(e.target.value)}
+                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                >
+                  <option value="" disabled>
+                    Elige un mensajero activo...
+                  </option>
+                  {couriers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name || c.phone || "Mensajero sin nombre"}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                  Al asignar, el mensajero recibirá inmediatamente una notificación con la dirección y detalles.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssigningPickup(null);
+                    setSelectedCourierId("");
+                  }}
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy || !selectedCourierId}
+                  className="flex-1 min-h-[52px] rounded-2xl font-bold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserCheck className="w-5 h-5" />}
+                  <span>Asignar y Notificar</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -16,7 +16,7 @@ export type RecipientField =
   | "notes";
 
 export const RECIPIENT_FIELD_LABELS: Record<RecipientField, string> = {
-  full_name: "Nombre del destinatario",
+  full_name: "Nombre del cliente",
   phone: "Teléfono",
   address: "Dirección",
   address_2: "Complemento (apto, barrio, torre)",
@@ -26,6 +26,25 @@ export const RECIPIENT_FIELD_LABELS: Record<RecipientField, string> = {
 };
 
 export const REQUIRED_FIELDS: RecipientField[] = ["full_name", "address"];
+
+/** Campos del catálogo de productos del e-commerce. */
+export type ProductField = "name" | "sku" | "price" | "description";
+
+export const PRODUCT_FIELD_LABELS: Record<ProductField, string> = {
+  name: "Nombre del producto",
+  sku: "SKU / referencia",
+  price: "Precio",
+  description: "Descripción",
+};
+
+export const PRODUCT_REQUIRED_FIELDS: ProductField[] = ["name"];
+
+const PRODUCT_HINTS: Record<ProductField, string[]> = {
+  name: ["producto", "nombre", "articulo", "item", "title", "name", "descripcion corta"],
+  sku: ["sku", "referencia", "ref", "codigo", "cod", "barcode", "ean", "variant sku"],
+  price: ["precio", "valor", "price", "precio venta", "pvp", "costo", "variant price"],
+  description: ["descripcion", "detalle", "description", "body", "observaciones"],
+};
 
 // Encabezados que se ven en exportaciones reales, normalizados (sin tildes).
 //
@@ -201,42 +220,64 @@ export function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
  * Primero exacto, luego por inclusión, para que "Shipping Address 1" caiga en
  * address. Si se pasan las filas, el teléfono se detecta también por contenido.
  */
-export function guessMapping(
+function emparejar<F extends string>(
   headers: string[],
-  rows?: CsvRow[]
-): Partial<Record<RecipientField, string>> {
-  const mapping: Partial<Record<RecipientField, string>> = {};
-  const used = new Set<string>();
+  hints: Record<F, string[]>,
+  used: Set<string>
+): Partial<Record<F, string>> {
+  const mapping: Partial<Record<F, string>> = {};
   const normalized = headers.map((h) => ({ raw: h, norm: normalizeHeader(h) }));
 
-  for (const field of Object.keys(HEADER_HINTS) as RecipientField[]) {
-    const hints = HEADER_HINTS[field];
-    if (hints.length === 0) continue; // external_id: nunca se adivina
-    const exact = normalized.find((h) => !used.has(h.raw) && hints.includes(h.norm));
+  for (const field of Object.keys(hints) as F[]) {
+    const pistas = hints[field];
+    if (pistas.length === 0) continue; // external_id: nunca se adivina
+    const exact = normalized.find((h) => !used.has(h.raw) && pistas.includes(h.norm));
     if (exact) {
       mapping[field] = exact.raw;
       used.add(exact.raw);
       continue;
     }
     const partial = normalized.find(
-      (h) => !used.has(h.raw) && hints.some((hint) => h.norm.includes(hint))
+      (h) => !used.has(h.raw) && pistas.some((hint) => h.norm.includes(hint))
     );
     if (partial) {
       mapping[field] = partial.raw;
       used.add(partial.raw);
     }
   }
+  return mapping;
+}
+
+export function guessMapping(
+  headers: string[],
+  rows?: CsvRow[]
+): Partial<Record<RecipientField, string>> {
+  const used = new Set<string>();
+  const mapping = emparejar<RecipientField>(headers, HEADER_HINTS, used);
 
   // Último recurso para el teléfono: mirar los datos.
   if (!mapping.phone && rows && rows.length > 0) {
     const porContenido = sniffPhoneColumn(headers, rows, used);
-    if (porContenido) {
-      mapping.phone = porContenido;
-      used.add(porContenido);
-    }
+    if (porContenido) mapping.phone = porContenido;
   }
-
   return mapping;
+}
+
+export function guessProductMapping(headers: string[]): Partial<Record<ProductField, string>> {
+  return emparejar<ProductField>(headers, PRODUCT_HINTS, new Set());
+}
+
+/**
+ * Todas las columnas que NO se mapearon a un campo propio.
+ * Se guardan tal cual para no perder nada de lo que sube el e-commerce.
+ */
+function columnasExtra(row: CsvRow, mapeadas: (string | undefined)[]): Record<string, string> {
+  const usadas = new Set(mapeadas.filter(Boolean) as string[]);
+  const extra: Record<string, string> = {};
+  for (const [col, valor] of Object.entries(row)) {
+    if (!usadas.has(col) && valor.trim()) extra[col] = valor;
+  }
+  return extra;
 }
 
 /**
@@ -247,9 +288,10 @@ export function guessMapping(
 export function toRecipientPayload(
   rows: CsvRow[],
   mapping: Partial<Record<RecipientField, string>>
-): Record<string, string>[] {
+): Record<string, unknown>[] {
+  const mapeadas = Object.values(mapping);
   return rows.map((row) => {
-    const out: Record<string, string> = {};
+    const out: Record<string, unknown> = {};
     for (const field of Object.keys(RECIPIENT_FIELD_LABELS) as RecipientField[]) {
       if (field === "address_2") continue; // se fusiona abajo
       const col = mapping[field];
@@ -261,6 +303,28 @@ export function toRecipientPayload(
     if (complemento) {
       out.address = out.address ? `${out.address} ${complemento}` : complemento;
     }
+
+    // Nada de lo que sube el cliente se descarta.
+    const extra = columnasExtra(row, mapeadas);
+    if (Object.keys(extra).length > 0) out.extra = extra;
+    return out;
+  });
+}
+
+/** Convierte las filas al payload que espera at_sync_products. */
+export function toProductPayload(
+  rows: CsvRow[],
+  mapping: Partial<Record<ProductField, string>>
+): Record<string, unknown>[] {
+  const mapeadas = Object.values(mapping);
+  return rows.map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const field of Object.keys(PRODUCT_FIELD_LABELS) as ProductField[]) {
+      const col = mapping[field];
+      if (col && row[col]) out[field] = row[col];
+    }
+    const extra = columnasExtra(row, mapeadas);
+    if (Object.keys(extra).length > 0) out.extra = extra;
     return out;
   });
 }

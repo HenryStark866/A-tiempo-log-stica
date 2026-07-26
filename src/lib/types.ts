@@ -63,6 +63,8 @@ export interface Zone {
   description: string | null;
   /** Municipios/sectores cubiertos, separados por coma. */
   coverage: string | null;
+  /** Ciudades que esta zona cubre como último recurso, si no se reconoce el barrio. */
+  city_fallback: string | null;
   /** Tarifa cobrada al e-commerce por entrega (modelo financiero V2). */
   delivery_rate: number;
   sort_order: number;

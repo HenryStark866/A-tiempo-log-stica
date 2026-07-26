@@ -37,20 +37,48 @@ export interface ZoneResolution {
   status: ZoneStatus;
 }
 
+function listar(valor: string | null | undefined): string[] {
+  return (valor ?? "")
+    .split(",")
+    .map((s) => normalizeText(s).trim())
+    .filter(Boolean);
+}
+
 /**
- * Encuentra la zona cuya cobertura menciona la ciudad/dirección dada.
+ * Encuentra la zona que corresponde a una dirección.
  * Espejo en cliente de at_zone_for_city, para resolver sin ir al servidor.
+ *
+ * Resuelve en dos pasos, y el orden importa:
+ *
+ *  1. Barrios. Gana el sector MÁS LARGO, o sea el más específico: así
+ *     "San Antonio de Prado" (Zona 5) le gana a "Prado Centro" (Zona 3), y
+ *     "Girardota" (Zona 4) le gana a "Girardot" (Zona 3). Si empatan, decide
+ *     el orden de la zona.
+ *
+ *  2. Ciudad, solo si ningún barrio coincidió. Va aparte y no como un sector
+ *     más porque competiría con los barrios: una dirección de Belén casaría
+ *     con "medellin" (8 letras) antes que con "belen" (5) y se cobraría la
+ *     tarifa equivocada.
  */
 export function zoneForText(zones: Zone[], text: string): Zone | null {
   const t = normalizeText(text);
   if (!t.trim()) return null;
+
   const ordered = [...zones].sort((a, b) => a.sort_order - b.sort_order);
+
+  let mejor: { zone: Zone; precision: number } | null = null;
   for (const z of ordered) {
-    const sectores = (z.coverage ?? "")
-      .split(",")
-      .map((s) => normalizeText(s).trim())
-      .filter(Boolean);
-    if (sectores.some((s) => t.includes(s))) return z;
+    for (const sector of listar(z.coverage)) {
+      // El empate lo gana la primera zona por orden, de ahí el > estricto.
+      if (t.includes(sector) && (!mejor || sector.length > mejor.precision)) {
+        mejor = { zone: z, precision: sector.length };
+      }
+    }
+  }
+  if (mejor) return mejor.zone;
+
+  for (const z of ordered) {
+    if (listar(z.city_fallback).some((c) => t.includes(c))) return z;
   }
   return null;
 }

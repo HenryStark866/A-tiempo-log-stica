@@ -39,12 +39,34 @@ export const PRODUCT_FIELD_LABELS: Record<ProductField, string> = {
 
 export const PRODUCT_REQUIRED_FIELDS: ProductField[] = ["name"];
 
+// El ORDEN de las pistas es la prioridad: se prueba pista por pista, no
+// columna por columna. Importa de verdad: un archivo de entregas trae NOMBRE
+// (la persona) y PRODUCTO (el artículo). Recorriendo columnas ganaba NOMBRE
+// por venir antes en el archivo, y el catálogo quedó con clientes de nombre
+// "MARTHA" y "CLAUDIA" en vez de productos. Con "producto" como primera pista,
+// gana la columna correcta sin importar dónde esté.
 const PRODUCT_HINTS: Record<ProductField, string[]> = {
-  name: ["producto", "nombre", "articulo", "item", "title", "name", "descripcion corta"],
-  sku: ["sku", "referencia", "ref", "codigo", "cod", "barcode", "ean", "variant sku"],
-  price: ["precio", "valor", "price", "precio venta", "pvp", "costo", "variant price"],
+  name: ["producto", "nombre del producto", "articulo", "item", "product", "title", "descripcion corta", "nombre"],
+  sku: ["sku", "variant sku", "codigo de barras", "codigo", "cod", "barcode", "ean", "ref", "referencia"],
+  price: ["valor producto", "precio venta", "precio", "price", "pvp", "valor", "costo", "variant price"],
   description: ["descripcion", "detalle", "description", "body", "observaciones"],
 };
+
+// Columnas que delatan que el archivo es de ENTREGAS y no un catálogo.
+const SENALES_DE_ENTREGA = ["direccion", "ciudad", "telefono", "celular", "destinatario", "barrio"];
+
+/**
+ * ¿El archivo describe entregas en vez de productos?
+ *
+ * Hace falta porque "referencia" es ambigua: en un catálogo es el SKU, pero en
+ * un archivo colombiano de entregas es el complemento de la dirección (apto,
+ * torre, barrio). Tomarla como SKU dejó referencias como
+ * "apt 1510 unidad reserva del parque".
+ */
+function pareceArchivoDeEntregas(headers: string[]): boolean {
+  const norms = headers.map(normalizeHeader);
+  return norms.some((h) => SENALES_DE_ENTREGA.some((s) => h.includes(s)));
+}
 
 // Encabezados que se ven en exportaciones reales, normalizados (sin tildes).
 //
@@ -217,8 +239,14 @@ export function parseCsv(text: string): { headers: string[]; rows: CsvRow[] } {
 
 /**
  * Adivina qué columna del archivo corresponde a cada campo de la app.
- * Primero exacto, luego por inclusión, para que "Shipping Address 1" caiga en
- * address. Si se pasan las filas, el teléfono se detecta también por contenido.
+ *
+ * Recorre las PISTAS en orden, no las columnas: la primera pista de la lista
+ * manda, esté donde esté esa columna en el archivo. Antes se recorrían las
+ * columnas, así que ganaba la que viniera primero en el archivo y un archivo
+ * de entregas mapeaba NOMBRE (la persona) como nombre del producto.
+ *
+ * Dentro de cada pista, primero coincidencia exacta y luego por inclusión,
+ * para que "Shipping Address 1" caiga en address.
  */
 function emparejar<F extends string>(
   headers: string[],
@@ -231,18 +259,22 @@ function emparejar<F extends string>(
   for (const field of Object.keys(hints) as F[]) {
     const pistas = hints[field];
     if (pistas.length === 0) continue; // external_id: nunca se adivina
-    const exact = normalized.find((h) => !used.has(h.raw) && pistas.includes(h.norm));
-    if (exact) {
-      mapping[field] = exact.raw;
-      used.add(exact.raw);
-      continue;
+
+    // Pasada exacta, pista por pista y en orden de prioridad.
+    let elegida = pistas
+      .map((hint) => normalized.find((h) => !used.has(h.raw) && h.norm === hint))
+      .find(Boolean);
+
+    // Si ninguna pista casó exacta, se acepta por inclusión, igual en orden.
+    if (!elegida) {
+      elegida = pistas
+        .map((hint) => normalized.find((h) => !used.has(h.raw) && h.norm.includes(hint)))
+        .find(Boolean);
     }
-    const partial = normalized.find(
-      (h) => !used.has(h.raw) && pistas.some((hint) => h.norm.includes(hint))
-    );
-    if (partial) {
-      mapping[field] = partial.raw;
-      used.add(partial.raw);
+
+    if (elegida) {
+      mapping[field] = elegida.raw;
+      used.add(elegida.raw);
     }
   }
   return mapping;
@@ -264,6 +296,18 @@ export function guessMapping(
 }
 
 export function guessProductMapping(headers: string[]): Partial<Record<ProductField, string>> {
+  // En un archivo de entregas, las pistas genéricas apuntan a la persona y a la
+  // dirección, no al artículo. Se limitan a las que solo pueden ser de producto
+  // y el resto lo elige la persona a mano.
+  if (pareceArchivoDeEntregas(headers)) {
+    const estrictas: Record<ProductField, string[]> = {
+      name: ["producto", "nombre del producto", "articulo", "item", "product"],
+      sku: ["sku", "variant sku", "codigo de barras"],
+      price: ["valor producto", "precio venta", "precio", "price", "pvp"],
+      description: ["descripcion del producto", "detalle del producto"],
+    };
+    return emparejar<ProductField>(headers, estrictas, new Set());
+  }
   return emparejar<ProductField>(headers, PRODUCT_HINTS, new Set());
 }
 

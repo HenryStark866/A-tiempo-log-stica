@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { CediDestino } from "@/components/CediDestino";
 import { formatCOP } from "@/lib/utils";
 
 interface PickupGuide {
@@ -144,6 +145,10 @@ export default function CourierPickupPage() {
           </p>
         </div>
       )}
+
+      {/* El destino de la jornada, siempre a la vista: al terminar la recogida
+          el mensajero arranca para acá. */}
+      <CediDestino />
 
       {pickups === null ? (
         <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-16 text-slate-500 shadow-sm dark:bg-[#2C2C2E] dark:text-slate-400">

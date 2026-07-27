@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ScanBarcode, Undo2, Loader2, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { CediDestino } from "@/components/CediDestino";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
@@ -117,8 +118,11 @@ export default function CediPage() {
       <div className="flex flex-col">
         <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">CEDI — Centro de Distribución</h1>
         <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-          Fase 2.1: validación de entrada a bodega · Fases 8-9: retorno de novedades
+          Validación de entrada a bodega y retorno de novedades
         </p>
+        <div className="mt-2">
+          <CediDestino compacto />
+        </div>
       </div>
 
       {msg && (

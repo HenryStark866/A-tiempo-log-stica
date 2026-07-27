@@ -1,4 +1,13 @@
-import type { GuideStatus, InvoiceStatus, PickupStatus, Role, SettlementStatus } from "./types";
+import type {
+  CourierType,
+  DocStatus,
+  DocType,
+  GuideStatus,
+  InvoiceStatus,
+  PickupStatus,
+  Role,
+  SettlementStatus,
+} from "./types";
 
 export const APP_NAME = "A Tiempo Logística";
 
@@ -81,6 +90,71 @@ export const PAYMENT_KINDS = [
 export const PAYMENT_KIND_LABELS: Record<string, string> = Object.fromEntries(
   PAYMENT_KINDS.map((k) => [k.value, k.label])
 );
+
+// ── Mensajeros: tipo y documentos ──────────────────────────────────────
+
+export const COURIER_TYPE_LABELS: Record<CourierType, string> = {
+  corporativo: "Corporativo",
+  colaborativo: "Colaborativo",
+};
+
+export const COURIER_TYPE_HINTS: Record<CourierType, string> = {
+  corporativo: "De la empresa, con vehículo de la empresa.",
+  colaborativo: "Externo, pone su propio vehículo.",
+};
+
+export const DOC_STATUS_LABELS: Record<DocStatus, string> = {
+  pendiente: "En revisión",
+  aprobado: "Aprobado",
+  rechazado: "Rechazado",
+};
+
+export const DOC_STATUS_COLORS: Record<DocStatus, string> = {
+  pendiente: "bg-amber-50 text-amber-700 border-amber-200",
+  aprobado: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  rechazado: "bg-rose-50 text-rose-700 border-rose-200",
+};
+
+/**
+ * Catálogo de documentos. `expires` marca los que se vencen y por eso piden
+ * fecha: un SOAT vencido invalida al mensajero aunque ya se lo hayan aprobado.
+ *
+ * Qué es obligatorio lo decide COURIER_REQUIRED_DOCS, no este catálogo.
+ */
+export const COURIER_DOCS: { value: DocType; label: string; hint: string; expires: boolean }[] = [
+  { value: "cedula_frente",       label: "Cédula (frente)",      hint: "Foto legible por el lado de la foto.", expires: false },
+  { value: "cedula_reverso",      label: "Cédula (reverso)",     hint: "El otro lado del documento.",          expires: false },
+  { value: "licencia_conduccion", label: "Licencia de conducción", hint: "Vigente y de la categoría del vehículo.", expires: true },
+  { value: "tarjeta_propiedad",   label: "Tarjeta de propiedad", hint: "Del vehículo con el que va a trabajar.", expires: false },
+  { value: "soat",                label: "SOAT",                 hint: "Seguro obligatorio vigente.",          expires: true },
+  { value: "tecnomecanica",       label: "Tecnomecánica",        hint: "Obligatoria si el vehículo tiene más de 2 años.", expires: true },
+  { value: "foto_vehiculo",       label: "Foto del vehículo",    hint: "Donde se vea la placa.",               expires: false },
+  { value: "certificado_eps",     label: "Certificado de EPS",   hint: "Afiliación vigente a salud.",          expires: false },
+  { value: "antecedentes",        label: "Antecedentes",         hint: "Certificado de la Policía Nacional.",  expires: false },
+];
+
+export const DOC_LABELS: Record<DocType, string> = Object.fromEntries(
+  COURIER_DOCS.map((d) => [d.value, d.label])
+) as Record<DocType, string>;
+
+/**
+ * Espejo en cliente de public.at_required_courier_docs. Si cambia allá, cambia
+ * aquí: la base es la que manda y rechaza la habilitación, esto solo evita que
+ * la pantalla prometa algo distinto.
+ *
+ * El colaborativo pone su propio vehículo, así que responde con él ante un
+ * siniestro y se le exigen los papeles del vehículo.
+ */
+export const COURIER_REQUIRED_DOCS: Record<CourierType, DocType[]> = {
+  corporativo: ["cedula_frente", "cedula_reverso", "licencia_conduccion"],
+  colaborativo: [
+    "cedula_frente",
+    "cedula_reverso",
+    "licencia_conduccion",
+    "tarjeta_propiedad",
+    "soat",
+  ],
+};
 
 // Catálogo inicial de tipos de negocio para clientes e-commerce (editable).
 export const BUSINESS_TYPES = [

@@ -40,6 +40,40 @@ export interface Profile {
   business_name: string | null;
   business_nit: string | null;
   business_address: string | null;
+  // Mensajeros. `active` dice si puede entrar a la app; `verified_at` si el
+  // admin revisó sus papeles y puede recibir trabajo. Son cosas distintas.
+  courier_type: CourierType | null;
+  verified_at: string | null;
+  verified_by: string | null;
+  vehicle_plate: string | null;
+}
+
+export type CourierType = "corporativo" | "colaborativo";
+
+export type DocStatus = "pendiente" | "aprobado" | "rechazado";
+
+export type DocType =
+  | "cedula_frente"
+  | "cedula_reverso"
+  | "licencia_conduccion"
+  | "tarjeta_propiedad"
+  | "soat"
+  | "tecnomecanica"
+  | "foto_vehiculo"
+  | "certificado_eps"
+  | "antecedentes";
+
+export interface CourierDocument {
+  id: string;
+  courier_id: string;
+  doc_type: DocType;
+  file_path: string;
+  status: DocStatus;
+  review_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  expires_on: string | null;
+  uploaded_at: string;
 }
 
 export interface Client {

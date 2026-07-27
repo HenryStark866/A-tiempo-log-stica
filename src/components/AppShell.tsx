@@ -5,10 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  BadgeCheck,
   Banknote,
   Building2,
   Contact,
   Hourglass,
+  IdCard,
   LayoutDashboard,
   LogOut,
   MapPinned,
@@ -51,6 +53,8 @@ const NAV: NavItem[] = [
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
+  { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["mensajero"] },
+  { href: "/mensajeros", label: "Mensajeros", icon: BadgeCheck, roles: ["admin", "coordinador"] },
   { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
   { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
   { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador", "mensajero"] },

@@ -79,7 +79,7 @@ create policy "mensajero ve sus documentos" on public.at_courier_documents
 -- no puedan quedar diciendo cosas distintas.
 create or replace function public.at_required_courier_docs(p_type public.at_courier_type)
 returns public.at_doc_type[]
-language sql immutable
+language sql immutable set search_path = public
 as $$
   select case
     when p_type = 'colaborativo' then array[

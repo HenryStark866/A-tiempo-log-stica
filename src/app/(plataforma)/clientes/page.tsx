@@ -23,9 +23,12 @@ const EMPTY_FORM = {
 
 export default function ClientsPage() {
   const profile = useProfile();
-  // El mensajero da de alta comercios nuevos, pero tarifas y estado de un cliente
-  // ya existente solo los toca ops (impactan facturación). Ver migración 0007.
-  const canEdit = profile.role !== "mensajero";
+  // Tarifas y estado de un comercio solo los toca ops: impactan facturación.
+  // Va con la lista explícita y no con un "distinto de mensajero" porque la
+  // política de UPDATE en at_clients es at_is_ops(), o sea admin y coordinador.
+  // Con la negación, el operario veía botones de editar que la base rechazaba.
+  // Ver migración 0007.
+  const canEdit = ["admin", "coordinador"].includes(profile.role);
   const [clients, setClients] = useState<Client[] | null>(null);
   // Solo edición: la creación desapareció, los comercios nacen del registro.
   const [editing, setEditing] = useState<Client | null>(null);

@@ -42,6 +42,22 @@ interface NavItem {
   roles: Role[];
 }
 
+/**
+ * Jerarquía de la operación. Cada rol ve lo que necesita para su parte del
+ * flujo, y nada más:
+ *
+ *  admin       → todo, incluida la gestión de usuarios.
+ *  coordinador → todo menos usuarios: además de la operación, lleva lo
+ *                financiero (recaudo, facturación) y habilita mensajeros.
+ *  operario    → el CEDI de punta a punta: recibe, despacha por zonas,
+ *                resuelve novedades y ve qué se entregó. NO toca plata ni
+ *                aprueba personal; eso es decisión de coordinación.
+ *  mensajero   → sus recogidas, su ruta, su perfil y su recaudo.
+ *  cliente     → su comercio, sus guías, sus productos y su seguimiento.
+ *
+ * Esconder algo del menú NO es protegerlo: cada pantalla valida el rol por su
+ * cuenta, y la base valida otra vez en RLS y en los RPC.
+ */
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente"] },
   { href: "/guias", label: "Guías", icon: Package, roles: ["admin", "coordinador", "operario", "cliente"] },
@@ -52,7 +68,9 @@ const NAV: NavItem[] = [
   // CEDI. Su ruta del día la ve en /entregas.
   { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario"] },
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
-  { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador"] },
+  // El operario coordina el CEDI: necesita ver dónde va cada mensajero para
+  // saber a quién le cabe el siguiente lote y a quién llamar si se atrasa.
+  { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario"] },
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
@@ -62,7 +80,9 @@ const NAV: NavItem[] = [
   { href: "/mensajeros", label: "Mensajeros", icon: BadgeCheck, roles: ["admin", "coordinador"] },
   { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
   { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
-  { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador", "mensajero"] },
+  // Consulta, no edición: el operario llama al comercio cuando una recogida
+  // llega incompleta. Modificar sus datos sigue siendo de coordinación.
+  { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador", "operario", "mensajero"] },
   { href: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
 ];
 

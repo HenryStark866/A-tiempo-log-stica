@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { ShieldCheck, Loader2, Users, X, BellRing, Store, Bike, Check, Ban } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import type { Client, Profile, Role, Zone } from "@/lib/types";
 
 export default function UsersPage() {
+  const yo = useProfile();
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
@@ -19,22 +21,27 @@ export default function UsersPage() {
   const [actingId, setActingId] = useState<string | null>(null);
   const [reqError, setReqError] = useState<string | null>(null);
 
+  const esAdmin = yo.role === "admin";
+
   const load = useCallback(async () => {
+    if (!esAdmin) return;
     const supabase = createClient();
     const { data } = await supabase
       .from("at_profiles")
       .select("*")
       .order("created_at", { ascending: false });
     setProfiles((data as Profile[]) ?? []);
-  }, []);
+  }, [esAdmin]);
 
   const loadClients = useCallback(async () => {
+    if (!esAdmin) return;
     const supabase = createClient();
     const { data } = await supabase.from("at_clients").select("*").order("business_name");
     setClients((data as Client[]) ?? []);
-  }, []);
+  }, [esAdmin]);
 
   useEffect(() => {
+    if (!esAdmin) return;
     load();
     loadClients();
     const supabase = createClient();
@@ -43,7 +50,7 @@ export default function UsersPage() {
       .select("*")
       .order("name")
       .then(({ data }) => setZones((data as Zone[]) ?? []));
-  }, [load, loadClients]);
+  }, [esAdmin, load, loadClients]);
 
   const pending = (profiles ?? []).filter((p) => p.role === "pendiente" && p.requested_role);
 
@@ -124,6 +131,24 @@ export default function UsersPage() {
     }
     setEditing(null);
     load();
+  }
+
+  // Asignar roles es la llave de toda la jerarquía, así que es solo del admin.
+  // La base ya lo impide (RLS deja actualizar el perfil propio o al admin, y
+  // at_guard_profile_role bloquea escalar el rol), pero sin este corte la
+  // pantalla igual le listaba todos los usuarios a cualquier staff que
+  // escribiera la URL.
+  if (!esAdmin) {
+    return (
+      <div className="pb-10 font-sans">
+        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+          Usuarios
+        </h1>
+        <p className="mt-6 text-[15px] text-slate-500 dark:text-slate-400">
+          Solo un administrador gestiona los usuarios y sus roles.
+        </p>
+      </div>
+    );
   }
 
   return (

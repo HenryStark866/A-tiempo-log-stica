@@ -4,11 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ScanBarcode, Undo2, Loader2, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@/components/ProfileContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
 
+const ROLES_CEDI = ["admin", "coordinador", "operario"];
+
 export default function CediPage() {
+  const profile = useProfile();
   const [incoming, setIncoming] = useState<Guide[] | null>(null);
   const [returns, setReturns] = useState<Guide[] | null>(null);
   const [scan, setScan] = useState("");
@@ -16,6 +20,7 @@ export default function CediPage() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    if (!ROLES_CEDI.includes(profile.role)) return;
     const supabase = createClient();
     const [{ data: inc }, { data: ret }] = await Promise.all([
       supabase
@@ -31,7 +36,7 @@ export default function CediPage() {
     ]);
     setIncoming((inc as Guide[]) ?? []);
     setReturns((ret as Guide[]) ?? []);
-  }, []);
+  }, [profile.role]);
 
   useEffect(() => {
     load();
@@ -88,6 +93,22 @@ export default function CediPage() {
       });
     }
     load();
+  }
+
+  // El CEDI es la bodega: recibir y despachar es del personal de operaciones.
+  // Sin este corte, un comercio que escribiera la URL veía la pantalla (con
+  // sus propias guías, por RLS), que no significa nada para él y confunde.
+  if (!ROLES_CEDI.includes(profile.role)) {
+    return (
+      <div className="pb-10 font-sans">
+        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+          CEDI
+        </h1>
+        <p className="mt-6 text-[15px] text-slate-500 dark:text-slate-400">
+          Esta sección es del personal del centro de distribución.
+        </p>
+      </div>
+    );
   }
 
   return (

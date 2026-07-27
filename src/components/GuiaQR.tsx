@@ -12,18 +12,24 @@ import { formatCOP } from "@/lib/utils";
  * bien impreso y en pantalla de celular) y lo que se ve al escanear está
  * siempre al día, aunque el rótulo se haya impreso hace días.
  *
- * - Rastreo: página pública de seguimiento, para destinatario, mensajero y CEDI.
+ * - Rastreo: seguimiento del comprador, con la ubicación del mensajero en vivo.
  * - Pago: página pública con lo que se recauda y por dónde pagarle al comercio.
- *   Usa el token aleatorio de la guía, no el número consecutivo.
+ *
+ * Los dos van por token aleatorio y no por el número de guía. El número es
+ * consecutivo, así que cualquiera podría recorrer la secuencia; con la
+ * ubicación en vivo publicada eso sería poder seguir a los mensajeros por la
+ * ciudad. La búsqueda por número sigue existiendo en /rastreo, pero sin mapa.
  */
 export function GuiaQR({
-  guideNumber,
+  trackingToken,
   paymentToken,
+  guideNumber,
   isCod,
   codAmount,
 }: {
-  guideNumber: string;
+  trackingToken: string;
   paymentToken: string;
+  guideNumber: string;
   isCod: boolean;
   codAmount: number;
 }) {
@@ -32,7 +38,7 @@ export function GuiaQR({
   const [origin, setOrigin] = useState<string | null>(null);
   useEffect(() => setOrigin(window.location.origin), []);
 
-  const urlRastreo = origin ? `${origin}/rastreo/${guideNumber}` : null;
+  const urlRastreo = origin ? `${origin}/rastreo/t/${trackingToken}` : null;
   const urlPago = origin ? `${origin}/pagar/${paymentToken}` : null;
 
   return (

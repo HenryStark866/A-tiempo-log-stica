@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Map, Trash2, Edit2, AlertTriangle } from "lucide-react";
+import { Plus, Printer, Search, Map, Trash2, Edit2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
@@ -92,14 +92,37 @@ export default function GuidesPage() {
           </p>
         </div>
 
-        {esCliente && (
-          <Link href="/guias/nueva" className="shrink-0">
-            <button className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform w-full md:w-auto">
-              <Plus className="w-5 h-5" />
-              <span>Nueva guía</span>
-            </button>
-          </Link>
-        )}
+        <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+          {/* Imprime lo que está filtrado en pantalla: así el comercio puede
+              sacar de una vez los rótulos del despacho del día en vez de entrar
+              guía por guía. */}
+          {filtered.length > 0 && (
+            <Link
+              href={`/guias/rotulos?ids=${filtered
+                .slice(0, 100)
+                .map((g) => g.id)
+                .join(",")}`}
+              target="_blank"
+              className="shrink-0"
+            >
+              <button className="min-h-[48px] w-full px-5 rounded-xl font-semibold flex items-center justify-center gap-2 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white active:scale-[0.98] transition-transform md:w-auto">
+                <Printer className="w-5 h-5" />
+                <span>
+                  Rótulos ({Math.min(filtered.length, 100)})
+                </span>
+              </button>
+            </Link>
+          )}
+
+          {esCliente && (
+            <Link href="/guias/nueva" className="shrink-0">
+              <button className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform w-full md:w-auto">
+                <Plus className="w-5 h-5" />
+                <span>Nueva guía</span>
+              </button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter Card */}

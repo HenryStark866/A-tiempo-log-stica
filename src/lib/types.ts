@@ -241,6 +241,7 @@ export interface Guide {
   created_at: string;
   /** Token aleatorio del QR de pago; no se deriva del número de guía. */
   payment_token: string;
+  tracking_token: string;
   at_clients?: { business_name: string } | null;
   at_zones?: { name: string } | null;
   courier?: { full_name: string } | null;
@@ -335,4 +336,37 @@ export interface TrackingResult {
   delivered_at: string | null;
   delivery_attempts: number;
   events: { status: GuideStatus; created_at: string }[];
+}
+
+/**
+ * Lo que ve quien escanea el QR del rótulo. Trae más que TrackingResult
+ * —incluida la ubicación del mensajero— porque llega por un token que solo
+ * tiene quien recibió el paquete, no por el número de guía, que es adivinable.
+ */
+export interface TrackingByToken extends TrackingResult {
+  recipient_name: string;
+  business_name: string | null;
+  courier_name: string | null;
+  courier_lat: number | null;
+  courier_lng: number | null;
+  courier_position_at: string | null;
+}
+
+/** Una guía lista para imprimir como rótulo. Viene de at_label_data. */
+export interface LabelData {
+  id: string;
+  guide_number: string;
+  tracking_token: string;
+  payment_token: string;
+  recipient_name: string;
+  recipient_phone: string | null;
+  recipient_address: string;
+  recipient_city: string;
+  is_cod: boolean;
+  cod_amount: number;
+  notes: string | null;
+  created_at: string;
+  business_name: string;
+  business_phone: string | null;
+  zone_name: string | null;
 }

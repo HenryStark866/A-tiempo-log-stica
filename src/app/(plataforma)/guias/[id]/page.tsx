@@ -10,6 +10,7 @@ import {
   Circle,
   ExternalLink,
   Pencil,
+  Printer,
   Trash2,
   AlertTriangle,
 } from "lucide-react";
@@ -224,11 +225,16 @@ export default function GuideDetailPage() {
         actions={
           <>
             <Link
-              href={`/rastreo/${guide.guide_number}`}
+              href={`/rastreo/t/${guide.tracking_token}`}
               target="_blank"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline"
             >
               Rastreo público <ExternalLink className="size-3.5" />
+            </Link>
+            <Link href={`/guias/rotulos?ids=${id}`} target="_blank">
+              <Button variant="secondary">
+                <Printer className="size-4" /> Rótulo
+              </Button>
             </Link>
             {canEditDelete && (
               <>
@@ -404,8 +410,9 @@ export default function GuideDetailPage() {
             </Card>
           )}
           <GuiaQR
-            guideNumber={guide.guide_number}
+            trackingToken={guide.tracking_token}
             paymentToken={guide.payment_token}
+            guideNumber={guide.guide_number}
             isCod={guide.is_cod}
             codAmount={guide.cod_amount}
           />

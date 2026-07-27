@@ -36,6 +36,19 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // La plantilla de correo de fábrica de Supabase manda al Site URL con
+  // ?code=..., o sea a la portada, que no sabe qué hacer con eso. Se reenvía a
+  // la ruta que sí lo canjea, para que el enlace funcione con cualquiera de
+  // las dos plantillas.
+  if (
+    request.nextUrl.pathname === "/" &&
+    request.nextUrl.searchParams.has("code")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/confirmar";
+    return NextResponse.redirect(url);
+  }
+
   // IMPORTANTE: mantiene la sesión fresca en cada request
   const {
     data: { user },

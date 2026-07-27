@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Camera,
   CheckCircle2,
   Circle,
   ExternalLink,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
@@ -53,6 +56,7 @@ function actionsFor(guide: Guide, role: string, userId: string) {
 
 export default function GuideDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const profile = useProfile();
   const [guide, setGuide] = useState<Guide | null>(null);
   const [events, setEvents] = useState<GuideEvent[]>([]);
@@ -67,6 +71,9 @@ export default function GuideDetailPage() {
   const [assign, setAssign] = useState({ courier_id: "", zone_id: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -181,8 +188,23 @@ export default function GuideDetailPage() {
     else load();
   }
 
+  async function handleDeleteGuide() {
+    setDeleting(true);
+    setDeleteError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_delete_guide", { p_guide_id: id });
+    setDeleting(false);
+    if (error) {
+      setDeleteError(error.message);
+    } else {
+      router.replace("/guias");
+    }
+  }
+
   if (!guide) return <Loading />;
 
+  const esCliente = profile.role === "cliente";
+  const canEditDelete = esCliente && guide.status === "creada";
   const acts = actionsFor(guide, profile.role, profile.id);
   const canAssign =
     ["en_cedi", "reprogramada"].includes(guide.status) &&
@@ -205,6 +227,21 @@ export default function GuideDetailPage() {
             >
               Rastreo público <ExternalLink className="size-3.5" />
             </Link>
+            {canEditDelete && (
+              <>
+                <Link href={`/guias/${id}/editar`}>
+                  <Button variant="secondary">
+                    <Pencil className="size-4" /> Editar
+                  </Button>
+                </Link>
+                <Button
+                  variant="danger"
+                  onClick={() => { setDeleteError(null); setShowDeleteModal(true); }}
+                >
+                  <Trash2 className="size-4" /> Eliminar
+                </Button>
+              </>
+            )}
             <Link href="/guias">
               <Button variant="secondary">
                 <ArrowLeft className="size-4" /> Volver
@@ -481,6 +518,38 @@ export default function GuideDetailPage() {
             </Button>
             <Button disabled={busy || (guide.is_cod && !evidenceFile)} onClick={confirmDelivery}>
               {uploading ? "Subiendo…" : "Confirmar"}
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal eliminar guía */}
+      {showDeleteModal && guide && (
+        <Modal
+          title="Eliminar guía"
+          onClose={() => setShowDeleteModal(false)}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900">{guide.guide_number}</p>
+              <p className="text-sm text-slate-500">Destinatario: {guide.recipient_name}</p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-700 mb-4">
+            ¿Seguro que quieres eliminar esta guía? Esta acción no se puede deshacer.
+          </p>
+          {deleteError && (
+            <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{deleteError}</p>
+          )}
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleDeleteGuide} disabled={deleting}>
+              {deleting ? "Eliminando…" : "Confirmar eliminación"}
             </Button>
           </div>
         </Modal>

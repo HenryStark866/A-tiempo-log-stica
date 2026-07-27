@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Map } from "lucide-react";
+import { Plus, Search, Map, Trash2, Edit2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
@@ -35,6 +35,9 @@ export default function GuidesPage() {
   const [guides, setGuides] = useState<Guide[] | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<GuideStatus | "todas">("todas");
+  const [deleteTarget, setDeleteTarget] = useState<Guide | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -53,6 +56,20 @@ export default function GuidesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function confirmDelete(guide: Guide) {
+    setDeleting(true);
+    setDeleteError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_delete_guide", { p_guide_id: guide.id });
+    setDeleting(false);
+    if (error) {
+      setDeleteError(error.message);
+    } else {
+      setDeleteTarget(null);
+      load();
+    }
+  }
 
   const filtered = (guides ?? []).filter((g) => {
     const s = query.toLowerCase();
@@ -134,6 +151,7 @@ export default function GuidesPage() {
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">COD</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Creada</th>
+                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -166,6 +184,22 @@ export default function GuidesPage() {
                     <td className="px-6 py-4 text-[14px] text-slate-500 dark:text-slate-400">
                       {formatDateTime(g.created_at)}
                     </td>
+                    <td className="px-6 py-4">
+                      {g.status === "creada" && (
+                        <div className="flex items-center gap-2">
+                          <Link href={`/guias/${g.id}/editar`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-[#ff812c]">
+                            <Edit2 className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => { setDeleteError(null); setDeleteTarget(g); }}
+                            className="p-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg text-slate-400 hover:text-rose-500"
+                            title="Eliminar guía"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -173,6 +207,50 @@ export default function GuidesPage() {
           </div>
         )}
       </div>
+
+      {/* Modal confirmación eliminar */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-white text-[17px]">Eliminar guía</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400">{deleteTarget.guide_number}</p>
+              </div>
+            </div>
+            <p className="text-[15px] text-slate-700 dark:text-slate-300 mb-1">
+              ¿Seguro que quieres eliminar esta guía? Esta acción no se puede deshacer.
+            </p>
+            <p className="text-[13px] text-slate-500 dark:text-slate-400 mb-5">
+              Destinatario: <strong>{deleteTarget.recipient_name}</strong>
+            </p>
+            {deleteError && (
+              <p className="mb-4 rounded-xl bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-400">
+                {deleteError}
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 min-h-[48px] rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-semibold active:scale-[0.98] transition-transform"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => confirmDelete(deleteTarget)}
+                disabled={deleting}
+                className="flex-1 min-h-[48px] rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold active:scale-[0.98] transition-transform disabled:opacity-60"
+              >
+                {deleting ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

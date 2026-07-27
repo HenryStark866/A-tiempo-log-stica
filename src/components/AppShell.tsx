@@ -56,6 +56,7 @@ const NAV: NavItem[] = [
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
+  { href: "/conductor/recogida", label: "Mis recogidas", icon: PackageOpen, roles: ["mensajero"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["mensajero"] },
   { href: "/mensajeros", label: "Mensajeros", icon: BadgeCheck, roles: ["admin", "coordinador"] },

@@ -26,6 +26,7 @@ export default function MyRoutePage() {
   const [modal, setModal] = useState<{ guide: Guide; action: "entregada" | "novedad" } | null>(null);
   const [note, setNote] = useState("");
   const [signatureName, setSignatureName] = useState("");
+  const [deliveryCode, setDeliveryCode] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export default function MyRoutePage() {
     setModal(null);
     setNote("");
     setSignatureName("");
+    setDeliveryCode("");
     setEvidenceFile(null);
   }
 
@@ -163,6 +165,7 @@ export default function MyRoutePage() {
         p_evidence_url: evidenceUrl,
         p_signature_name: signatureName || null,
         p_note: note || null,
+        p_delivery_code: deliveryCode || null,
       });
       if (error) {
         navigateTo(w, null);
@@ -393,6 +396,28 @@ export default function MyRoutePage() {
 
               {modal.action === "entregada" && (
                 <div className="space-y-4">
+                  {/* Primero el código: es lo que prueba la entrega, y sin él
+                      el servidor rechaza. Va arriba para que el mensajero lo
+                      pida antes de soltar el paquete, no después. */}
+                  <div className="space-y-2">
+                    <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                      Código del comprador <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      value={deliveryCode}
+                      onChange={(e) =>
+                        setDeliveryCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="000000"
+                      className="w-full min-h-[60px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-center text-[28px] font-bold tracking-[0.3em] text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none transition-all"
+                    />
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      Pídele al comprador los 6 dígitos que le llegaron por mensaje.
+                    </p>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
                       Foto de evidencia {modal.guide.is_cod && <span className="text-rose-500">*</span>}

@@ -66,6 +66,7 @@ export default function GuideDetailPage() {
   const [note, setNote] = useState("");
   const [deliveryModal, setDeliveryModal] = useState(false);
   const [signatureName, setSignatureName] = useState("");
+  const [deliveryCode, setDeliveryCode] = useState("");
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [assign, setAssign] = useState({ courier_id: "", zone_id: "" });
@@ -145,6 +146,7 @@ export default function GuideDetailPage() {
         p_evidence_url: evidenceUrl,
         p_signature_name: signatureName || null,
         p_note: note || null,
+        p_delivery_code: deliveryCode || null,
       });
       if (error) {
         setError(error.message);
@@ -152,6 +154,7 @@ export default function GuideDetailPage() {
         setDeliveryModal(false);
         setNote("");
         setSignatureName("");
+        setDeliveryCode("");
         setEvidenceFile(null);
         load();
       }
@@ -466,6 +469,7 @@ export default function GuideDetailPage() {
             setDeliveryModal(false);
             setEvidenceFile(null);
             setSignatureName("");
+            setDeliveryCode("");
             setNote("");
           }}
         >
@@ -474,6 +478,20 @@ export default function GuideDetailPage() {
               Contraentrega: la foto de evidencia es obligatoria. Recaudo {formatCOP(guide.cod_amount)}.
             </p>
           )}
+          <Field label="Código del comprador *">
+            <input
+              value={deliveryCode}
+              onChange={(e) => setDeliveryCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="000000"
+              className={inputCls + " text-center text-xl font-bold tracking-[0.3em]"}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Los 6 dígitos que le llegaron al comprador por mensaje. Coordinación puede confirmar
+              sin él, y queda anotado en el historial.
+            </p>
+          </Field>
           <Field label={`Foto de evidencia ${guide.is_cod ? "*" : "(opcional)"}`}>
             <label className={inputCls + " flex items-center gap-2 cursor-pointer"}>
               <Camera className="size-4 shrink-0 text-brand-600" />

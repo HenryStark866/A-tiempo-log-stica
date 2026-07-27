@@ -17,5 +17,7 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // supabase/functions corre en Deno, no en Node: usa imports jsr: y el global
+  // Deno, que este tsconfig no conoce. Sin excluirlo, rompe el build de Next.
+  "exclude": ["node_modules", "supabase/functions"]
 }

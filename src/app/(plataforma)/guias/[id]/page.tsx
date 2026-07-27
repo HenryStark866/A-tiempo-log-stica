@@ -478,7 +478,7 @@ export default function GuideDetailPage() {
               Contraentrega: la foto de evidencia es obligatoria. Recaudo {formatCOP(guide.cod_amount)}.
             </p>
           )}
-          <Field label="Código del comprador *">
+          <Field label="Código del comprador">
             <input
               value={deliveryCode}
               onChange={(e) => setDeliveryCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
@@ -488,8 +488,8 @@ export default function GuideDetailPage() {
               className={inputCls + " text-center text-xl font-bold tracking-[0.3em]"}
             />
             <p className="mt-1 text-xs text-slate-500">
-              Los 6 dígitos que le llegaron al comprador por mensaje. Coordinación puede confirmar
-              sin él, y queda anotado en el historial.
+              Los 6 dígitos que le llegaron al comprador por mensaje. Se exige solo si el mensaje
+              alcanzó a salir; coordinación puede confirmar sin él y queda anotado en el historial.
             </p>
           </Field>
           <Field label={`Foto de evidencia ${guide.is_cod ? "*" : "(opcional)"}`}>

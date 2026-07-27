@@ -163,7 +163,9 @@ export default function DeliveryCodesPage() {
 
       <p className="mt-6 px-1 text-sm text-slate-500 dark:text-slate-400">
         El código nunca se muestra aquí ni en ninguna pantalla: solo existe en el mensaje que
-        recibió el comprador. Reenviar genera uno nuevo y anula el anterior.
+        recibió el comprador. Reenviar genera uno nuevo y anula el anterior. Mientras no haya
+        proveedor de mensajería conectado, el código no se le exige al mensajero: la exigencia se
+        activa sola, guía por guía, en cuanto el mensaje empiece a salir.
       </p>
     </>
   );

@@ -20,7 +20,14 @@ interface Facility {
  * decirle dónde queda. La dirección sale de at_facilities, no de una constante,
  * para que una mudanza de bodega no exija desplegar.
  */
-export function CediDestino({ compacto = false }: { compacto?: boolean }) {
+export function CediDestino({
+  compacto = false,
+  onNavegar,
+}: {
+  compacto?: boolean;
+  /** Si se pasa, el botón usa la app de navegación del mensajero en vez del enlace a Google Maps. */
+  onNavegar?: (direccion: string, ciudad: string) => void;
+}) {
   const [sede, setSede] = useState<Facility | null>(null);
 
   useEffect(() => {
@@ -68,14 +75,23 @@ export function CediDestino({ compacto = false }: { compacto?: boolean }) {
           )}
         </div>
       </div>
-      <a
-        href={mapa}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex min-h-[48px] items-center justify-center gap-2 border-t border-gray-100 text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-gray-800"
-      >
-        <Navigation2 className="h-4 w-4" /> Cómo llegar
-      </a>
+      {onNavegar ? (
+        <button
+          onClick={() => onNavegar(sede.address, sede.city)}
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 border-t border-gray-100 text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-gray-800"
+        >
+          <Navigation2 className="h-4 w-4" /> Iniciar traslado al CEDI
+        </button>
+      ) : (
+        <a
+          href={mapa}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-[48px] items-center justify-center gap-2 border-t border-gray-100 text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-gray-800"
+        >
+          <Navigation2 className="h-4 w-4" /> Cómo llegar
+        </a>
+      )}
     </section>
   );
 }

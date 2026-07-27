@@ -8,6 +8,23 @@ import { createClient } from "@/lib/supabase/client";
 // seguido que esto, así que se limita para no golpear la base ni la batería.
 const ENVIO_MS = 30000;
 const STORAGE_KEY = "at_compartir_ubicacion";
+const EVENTO = "at:ubicacion";
+
+/**
+ * Enciende el rastreo desde otra pantalla.
+ *
+ * Lo usa el mensajero al pulsar Iniciar en una recogida: el rastreo es parte
+ * del trabajo que acaba de arrancar, no algo que deba acordarse de prender
+ * aparte. El interruptor sigue visible y él puede apagarlo.
+ *
+ * Va por evento y no solo por localStorage porque el componente puede estar ya
+ * montado en pantalla, y escribir la clave a secas no lo despierta.
+ */
+export function activarUbicacion() {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, "1");
+  window.dispatchEvent(new Event(EVENTO));
+}
 
 /**
  * Reporta la ubicación del mensajero mientras trabaja, para que el e-commerce
@@ -23,10 +40,14 @@ export function PositionReporter() {
   const watchId = useRef<number | null>(null);
   const ultimoTs = useRef(0);
 
-  // Restaura la preferencia guardada.
+  // Restaura la preferencia guardada, y queda atento a que otra pantalla lo
+  // encienda (arrancar una recogida, por ejemplo).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setActivo(window.localStorage.getItem(STORAGE_KEY) === "1");
+    const leer = () => setActivo(window.localStorage.getItem(STORAGE_KEY) === "1");
+    leer();
+    window.addEventListener(EVENTO, leer);
+    return () => window.removeEventListener(EVENTO, leer);
   }, []);
 
   const enviar = useCallback(async (lat: number, lng: number) => {
@@ -104,7 +125,7 @@ export function PositionReporter() {
               ? ultimoEnvio
                 ? `Enviada a las ${ultimoEnvio.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}`
                 : "Buscando señal…"
-              : "Los comercios no verán dónde vas"}
+              : "Nadie en el CEDI puede ver dónde vas"}
           </p>
         </div>
         <button

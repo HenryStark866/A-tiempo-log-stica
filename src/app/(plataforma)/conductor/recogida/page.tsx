@@ -7,14 +7,24 @@ import {
   Circle,
   Loader2,
   MapPin,
+  Navigation2,
   Package,
   PackageCheck,
   Phone,
+  Play,
   TriangleAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { CediDestino } from "@/components/CediDestino";
+import { PositionReporter, activarUbicacion } from "@/components/PositionReporter";
+import {
+  buildNavUrl,
+  getNavProvider,
+  saveNavProvider,
+  NAV_PROVIDER_LABELS,
+  type NavProvider,
+} from "@/lib/nav";
 import { formatCOP } from "@/lib/utils";
 
 interface PickupGuide {
@@ -34,9 +44,11 @@ interface Pickup {
   contact_phone: string | null;
   scheduled_date: string;
   scheduled_time: string | null;
+  started_at: string | null;
   notes: string | null;
   business_name: string;
   business_phone: string | null;
+  business_address: string | null;
   guias: PickupGuide[];
 }
 
@@ -47,6 +59,58 @@ export default function CourierPickupPage() {
   const [nota, setNota] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [navProvider, setNavProvider] = useState<NavProvider | null>(null);
+  // Cuando aún no eligió app de navegación, se pregunta antes de abrir nada.
+  const [eligiendo, setEligiendo] = useState<{ direccion: string; ciudad?: string } | null>(null);
+
+  useEffect(() => {
+    setNavProvider(getNavProvider());
+  }, []);
+
+  /**
+   * Abre Waze o Google Maps con la ruta ya trazada.
+   *
+   * Se abre en pestaña nueva y no en la misma para que el mensajero pueda
+   * volver a la app con el botón de atrás sin perder dónde iba.
+   */
+  function navegarA(direccion: string, ciudad?: string) {
+    const p = navProvider ?? getNavProvider();
+    if (!p) {
+      setEligiendo({ direccion, ciudad });
+      return;
+    }
+    window.open(buildNavUrl(p, direccion, ciudad), "_blank", "noopener,noreferrer");
+  }
+
+  function elegirYNavegar(p: NavProvider) {
+    saveNavProvider(p);
+    setNavProvider(p);
+    const pendiente = eligiendo;
+    setEligiendo(null);
+    if (pendiente) {
+      window.open(buildNavUrl(p, pendiente.direccion, pendiente.ciudad), "_blank", "noopener,noreferrer");
+    }
+  }
+
+  /**
+   * Arranca la recogida: la marca en curso, enciende el rastreo y abre la
+   * navegación hacia el comercio. Las tres cosas son el mismo gesto para el
+   * mensajero, así que van en un solo botón.
+   */
+  async function iniciar(p: Pickup) {
+    setBusy(p.pickup_id);
+    setMsg(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_start_pickup", { p_pickup_id: p.pickup_id });
+    setBusy(null);
+    if (error) {
+      setMsg({ ok: false, text: error.message });
+      return;
+    }
+    activarUbicacion();
+    navegarA(p.address);
+    load();
+  }
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -147,8 +211,13 @@ export default function CourierPickupPage() {
       )}
 
       {/* El destino de la jornada, siempre a la vista: al terminar la recogida
-          el mensajero arranca para acá. */}
-      <CediDestino />
+          el mensajero arranca para acá, con el mismo navegador que usó para ir
+          al comercio. */}
+      <CediDestino onNavegar={(dir, ciudad) => navegarA(dir, ciudad)} />
+
+      {/* Visible a propósito: se está rastreando a una persona, y tiene que
+          poder verlo y apagarlo aunque la recogida lo haya encendido. */}
+      {profile.role === "mensajero" && <PositionReporter />}
 
       {pickups === null ? (
         <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-16 text-slate-500 shadow-sm dark:bg-[#2C2C2E] dark:text-slate-400">
@@ -168,6 +237,7 @@ export default function CourierPickupPage() {
             const set = marcadas[p.pickup_id] ?? new Set<string>();
             const completo = p.guias.length > 0 && set.size === p.guias.length;
             const faltan = p.guias.length - set.size;
+            const arrancada = p.status === "en_curso";
 
             return (
               <section
@@ -212,9 +282,44 @@ export default function CourierPickupPage() {
                       {p.notes}
                     </p>
                   )}
+
+                  {/* Mientras no arranque, lo único que hay que hacer es salir.
+                      El chequeo de paquetes aparece después, cuando ya está en
+                      el comercio y tiene las cajas delante. */}
+                  {!arrancada ? (
+                    <button
+                      onClick={() => iniciar(p)}
+                      disabled={busy === p.pickup_id}
+                      className="mt-4 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff812c] font-bold text-[#1C1C1E] transition-transform active:scale-[0.98] disabled:opacity-60"
+                    >
+                      {busy === p.pickup_id ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Play className="h-5 w-5" />
+                      )}
+                      Iniciar recogida
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navegarA(p.address)}
+                      className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-[#ff812c]/40 bg-[#ff812c]/10 font-semibold text-[#ff812c] transition-transform active:scale-[0.98]"
+                    >
+                      <Navigation2 className="h-5 w-5" /> Volver a abrir la ruta
+                    </button>
+                  )}
+
+                  {!arrancada && (
+                    <p className="mt-2 text-center text-[13px] text-slate-500 dark:text-slate-400">
+                      Se abre tu navegador y empiezas a compartir tu ubicación con el CEDI.
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between px-5 py-3">
+                <div
+                  className={`flex items-center justify-between px-5 py-3 ${
+                    arrancada ? "" : "hidden"
+                  }`}
+                >
                   <p className="text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     {set.size} de {p.guias.length} verificados
                   </p>
@@ -228,7 +333,7 @@ export default function CourierPickupPage() {
                   )}
                 </div>
 
-                {p.guias.length === 0 ? (
+                {!arrancada ? null : p.guias.length === 0 ? (
                   <p className="px-5 pb-5 text-[15px] text-slate-500 dark:text-slate-400">
                     Esta recogida no tiene guías cargadas. Pídele al comercio que las cree antes
                     de entregarte los paquetes.
@@ -270,7 +375,11 @@ export default function CourierPickupPage() {
                   </ul>
                 )}
 
-                <div className="space-y-3 border-t border-gray-100 p-5 dark:border-gray-800">
+                <div
+                  className={`space-y-3 border-t border-gray-100 p-5 dark:border-gray-800 ${
+                    arrancada ? "" : "hidden"
+                  }`}
+                >
                   {faltan > 0 && set.size > 0 && (
                     <p className="flex items-start gap-2 text-[14px] font-medium text-amber-600 dark:text-amber-400">
                       <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -317,6 +426,36 @@ export default function CourierPickupPage() {
           Ver mi ruta
         </Link>
       </p>
+
+      {eligiendo && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-sm rounded-3xl bg-[#FFFFFF] p-6 shadow-2xl dark:bg-[#2C2C2E]">
+            <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
+              ¿Con qué app navegas?
+            </h3>
+            <p className="mt-1 text-[14px] text-slate-500 dark:text-slate-400">
+              Se queda guardado en este teléfono. Puedes cambiarlo cuando quieras desde tu ruta.
+            </p>
+            <div className="mt-5 space-y-2">
+              {(["waze", "gmaps"] as NavProvider[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => elegirYNavegar(p)}
+                  className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff812c] font-bold text-[#1C1C1E] transition-transform active:scale-[0.98]"
+                >
+                  <Navigation2 className="h-5 w-5" /> {NAV_PROVIDER_LABELS[p]}
+                </button>
+              ))}
+              <button
+                onClick={() => setEligiendo(null)}
+                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

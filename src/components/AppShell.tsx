@@ -14,6 +14,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LogOut,
+  Map,
   MapPinned,
   Package,
   PackageOpen,
@@ -63,6 +64,7 @@ const NAV: NavItem[] = [
   { href: "/guias", label: "Guías", icon: Package, roles: ["admin", "coordinador", "operario", "cliente"] },
   { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente"] },
   { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario"] },
+  { href: "/mapa", label: "Mapa", icon: Map, roles: ["admin", "coordinador", "operario"] },
   { href: "/codigos", label: "Códigos", icon: KeyRound, roles: ["admin", "coordinador", "operario"] },
   // El mensajero ya no entra aquí: Ruteo pasó a ser el tablero de despacho del
   // CEDI. Su ruta del día la ve en /entregas.

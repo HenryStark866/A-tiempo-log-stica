@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
+import { ShopifyConnect } from "@/components/ShopifyConnect";
 import { PAYMENT_KINDS, PAYMENT_KIND_LABELS } from "@/lib/constants";
 import type { PaymentKind, PaymentMethod } from "@/lib/types";
 
@@ -302,6 +303,17 @@ export default function MiComercioPage() {
             <span>{negocioOk ? "Guardado" : "Guardar datos"}</span>
           </button>
         </form>
+      </section>
+
+      {/* ── Tienda conectada ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-3 ml-1">
+          <Store className="w-4 h-4 text-slate-400" />
+          <h2 className="text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Tu tienda en línea
+          </h2>
+        </div>
+        <ShopifyConnect />
       </section>
 
       {/* ── Medios de pago ── */}

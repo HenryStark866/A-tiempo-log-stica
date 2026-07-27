@@ -48,7 +48,9 @@ const NAV: NavItem[] = [
   { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente"] },
   { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario"] },
   { href: "/codigos", label: "Códigos", icon: KeyRound, roles: ["admin", "coordinador", "operario"] },
-  { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario", "mensajero"] },
+  // El mensajero ya no entra aquí: Ruteo pasó a ser el tablero de despacho del
+  // CEDI. Su ruta del día la ve en /entregas.
+  { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario"] },
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
   { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador"] },
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },

@@ -56,6 +56,7 @@ export function PositionReporter() {
   const watchId = useRef<number | null>(null);
   const ultimoTs = useRef(0);
   const ultimaPos = useRef<{ lat: number; lng: number } | null>(null);
+  const wakeLock = useRef<WakeLockSentinel | null>(null);
 
   // Restaura la preferencia guardada, y queda atento a que otra pantalla lo
   // encienda (arrancar una recogida, por ejemplo).
@@ -86,6 +87,41 @@ export function PositionReporter() {
     },
     []
   );
+
+  // Mientras se comparte ubicación, se pide mantener la pantalla encendida: si
+  // el teléfono se bloquea, el navegador congela watchPosition y el punto del
+  // mensajero se queda clavado en el mapa. El sistema suelta este bloqueo solo
+  // cuando la pestaña pasa a segundo plano, así que hay que volver a tomarlo al
+  // regresar.
+  useEffect(() => {
+    if (!activo) return;
+    const nav = navigator as Navigator & {
+      wakeLock?: { request: (t: "screen") => Promise<WakeLockSentinel> };
+    };
+    if (!nav.wakeLock) return;
+
+    let cancelado = false;
+    const tomar = async () => {
+      try {
+        if (document.visibilityState !== "visible") return;
+        wakeLock.current = await nav.wakeLock!.request("screen");
+      } catch {
+        /* batería baja o el sistema lo niega: el rastreo sigue igual */
+      }
+    };
+    const alVolver = () => {
+      if (!cancelado && document.visibilityState === "visible") tomar();
+    };
+
+    tomar();
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      cancelado = true;
+      document.removeEventListener("visibilitychange", alVolver);
+      wakeLock.current?.release().catch(() => {});
+      wakeLock.current = null;
+    };
+  }, [activo]);
 
   useEffect(() => {
     if (!activo) {

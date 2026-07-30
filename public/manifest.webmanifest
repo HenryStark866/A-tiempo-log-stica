@@ -1,0 +1,55 @@
+{
+  "name": "A Tiempo Logística",
+  "short_name": "A Tiempo",
+  "description": "Última milla para e-commerce: recogidas, rutas, recaudo contraentrega y rastreo en vivo.",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1C1C1E",
+  "theme_color": "#1C1C1E",
+  "lang": "es-CO",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "navigation"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mi recogida",
+      "short_name": "Recogida",
+      "description": "La recogida que tengo asignada ahora",
+      "url": "/conductor/recogida"
+    },
+    {
+      "name": "Mis entregas",
+      "short_name": "Entregas",
+      "description": "Las guías que llevo en ruta",
+      "url": "/entregas"
+    },
+    {
+      "name": "Mapa de la flota",
+      "short_name": "Mapa",
+      "description": "Dónde va cada mensajero",
+      "url": "/mapa"
+    }
+  ]
+}

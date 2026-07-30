@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
+import { PermisosTurno } from "@/components/PermisosTurno";
 import type { Profile } from "@/lib/types";
 
 export default async function PlatformLayout({
@@ -25,6 +26,9 @@ export default async function PlatformLayout({
 
   return (
     <AppShell profile={profile} email={user.email ?? ""}>
+      {/* Al mensajero se le piden los permisos apenas entra, no cuando ya va
+          saliendo: la ubicación es su herramienta de trabajo, no un extra. */}
+      {profile.role === "mensajero" && <PermisosTurno />}
       {children}
     </AppShell>
   );

@@ -28,6 +28,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationsProvider } from "@/components/NotificationsContext";
 import { ProfileProvider } from "@/components/ProfileContext";
 import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -146,6 +147,9 @@ export function AppShell({
 
   return (
     <ProfileProvider profile={profile}>
+      {/* Las dos campanas (teléfono y escritorio) leen de aquí: una sola
+          consulta, un solo sondeo y una sola suscripción a Realtime. */}
+      <NotificationsProvider userId={profile.id}>
       <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col md:flex-row font-sans">
           
           {/* Top Header (Mobile Only) */}
@@ -272,6 +276,7 @@ export function AppShell({
             </div>
           </nav>
       </div>
+      </NotificationsProvider>
     </ProfileProvider>
   );
 }

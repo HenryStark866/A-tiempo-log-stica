@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, MapPinOff, Phone, RefreshCw, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { escucharTabla } from "@/lib/realtime";
 import { useProfile } from "@/components/ProfileContext";
 import { FleetMap, type MapPoint } from "@/components/FleetMap";
 import { COURIER_TYPE_LABELS } from "@/lib/constants";
@@ -103,48 +104,40 @@ export default function FleetPage() {
     if (!autorizado) return;
     const supabase = createClient();
 
-    const canal = supabase
-      .channel("flota-en-vivo")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "at_courier_positions" },
-        (payload) => {
-          const fila = payload.new as {
-            courier_id?: string;
-            lat?: number;
-            lng?: number;
-            updated_at?: string;
-          } | null;
-          if (!fila?.courier_id) return;
+    return escucharTabla<{
+      courier_id?: string;
+      lat?: number;
+      lng?: number;
+      updated_at?: string;
+    }>(
+      supabase,
+      "flota-en-vivo",
+      { event: "*", schema: "public", table: "at_courier_positions" },
+      (fila) => {
+        if (!fila?.courier_id) return;
 
-          setCouriers((prev) => {
-            if (!prev) return prev;
-            let tocado = false;
-            const siguiente = prev.map((c) => {
-              if (c.id !== fila.courier_id) return c;
-              tocado = true;
-              return {
-                ...c,
-                last_lat: fila.lat ?? c.last_lat,
-                last_lng: fila.lng ?? c.last_lng,
-                last_position_at: fila.updated_at ?? new Date().toISOString(),
-              };
-            });
-            // Mensajero que aún no estaba en la lista (recién habilitado):
-            // se pide la lista completa en vez de inventar una ficha a medias.
-            if (!tocado) load();
-            return siguiente;
+        setCouriers((prev) => {
+          if (!prev) return prev;
+          let tocado = false;
+          const siguiente = prev.map((c) => {
+            if (c.id !== fila.courier_id) return c;
+            tocado = true;
+            return {
+              ...c,
+              last_lat: fila.lat ?? c.last_lat,
+              last_lng: fila.lng ?? c.last_lng,
+              last_position_at: fila.updated_at ?? new Date().toISOString(),
+            };
           });
-          setActualizado(new Date());
-        }
-      )
-      .subscribe((estado) => {
-        setEnVivo(estado === "SUBSCRIBED");
-      });
-
-    return () => {
-      supabase.removeChannel(canal);
-    };
+          // Mensajero que aún no estaba en la lista (recién habilitado): se
+          // pide la lista completa en vez de inventar una ficha a medias.
+          if (!tocado) load();
+          return siguiente;
+        });
+        setActualizado(new Date());
+      },
+      setEnVivo
+    );
   }, [autorizado, load]);
 
   if (!autorizado) {

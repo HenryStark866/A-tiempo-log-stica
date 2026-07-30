@@ -1,97 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { Bell, Check } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { useProfile } from "@/components/ProfileContext";
+import { useNotificaciones } from "@/components/NotificationsContext";
 import { formatDateTime } from "@/lib/utils";
 import type { AppNotification } from "@/lib/types";
 
 /**
- * Red de seguridad. Las notificaciones llegan por Realtime; esto solo cubre
- * el caso de que el socket se caiga sin avisar.
+ * La campana, y nada más que la campana.
+ *
+ * Se pinta dos veces (header del teléfono y barra del escritorio), así que aquí
+ * no puede vivir nada que no se pueda hacer por duplicado: los datos, el sondeo
+ * y la suscripción a Realtime están en NotificationsContext, una sola vez.
  */
-const REFRESH_MS = 120000;
-
 export function NotificationBell() {
-  const router = useRouter();
-  const profile = useProfile();
-  const [items, setItems] = useState<AppNotification[]>([]);
+  const noti = useNotificaciones();
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
-
-  const cargar = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("at_notifications")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    setItems((data as AppNotification[]) ?? []);
-  }, []);
-
-  useEffect(() => {
-    cargar();
-    const id = setInterval(cargar, REFRESH_MS);
-    return () => clearInterval(id);
-  }, [cargar]);
-
-  // ── Que suene sola ────────────────────────────────────────────────────
-  // at_notifications está publicada en Realtime y su RLS ya limita cada fila
-  // a su dueño, así que aquí solo llegan las propias. Cuando entra una nueva
-  // se refresca la campana y, si el permiso está concedido, se levanta una
-  // notificación del sistema: es lo que hace que el mensajero se entere con
-  // la app en segundo plano.
-  useEffect(() => {
-    if (!profile?.id) return;
-    const supabase = createClient();
-
-    const canal = supabase
-      .channel("mis-notificaciones")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "at_notifications",
-          filter: `user_id=eq.${profile.id}`,
-        },
-        (payload) => {
-          const n = payload.new as AppNotification;
-          setItems((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, 20)));
-
-          // Solo si la persona no está mirando la app: si la tiene delante,
-          // el punto naranja de la campana ya se lo dice sin interrumpir.
-          if (
-            typeof Notification !== "undefined" &&
-            Notification.permission === "granted" &&
-            document.visibilityState !== "visible"
-          ) {
-            try {
-              const aviso = new Notification(n.title, {
-                body: n.body ?? undefined,
-                icon: "/icons/icon-192.png",
-                badge: "/icons/icon-192.png",
-                tag: n.id, // evita apilar duplicados de la misma
-              });
-              aviso.onclick = () => {
-                window.focus();
-                if (n.link) router.push(n.link);
-                aviso.close();
-              };
-            } catch {
-              /* algunos navegadores exigen service worker: se queda en la campana */
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(canal);
-    };
-  }, [profile?.id, router]);
 
   // Cierra al hacer clic afuera.
   useEffect(() => {
@@ -103,29 +28,13 @@ export function NotificationBell() {
     return () => document.removeEventListener("mousedown", fuera);
   }, [abierto]);
 
-  const sinLeer = items.filter((n) => !n.read_at);
+  if (!noti) return null;
 
-  async function marcarLeidas() {
-    if (sinLeer.length === 0) return;
-    const supabase = createClient();
-    await supabase
-      .from("at_notifications")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", sinLeer.map((n) => n.id));
-    cargar();
-  }
+  const { items, sinLeer, marcarLeidas } = noti;
 
   async function abrir(n: AppNotification) {
-    if (!n.read_at) {
-      const supabase = createClient();
-      await supabase
-        .from("at_notifications")
-        .update({ read_at: new Date().toISOString() })
-        .eq("id", n.id);
-    }
     setAbierto(false);
-    cargar();
-    if (n.link) router.push(n.link);
+    await noti!.abrir(n);
   }
 
   return (
@@ -149,7 +58,7 @@ export function NotificationBell() {
             <p className="text-[15px] font-semibold text-slate-900 dark:text-white">Notificaciones</p>
             {sinLeer.length > 0 && (
               <button
-                onClick={marcarLeidas}
+                onClick={() => marcarLeidas()}
                 className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#ff812c] active:opacity-70"
               >
                 <Check className="w-3.5 h-3.5" /> Marcar leídas

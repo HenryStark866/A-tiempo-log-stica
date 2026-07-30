@@ -8,8 +8,12 @@ import { FleetMap, type MapPoint } from "@/components/FleetMap";
 import { COURIER_TYPE_LABELS } from "@/lib/constants";
 import type { CourierType } from "@/lib/types";
 
-/** Cada cuánto se vuelve a preguntar. El mensajero reporta cada 30 s. */
-const REFRESCO_MS = 20_000;
+/**
+ * Red de seguridad del sondeo. Las posiciones llegan por Realtime en cuanto el
+ * mensajero las reporta; esto solo refresca los contadores (guías por salir, en
+ * ruta, entregadas) y cubre el caso de que el socket se caiga sin avisar.
+ */
+const REFRESCO_MS = 60_000;
 
 /** Pasado este tiempo la posición ya no cuenta como "ahora mismo". */
 const MINUTOS_RANCIO = 10;
@@ -60,6 +64,9 @@ export default function FleetPage() {
   const [sede, setSede] = useState<Facility | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actualizado, setActualizado] = useState<Date | null>(null);
+  // ¿El canal de Realtime está enganchado? Se muestra para que el CEDI sepa si
+  // está viendo posiciones al instante o solo lo que trajo el último sondeo.
+  const [enVivo, setEnVivo] = useState(false);
 
   const autorizado = ["admin", "coordinador", "operario"].includes(profile.role);
 
@@ -85,6 +92,59 @@ export default function FleetPage() {
     if (!autorizado) return;
     const id = setInterval(load, REFRESCO_MS);
     return () => clearInterval(id);
+  }, [autorizado, load]);
+
+  // ── Posiciones en vivo ────────────────────────────────────────────────
+  // at_courier_positions está publicada en Realtime: cada vez que un mensajero
+  // reporta, llega el evento y su punto se mueve sin esperar al sondeo. Solo se
+  // toca la posición; el resto de la ficha (carga, recogida en curso) sigue
+  // viniendo de at_live_couriers.
+  useEffect(() => {
+    if (!autorizado) return;
+    const supabase = createClient();
+
+    const canal = supabase
+      .channel("flota-en-vivo")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "at_courier_positions" },
+        (payload) => {
+          const fila = payload.new as {
+            courier_id?: string;
+            lat?: number;
+            lng?: number;
+            updated_at?: string;
+          } | null;
+          if (!fila?.courier_id) return;
+
+          setCouriers((prev) => {
+            if (!prev) return prev;
+            let tocado = false;
+            const siguiente = prev.map((c) => {
+              if (c.id !== fila.courier_id) return c;
+              tocado = true;
+              return {
+                ...c,
+                last_lat: fila.lat ?? c.last_lat,
+                last_lng: fila.lng ?? c.last_lng,
+                last_position_at: fila.updated_at ?? new Date().toISOString(),
+              };
+            });
+            // Mensajero que aún no estaba en la lista (recién habilitado):
+            // se pide la lista completa en vez de inventar una ficha a medias.
+            if (!tocado) load();
+            return siguiente;
+          });
+          setActualizado(new Date());
+        }
+      )
+      .subscribe((estado) => {
+        setEnVivo(estado === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
   }, [autorizado, load]);
 
   if (!autorizado) {
@@ -123,16 +183,29 @@ export default function FleetPage() {
     <div className="pb-10 space-y-5 font-sans">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
-            Mapa de la flota
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+              Mapa de la flota
+            </h1>
+            {enVivo && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[12px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+                En vivo
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
             {conPosicion.length} mensajero(s) reportando
-            {actualizado &&
-              ` · actualizado ${actualizado.toLocaleTimeString("es-CO", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}`}
+            {enVivo
+              ? " · las posiciones llegan al instante"
+              : actualizado &&
+                ` · actualizado ${actualizado.toLocaleTimeString("es-CO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`}
           </p>
         </div>
         <button

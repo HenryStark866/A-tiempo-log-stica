@@ -6,9 +6,25 @@ import { createClient } from "@/lib/supabase/client";
 
 // Cada cuánto se manda la posición al servidor. watchPosition dispara mucho más
 // seguido que esto, así que se limita para no golpear la base ni la batería.
-const ENVIO_MS = 30000;
+// A 10 s el punto del mapa se mueve de forma creíble (a 30 km/h son ~80 m entre
+// avisos) sin castigar el plan de datos del mensajero.
+const ENVIO_MS = 10000;
+// Si además se movió poco, no hace falta gastar un envío: por debajo de estos
+// metros el punto prácticamente no cambia de sitio en pantalla.
+const MOVIMIENTO_MIN_M = 25;
 const STORAGE_KEY = "at_compartir_ubicacion";
 const EVENTO = "at:ubicacion";
+
+/** Metros entre dos coordenadas (haversine). Sirve para no reenviar lo mismo. */
+function distanciaM(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
 /**
  * Enciende el rastreo desde otra pantalla.
@@ -39,6 +55,7 @@ export function PositionReporter() {
   const [ultimoEnvio, setUltimoEnvio] = useState<Date | null>(null);
   const watchId = useRef<number | null>(null);
   const ultimoTs = useRef(0);
+  const ultimaPos = useRef<{ lat: number; lng: number } | null>(null);
 
   // Restaura la preferencia guardada, y queda atento a que otra pantalla lo
   // encienda (arrancar una recogida, por ejemplo).
@@ -50,15 +67,25 @@ export function PositionReporter() {
     return () => window.removeEventListener(EVENTO, leer);
   }, []);
 
-  const enviar = useCallback(async (lat: number, lng: number) => {
-    const supabase = createClient();
-    const { error } = await supabase.rpc("at_report_position", { p_lat: lat, p_lng: lng });
-    if (error) setError(error.message);
-    else {
-      setError(null);
-      setUltimoEnvio(new Date());
-    }
-  }, []);
+  const enviar = useCallback(
+    async (lat: number, lng: number, accuracy?: number, speed?: number, heading?: number) => {
+      const supabase = createClient();
+      const { error } = await supabase.rpc("at_report_position", {
+        p_lat: lat,
+        p_lng: lng,
+        // El GPS entrega velocidad en m/s; el CEDI la lee en km/h.
+        p_accuracy: Number.isFinite(accuracy) ? accuracy : null,
+        p_speed: Number.isFinite(speed) && speed! >= 0 ? speed! * 3.6 : null,
+        p_heading: Number.isFinite(heading) ? heading : null,
+      });
+      if (error) setError(error.message);
+      else {
+        setError(null);
+        setUltimoEnvio(new Date());
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!activo) {
@@ -78,8 +105,25 @@ export function PositionReporter() {
       (pos) => {
         const ahora = Date.now();
         if (ahora - ultimoTs.current < ENVIO_MS) return;
+
+        // Quieto en un semáforo o en el almacén: no se gasta un envío en
+        // repetir la misma coordenada, pero cada 2 minutos se manda igual
+        // para que el CEDI sepa que el equipo sigue vivo.
+        const previa = ultimaPos.current;
+        const movida = previa
+          ? distanciaM(previa.lat, previa.lng, pos.coords.latitude, pos.coords.longitude)
+          : Infinity;
+        if (movida < MOVIMIENTO_MIN_M && ahora - ultimoTs.current < 120000) return;
+
         ultimoTs.current = ahora;
-        enviar(pos.coords.latitude, pos.coords.longitude);
+        ultimaPos.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        enviar(
+          pos.coords.latitude,
+          pos.coords.longitude,
+          pos.coords.accuracy ?? undefined,
+          pos.coords.speed ?? undefined,
+          pos.coords.heading ?? undefined
+        );
       },
       (err) => {
         setError(

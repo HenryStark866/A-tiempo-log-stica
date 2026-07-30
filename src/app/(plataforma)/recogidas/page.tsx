@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck } from "lucide-react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
@@ -11,6 +11,22 @@ import { formatDate, formatDateTime } from "@/lib/utils";
 import type { Client, Pickup, PickupStatus, Guide, Profile } from "@/lib/types";
 
 const MIN_PACKAGES = 5;
+
+// Una solicitud se puede corregir o cancelar mientras el mensajero no haya
+// arrancado. En cuanto pasa a "en curso" va alguien conduciendo hacia allá:
+// cambiarle la dirección en ese momento es peor que no dejar editar. El
+// servidor aplica el mismo criterio (at_pickup_editable), esto solo evita
+// mostrar botones que van a fallar.
+const EDITABLES: PickupStatus[] = ["pendiente", "asignada"];
+
+/** Guía candidata a entrar o salir de una recogida (la sirve at_pickup_guides). */
+type GuiaEditable = {
+  id: string;
+  guide_number: string;
+  recipient_name: string | null;
+  recipient_city: string | null;
+  incluida: boolean;
+};
 
 function whatsappUrl(phone: string, businessName: string) {
   const digits = phone.replace(/\D/g, "");
@@ -57,6 +73,23 @@ export default function PickupsPage() {
   // Guías del comercio listas para recoger (creadas y sin recogida asociada).
   const [pendientes, setPendientes] = useState<Guide[]>([]);
   const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+
+  // Corregir o cancelar una solicitud que todavía no ha arrancado.
+  const [editando, setEditando] = useState<Pickup | null>(null);
+  const [cancelando, setCancelando] = useState<Pickup | null>(null);
+  const [motivoCancelar, setMotivoCancelar] = useState("");
+  const [editForm, setEditForm] = useState({
+    scheduled_date: "",
+    scheduled_time: "",
+    address: "",
+    contact_name: "",
+    contact_phone: "",
+    notes: "",
+  });
+  // Guías que se pueden mover dentro de la recogida que se está editando:
+  // las libres más las que ya están dentro de esta misma.
+  const [guiasEdit, setGuiasEdit] = useState<GuiaEditable[] | null>(null);
+  const [seleccionEdit, setSeleccionEdit] = useState<Set<string>>(new Set());
 
   const [form, setForm] = useState({
     client_id: "",
@@ -168,6 +201,81 @@ export default function PickupsPage() {
     load();
   }
 
+  // ── Corregir una solicitud ───────────────────────────────────────────
+  async function abrirEdicion(p: Pickup) {
+    setError(null);
+    setEditando(p);
+    setEditForm({
+      scheduled_date: p.scheduled_date ?? "",
+      scheduled_time: p.scheduled_time ? p.scheduled_time.slice(0, 5) : "",
+      address: p.address ?? "",
+      contact_name: p.contact_name ?? "",
+      contact_phone: p.contact_phone ?? "",
+      notes: p.notes ?? "",
+    });
+    // Las guías se piden aparte: hay que ofrecer también las que ya están
+    // dentro de esta recogida, y el listado de "pendientes" solo trae libres.
+    setGuiasEdit(null);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("at_pickup_guides", { p_pickup_id: p.id });
+    if (error) {
+      setError(error.message);
+      setGuiasEdit([]);
+      return;
+    }
+    const list = (data as GuiaEditable[]) ?? [];
+    setGuiasEdit(list);
+    setSeleccionEdit(new Set(list.filter((g) => g.incluida).map((g) => g.id)));
+  }
+
+  async function guardarEdicion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editando) return;
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+
+    const { error } = await supabase.rpc("at_update_pickup", {
+      p_pickup_id: editando.id,
+      p_scheduled_date: editForm.scheduled_date || null,
+      p_scheduled_time: editForm.scheduled_time || null,
+      p_address: editForm.address || null,
+      // Cadena vacía = "quiero dejarlo en blanco"; null = "no lo toques".
+      p_contact_name: editForm.contact_name,
+      p_contact_phone: editForm.contact_phone,
+      p_notes: editForm.notes,
+      p_guide_ids: guiasEdit ? Array.from(seleccionEdit) : null,
+    });
+
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEditando(null);
+    setGuiasEdit(null);
+    load();
+  }
+
+  async function confirmarCancelacion() {
+    if (!cancelando) return;
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_cancel_pickup", {
+      p_pickup_id: cancelando.id,
+      p_reason: motivoCancelar.trim() || null,
+    });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setCancelando(null);
+    setMotivoCancelar("");
+    load();
+  }
+
   // Carga de mensajeros para asignación por parte del Admin
   useEffect(() => {
     if (!isStaff) return;
@@ -265,7 +373,7 @@ export default function PickupsPage() {
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dirección</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Operario</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
-                  {isStaff && <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Acciones</th>}
+                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -316,9 +424,36 @@ export default function PickupsPage() {
                         </p>
                       )}
                     </td>
-                    {isStaff && (
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Corregir y cancelar: para el comercio dueño y para el
+                            CEDI, mientras el mensajero no haya arrancado. */}
+                        {EDITABLES.includes(p.status) && (
+                          <>
+                            <button
+                              onClick={() => abrirEdicion(p)}
+                              title="Corregir esta solicitud"
+                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+                            >
+                              <Pencil className="w-4 h-4 text-[#ff812c]" />
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => {
+                                setCancelando(p);
+                                setMotivoCancelar("");
+                                setError(null);
+                              }}
+                              title="Cancelar esta solicitud"
+                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 active:scale-95 transition-all text-xs sm:text-sm"
+                            >
+                              <Ban className="w-4 h-4" />
+                              Cancelar
+                            </button>
+                          </>
+                        )}
+                        {isStaff && (
+                          <>
                           {p.contact_phone && (
                             <a
                               href={whatsappUrl(p.contact_phone, p.at_clients?.business_name ?? "")}
@@ -350,9 +485,14 @@ export default function PickupsPage() {
                               Completar
                             </button>
                           )}
-                        </div>
-                      </td>
-                    )}
+                          </>
+                        )}
+                        {/* Sin nada que hacer: guion para que la celda no quede vacía */}
+                        {!isStaff && !EDITABLES.includes(p.status) && (
+                          <span className="text-[13px] text-slate-400 dark:text-slate-500">—</span>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -714,6 +854,238 @@ export default function PickupsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Editar solicitud — solo mientras el mensajero no haya arrancado */}
+      {editando && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-0">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between sticky top-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] z-10">
+              <div className="pr-4">
+                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">Corregir la solicitud</h3>
+                <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">
+                  {editando.status === "asignada"
+                    ? "Ya hay un mensajero asignado: le avisamos del cambio."
+                    : "Todavía no la hemos asignado, puedes cambiar lo que necesites."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setEditando(null); setGuiasEdit(null); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={guardarEdicion} className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Fecha</label>
+                  <input
+                    type="date"
+                    required
+                    min={new Date().toISOString().slice(0, 10)}
+                    value={editForm.scheduled_date}
+                    onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })}
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Hora</label>
+                  <input
+                    type="time"
+                    value={editForm.scheduled_time}
+                    onChange={(e) => setEditForm({ ...editForm, scheduled_time: e.target.value })}
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Dirección de recogida</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Contacto</label>
+                  <input
+                    type="text"
+                    value={editForm.contact_name}
+                    onChange={(e) => setEditForm({ ...editForm, contact_name: e.target.value })}
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Teléfono</label>
+                  <input
+                    type="tel"
+                    value={editForm.contact_phone}
+                    onChange={(e) => setEditForm({ ...editForm, contact_phone: e.target.value })}
+                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Notas</label>
+                <textarea
+                  rows={2}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none resize-none"
+                />
+              </div>
+
+              {/* Guías incluidas */}
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  Guías en esta recogida
+                </label>
+                {guiasEdit === null ? (
+                  <div className="flex items-center gap-2 text-[14px] text-slate-500 dark:text-slate-400 py-3">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Cargando guías…
+                  </div>
+                ) : guiasEdit.length === 0 ? (
+                  <p className="text-[14px] text-slate-500 dark:text-slate-400 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-2xl p-4">
+                    No hay guías sin recoger para incluir. La recogida sigue en pie igual.
+                  </p>
+                ) : (
+                  <div className="max-h-44 overflow-y-auto rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] divide-y divide-slate-200 dark:divide-slate-700">
+                    {guiasEdit.map((g) => (
+                      <label key={g.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={seleccionEdit.has(g.id)}
+                          onChange={() =>
+                            setSeleccionEdit((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(g.id)) next.delete(g.id);
+                              else next.add(g.id);
+                              return next;
+                            })
+                          }
+                          className="w-5 h-5 rounded accent-[#ff812c] shrink-0"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[14px] font-semibold text-slate-900 dark:text-white truncate">
+                            {g.guide_number}
+                          </span>
+                          <span className="block text-[13px] text-slate-500 dark:text-slate-400 truncate">
+                            {g.recipient_name ?? "—"}
+                            {g.recipient_city ? ` · ${g.recipient_city}` : ""}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {guiasEdit && guiasEdit.length > 0 && (
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                    {seleccionEdit.size} de {guiasEdit.length} guía(s) incluidas
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <p className="flex items-start gap-1.5 text-[14px] text-rose-600 dark:text-rose-400">
+                  <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                  {error}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setEditando(null); setGuiasEdit(null); }}
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                >
+                  Descartar
+                </button>
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="flex-1 min-h-[52px] rounded-2xl font-bold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Pencil className="w-5 h-5" />}
+                  <span>Guardar cambios</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelar solicitud */}
+      {cancelando && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-0">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            <div className="p-6 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
+                <Ban className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
+                  ¿Cancelar esta recogida?
+                </h3>
+                <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
+                  {formatDate(cancelando.scheduled_date)} · {cancelando.address}
+                </p>
+                <p className="mt-2 text-[14px] text-slate-500 dark:text-slate-400">
+                  {cancelando.operator
+                    ? `Le avisaremos a ${cancelando.operator.full_name}, que la tenía asignada.`
+                    : "Las guías que iban en ella quedan libres para otra recogida."}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  Motivo <span className="font-normal text-slate-500 dark:text-slate-400">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={motivoCancelar}
+                  onChange={(e) => setMotivoCancelar(e.target.value)}
+                  placeholder="Los paquetes no alcanzaron a estar listos"
+                  className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                />
+              </div>
+
+              {error && (
+                <p className="flex items-start gap-1.5 text-[14px] text-rose-600 dark:text-rose-400">
+                  <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                  {error}
+                </p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setCancelando(null); setError(null); }}
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                >
+                  Mejor no
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmarCancelacion}
+                  disabled={busy}
+                  className="flex-1 min-h-[52px] rounded-2xl font-bold bg-rose-600 hover:bg-rose-700 text-white active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Ban className="w-5 h-5" />}
+                  <span>Sí, cancelar</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

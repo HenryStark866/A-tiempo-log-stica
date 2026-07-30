@@ -54,7 +54,7 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
   useEffect(() => {
     let cancelado = false;
 
-    (async () => {
+    const pintar = async () => {
       const L = await import("leaflet");
       if (cancelado || !contenedor.current) return;
 
@@ -113,7 +113,15 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         mapa.current!.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
         encuadrado.current = true;
       }
-    })();
+    };
+
+    // Un mapa que no se pinta es una molestia; una excepción aquí se llevaría
+    // la pantalla entera y con ella la lista de mensajeros, que es lo que el
+    // CEDI de verdad necesita. Leaflet revienta, por ejemplo, si le toca un
+    // contenedor que ya tenía un mapa encima.
+    pintar().catch(() => {
+      /* sin mapa, pero la pantalla y la lista siguen en pie */
+    });
 
     return () => {
       cancelado = true;
@@ -123,7 +131,11 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
   // Se destruye solo al desmontar, no en cada cambio de puntos.
   useEffect(() => {
     return () => {
-      mapa.current?.remove();
+      try {
+        mapa.current?.remove();
+      } catch {
+        /* ya estaba destruido */
+      }
       mapa.current = null;
       marcadores.current = {};
     };

@@ -41,6 +41,43 @@ Plataforma SaaS de logística de última milla que conecta comercios remitentes,
 * **Manejo de Novedades y Reintentos**: Máquina de estados estricta en la base de datos (máximo 2 intentos antes de pasar a Logística Inversa).
 * **Cierre de Caja y Recaudo (COD)**: Conciliación de efectivo contraentrega y cuadre bancario por cada ruta.
 * **Chat Interno de Operaciones**: Capa transversal de comunicación contextualmente enlazada a cada guía o novedad.
+* **Flota en Vivo**: La posición de cada mensajero viaja por Supabase Realtime (`at_courier_positions`) y el mapa del CEDI la refleja al instante, sin esperar a un sondeo.
+* **Recogidas Editables por el Comercio**: El cliente corrige o cancela su solicitud mientras el mensajero no haya arrancado; al pasar a *en curso* se bloquea y se coordina por el CEDI.
+* **App Instalable (PWA)**: Manifest, iconos y service worker. En el teléfono del mensajero se instala en pantalla completa y pide todos los permisos al empezar el turno.
+
+---
+
+## 📍 Rastreo en vivo y permisos del mensajero
+
+**Cómo viaja la posición.** `at_report_position` escribe en dos sitios: `at_profiles`
+(que alimenta `at_live_couriers` y el seguimiento del comprador) y `at_courier_positions`,
+una fila por mensajero publicada en Realtime. El mapa se suscribe a esa tabla y mueve el
+punto en cuanto llega el evento; el sondeo de 60 s queda como red de seguridad para los
+contadores y por si se cae el socket.
+
+El mensajero reporta cada 10 s, y se salta el envío si se movió menos de 25 m, con un
+latido cada 2 minutos para que el CEDI sepa que el equipo sigue vivo.
+
+**Permisos.** `PermisosTurno` se abre apenas entra un mensajero y pide los tres seguidos
+—ubicación (necesaria), notificaciones y mantener la pantalla encendida— explicando para
+qué sirve cada uno. Van en cadena a propósito: lanzados a la vez, el navegador descarta
+todos los diálogos menos el primero. El estado se lee con la Permissions API sin disparar
+ningún cuadro, así que a quien ya los concedió no se le vuelve a preguntar.
+
+> ⚠️ **Límite de la plataforma web.** Los permisos **no se pueden exigir al instalar**: el
+> navegador solo los concede en caliente y a raíz de un gesto de la persona. Y **no hay
+> rastreo en segundo plano**: si el mensajero cambia de app o bloquea la pantalla, el
+> navegador suspende `watchPosition`. El Wake Lock lo mitiga mientras la app está abierta
+> y al frente, pero no lo resuelve. Rastreo continuo real exige app nativa o TWA con
+> plugin de background geolocation.
+>
+> Regla práctica para el mensajero: **app instalada, abierta y en primer plano** durante
+> el recorrido.
+
+**Service worker.** Deliberadamente corto y desconfiado (`public/sw.js`): la red manda
+siempre para las páginas, nada de Supabase se cachea jamás, y lo único que se guarda son
+iconos y manifest. Si no hay señal muestra un aviso honesto de "sin conexión" en vez de
+una pantalla vieja que parezca al día.
 
 ---
 

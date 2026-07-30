@@ -65,9 +65,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // El manifest queda fuera a propósito: el navegador lo pide sin sesión y, si
-  // el middleware lo manda al login, la app deja de ser instalable.
+  // El manifest y el service worker quedan fuera a propósito: el navegador los
+  // pide sin sesión y, si el middleware los manda al login, la app deja de ser
+  // instalable y el SW nunca llega a registrarse.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

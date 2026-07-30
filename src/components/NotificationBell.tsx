@@ -4,13 +4,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useProfile } from "@/components/ProfileContext";
 import { formatDateTime } from "@/lib/utils";
 import type { AppNotification } from "@/lib/types";
 
-const REFRESH_MS = 30000;
+/**
+ * Red de seguridad. Las notificaciones llegan por Realtime; esto solo cubre
+ * el caso de que el socket se caiga sin avisar.
+ */
+const REFRESH_MS = 120000;
 
 export function NotificationBell() {
   const router = useRouter();
+  const profile = useProfile();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [abierto, setAbierto] = useState(false);
   const caja = useRef<HTMLDivElement>(null);
@@ -30,6 +36,62 @@ export function NotificationBell() {
     const id = setInterval(cargar, REFRESH_MS);
     return () => clearInterval(id);
   }, [cargar]);
+
+  // ── Que suene sola ────────────────────────────────────────────────────
+  // at_notifications está publicada en Realtime y su RLS ya limita cada fila
+  // a su dueño, así que aquí solo llegan las propias. Cuando entra una nueva
+  // se refresca la campana y, si el permiso está concedido, se levanta una
+  // notificación del sistema: es lo que hace que el mensajero se entere con
+  // la app en segundo plano.
+  useEffect(() => {
+    if (!profile?.id) return;
+    const supabase = createClient();
+
+    const canal = supabase
+      .channel("mis-notificaciones")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "at_notifications",
+          filter: `user_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          const n = payload.new as AppNotification;
+          setItems((prev) => (prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, 20)));
+
+          // Solo si la persona no está mirando la app: si la tiene delante,
+          // el punto naranja de la campana ya se lo dice sin interrumpir.
+          if (
+            typeof Notification !== "undefined" &&
+            Notification.permission === "granted" &&
+            document.visibilityState !== "visible"
+          ) {
+            try {
+              const aviso = new Notification(n.title, {
+                body: n.body ?? undefined,
+                icon: "/icons/icon-192.png",
+                badge: "/icons/icon-192.png",
+                tag: n.id, // evita apilar duplicados de la misma
+              });
+              aviso.onclick = () => {
+                window.focus();
+                if (n.link) router.push(n.link);
+                aviso.close();
+              };
+            } catch {
+              /* algunos navegadores exigen service worker: se queda en la campana */
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [profile?.id, router]);
 
   // Cierra al hacer clic afuera.
   useEffect(() => {

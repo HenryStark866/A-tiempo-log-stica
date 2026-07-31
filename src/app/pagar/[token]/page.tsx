@@ -10,6 +10,7 @@ import { PAYMENT_KIND_LABELS } from "@/lib/constants";
 import { formatCOP } from "@/lib/utils";
 import type { PaymentInfo } from "@/lib/types";
 
+import { FondoPago } from "@/components/fondos/FondoPago";
 /**
  * Página pública del QR de pago. La abre quien recibe el paquete, sin cuenta y
  * casi siempre desde el celular en la puerta, así que muestra lo mínimo:
@@ -36,7 +37,8 @@ export default function PagarPage() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
+    <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
+      <FondoPago />
       <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 h-14">
           <Link href="/" className="active:opacity-70 transition-opacity">

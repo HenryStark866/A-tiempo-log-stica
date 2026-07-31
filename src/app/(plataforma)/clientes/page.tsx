@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pencil, Sparkles, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Pill } from "@/components/StatusBadge";
+import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { useProfile } from "@/components/ProfileContext";
 import { formatCOP } from "@/lib/utils";
 import type { Client } from "@/lib/types";
@@ -282,6 +283,23 @@ export default function ClientsPage() {
                       />
                     </div>
                   </div>
+                </section>
+
+                {/* El logo casi siempre llega por WhatsApp y lo carga el CEDI,
+                    no el comercio. El permiso de portada sigue siendo del
+                    comercio: aquí solo se registra lo que ya autorizó. */}
+                <section>
+                  <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Marca</h3>
+                  <MarcaDelComercio
+                    clientId={editing.id}
+                    nombre={editing.business_name}
+                    logoUrl={editing.logo_url}
+                    enPortada={editing.show_in_landing}
+                    onCambio={(c) => {
+                      setEditing((e) => (e ? { ...e, ...c } : e));
+                      load();
+                    }}
+                  />
                 </section>
 
                 <section>

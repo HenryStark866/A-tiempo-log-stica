@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import type { Role } from "@/lib/types";
 
+import { FondoBienvenido } from "@/components/fondos/FondoBienvenido";
 export const metadata = {
   title: "Cuenta confirmada — A Tiempo Logística",
 };
@@ -55,7 +56,8 @@ export default async function BienvenidoPage() {
   const config = BIENVENIDA[role];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 py-10 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 py-10 transition-colors duration-300">
+      <FondoBienvenido />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <div className="mb-6">

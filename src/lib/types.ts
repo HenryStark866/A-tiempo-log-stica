@@ -89,6 +89,10 @@ export interface Client {
   return_rate: number;
   active: boolean;
   created_at: string;
+  /** Logo de la marca, en el bucket público at-brand-logos. */
+  logo_url: string | null;
+  /** El comercio autorizó que su marca salga en la portada. */
+  show_in_landing: boolean;
 }
 
 export interface Zone {

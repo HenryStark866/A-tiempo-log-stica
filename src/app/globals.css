@@ -30,6 +30,122 @@ body {
   background: var(--color-brand-200);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   FONDOS ANIMADOS
+
+   Todo el movimiento vive aquí, en CSS, y no en JavaScript: son animaciones de
+   `transform` y `opacity`, que el navegador resuelve en la GPU sin despertar al
+   hilo principal. Importa porque estas pantallas las abre gente en la calle, con
+   datos y batería contados.
+
+   Dos reglas que no se rompen:
+     · Nada de esto se interpone: los fondos van detrás y sin eventos de puntero.
+     · Quien pidió menos movimiento no ve ninguno. La composición se queda quieta
+       y sigue viéndose bien: es un fondo, no una parte de la información.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Deriva lenta, para las marcas y los paquetes que "flotan" en la red. */
+@keyframes atl-deriva {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(var(--atl-dx, 14px), var(--atl-dy, -18px), 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* Un trazo que se dibuja solo: la ruta que se va trazando en el mapa. */
+@keyframes atl-recorre {
+  0%   { stroke-dashoffset: var(--atl-largo, 400); }
+  100% { stroke-dashoffset: 0; }
+}
+
+/* Nodo que late: el CEDI, un punto de entrega. */
+@keyframes atl-pulso {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.35); }
+}
+
+/* Onda que se expande y se apaga. Radar, cobro confirmado. */
+@keyframes atl-onda {
+  0%   { opacity: 0.5; transform: scale(0.35); }
+  70%  { opacity: 0.12; }
+  100% { opacity: 0;   transform: scale(1); }
+}
+
+/* Barrido del radar. */
+@keyframes atl-barrido {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Rejilla en fuga: el suelo de la ciudad pasando por debajo. */
+@keyframes atl-rejilla {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, var(--atl-paso, 60px), 0); }
+}
+
+/* Estela de velocidad — el mismo gesto que entra por el costado del logo. */
+@keyframes atl-estela {
+  0%   { opacity: 0;    transform: translate3d(-120%, 0, 0) scaleX(0.4); }
+  25%  { opacity: 0.85; }
+  100% { opacity: 0;    transform: translate3d(320%, 0, 0) scaleX(1.6); }
+}
+
+/* Punto que recorre una línea de extremo a extremo. */
+@keyframes atl-avanza {
+  0%   { offset-distance: 0%;   opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+
+/* Respiración de las capas de fondo, para que nada quede plano. */
+@keyframes atl-respira {
+  0%, 100% { opacity: var(--atl-min, 0.25); }
+  50%      { opacity: var(--atl-max, 0.6); }
+}
+
+/* Cifras que caen: la red procesando guías. */
+@keyframes atl-cae {
+  0%   { opacity: 0;    transform: translate3d(0, -20%, 0); }
+  15%  { opacity: 0.7; }
+  85%  { opacity: 0.7; }
+  100% { opacity: 0;    transform: translate3d(0, 120%, 0); }
+}
+
+.atl-fondo {
+  position: fixed;
+  inset: 0;
+  /* Negativo a propósito: así queda por encima del color del body —que se pinta
+     en el lienzo del documento, más atrás todavía— y por debajo de todo el
+     contenido, sin tener que ir marcando z-index pantalla por pantalla. */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  /* Aísla el repintado del fondo del resto de la página. */
+  contain: strict;
+  /* El color con el que la viñeta apaga el centro: el del fondo de cada tema,
+     para que el texto siempre caiga sobre superficie limpia. */
+  --atl-centro: rgba(242, 242, 247, 0.9);
+}
+
+.dark .atl-fondo {
+  --atl-centro: rgba(28, 28, 30, 0.88);
+}
+
+/* El contenido siempre por encima del fondo. */
+.atl-encima {
+  position: relative;
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atl-fondo *,
+  .atl-fondo *::before,
+  .atl-fondo *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* --- Corrección para el fondo blanco del Autocompletar (Autofill) en navegadores --- */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

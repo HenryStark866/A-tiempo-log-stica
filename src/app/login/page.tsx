@@ -7,6 +7,7 @@ import { Eye, EyeOff, LoaderCircle, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 
+import { FondoLogin } from "@/components/fondos/FondoLogin";
 /** Mensajes de los enlaces de correo que no se pudieron canjear. */
 const ERRORES_ENLACE: Record<string, string> = {
   enlace_invalido: "El enlace de confirmación no es válido. Solicita uno nuevo registrándote otra vez.",
@@ -112,7 +113,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 transition-colors duration-300">
+      <FondoLogin />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <div className="mb-6">

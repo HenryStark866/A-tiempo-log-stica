@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
 
+import { FondoRegistro } from "@/components/fondos/FondoRegistro";
 type RequestedRole = "cliente" | "mensajero" | "operario";
 
 export default function RegisterPage() {
@@ -76,7 +77,8 @@ export default function RegisterPage() {
   const fieldLabel = "w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 py-10 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 py-10 transition-colors duration-300">
+      <FondoRegistro />
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center">
           <div className="mb-6">

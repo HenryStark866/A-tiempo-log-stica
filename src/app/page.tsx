@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { FondoInicio } from "@/components/fondos/FondoInicio";
 
 const PILLARS = [
   {
@@ -43,14 +44,17 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 pb-16 transition-colors duration-300">
+    <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 pb-16 transition-colors duration-300">
+      <FondoInicio />
+
       {/* Top Nav Bar */}
-      <nav className="sticky top-0 z-50 flex items-center justify-end px-6 py-3 bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
+      <nav className="sticky top-0 z-50 flex items-center justify-end px-6 py-3 bg-white/70 dark:bg-[#1C1C1E]/70 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 transition-colors duration-300">
         <ThemeToggle />
       </nav>
 
-      {/* Welcoming Header */}
-      <header className="px-6 py-10 flex flex-col items-center text-center bg-[#FFFFFF] dark:bg-[#2C2C2E] shadow-sm rounded-b-[32px] mb-10 transition-colors duration-300">
+      {/* Welcoming Header — translúcido para que la red de rutas se vea correr
+          por detrás sin restarle contraste al logo. */}
+      <header className="atl-encima px-6 py-10 flex flex-col items-center text-center bg-white/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl shadow-sm rounded-b-[32px] mb-10 transition-colors duration-300">
         <Logo variant="vertical" className="mb-2 scale-110" />
         <h1 className="mt-6 text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Bienvenido a ATL</h1>
         <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -58,7 +62,7 @@ export default function LandingPage() {
         </p>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 space-y-12">
+      <main className="atl-encima max-w-5xl mx-auto px-6 space-y-12">
 
         {/* Tracking Section (Centered) */}
         <div className="max-w-md mx-auto">

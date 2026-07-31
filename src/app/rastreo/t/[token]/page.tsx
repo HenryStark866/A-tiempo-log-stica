@@ -11,6 +11,7 @@ import { GUIDE_STATUS_LABELS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/utils";
 import type { TrackingByToken } from "@/lib/types";
 
+import { FondoRastreo } from "@/components/fondos/FondoRastreo";
 /** Cada cuánto se vuelve a preguntar la posición mientras el paquete va en ruta. */
 const REFRESCO_MS = 30_000;
 
@@ -60,7 +61,8 @@ export default function TrackingByTokenPage() {
     typeof result.courier_lng === "number";
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
+    <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
+      <FondoRastreo />
       <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 h-14">
           <Link href="/" className="active:opacity-70 transition-opacity">

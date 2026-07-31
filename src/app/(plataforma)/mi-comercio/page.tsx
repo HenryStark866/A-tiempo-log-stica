@@ -8,6 +8,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  Sparkles,
   Store,
   Trash2,
   TriangleAlert,
@@ -17,6 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
 import { ShopifyConnect } from "@/components/ShopifyConnect";
+import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { PAYMENT_KINDS, PAYMENT_KIND_LABELS } from "@/lib/constants";
 import type { PaymentKind, PaymentMethod } from "@/lib/types";
 
@@ -50,8 +52,19 @@ export default function MiComercioPage() {
   const [medioError, setMedioError] = useState<string | null>(null);
   const [borrando, setBorrando] = useState<PaymentMethod | null>(null);
 
+  // El logo y el permiso de portada se llevan aparte del formulario: se guardan
+  // solos al momento, sin pasar por el botón de "Guardar datos".
+  const [marca, setMarca] = useState<{ logo_url: string | null; show_in_landing: boolean }>({
+    logo_url: null,
+    show_in_landing: false,
+  });
+
   useEffect(() => {
     if (!client) return;
+    setMarca({
+      logo_url: client.logo_url ?? null,
+      show_in_landing: client.show_in_landing ?? false,
+    });
     setNegocio({
       business_name: client.business_name ?? "",
       nit: client.nit ?? "",
@@ -303,6 +316,23 @@ export default function MiComercioPage() {
             <span>{negocioOk ? "Guardado" : "Guardar datos"}</span>
           </button>
         </form>
+      </section>
+
+      {/* ── Marca ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-3 ml-1">
+          <Sparkles className="w-4 h-4 text-slate-400" />
+          <h2 className="text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Tu marca
+          </h2>
+        </div>
+        <MarcaDelComercio
+          clientId={clientId}
+          nombre={negocio.business_name || "tu comercio"}
+          logoUrl={marca.logo_url}
+          enPortada={marca.show_in_landing}
+          onCambio={(c) => setMarca((m) => ({ ...m, ...c }))}
+        />
       </section>
 
       {/* ── Tienda conectada ── */}

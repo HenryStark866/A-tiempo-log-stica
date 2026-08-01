@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  History,
   MapPinned,
   PackageSearch,
   Search,
@@ -15,6 +16,7 @@ import {
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
+import { GUIA_EJEMPLO, MARCA } from "@/lib/marca";
 
 const PILLARS = [
   {
@@ -55,8 +57,10 @@ export default function LandingPage() {
       {/* Welcoming Header — translúcido para que la red de rutas se vea correr
           por detrás sin restarle contraste al logo. */}
       <header className="atl-encima px-6 py-10 flex flex-col items-center text-center bg-white/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl shadow-sm rounded-b-[32px] mb-10 transition-colors duration-300">
-        <Logo variant="vertical" className="mb-2 scale-110" />
-        <h1 className="mt-6 text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Bienvenido a ATL</h1>
+        <Logo variant="vertical" conFirma className="mb-2 scale-110" />
+        <h1 className="mt-6 text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+          Bienvenido a {MARCA.app}
+        </h1>
         <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
           Tu paquete a tiempo y con trazabilidad de punta a punta.
         </p>
@@ -74,7 +78,7 @@ export default function LandingPage() {
                 <input
                   value={guide}
                   onChange={(e) => setGuide(e.target.value)}
-                  placeholder="Ej. ATL-100008"
+                  placeholder={`Ej. ${GUIA_EJEMPLO}`}
                   className="flex-1 bg-transparent text-[16px] font-medium focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                 />
               </div>
@@ -148,10 +152,54 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* De dónde sale el nombre. Va después de los pilares y antes del pie:
+            quien vino a rastrear un paquete ya resolvió lo suyo arriba, y a
+            quien se quedó leyendo le explica por qué la app se llama así. */}
+        <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl border border-transparent dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+            <h2 className="text-[14px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-5">
+              Por qué {MARCA.app}
+            </h2>
+            <div className="grid gap-6 md:grid-cols-[auto_1fr] md:gap-8 md:items-start">
+              <div className="flex items-center gap-4 md:flex-col md:items-start md:gap-3">
+                <History className="w-7 h-7 text-[#ff812c] shrink-0" />
+                <p className="text-[13px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 md:leading-relaxed">
+                  Siglo&nbsp;XIII
+                </p>
+              </div>
+              <div className="space-y-4 text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
+                <p>
+                  El <strong className="font-semibold text-slate-900 dark:text-white">yam</strong>{" "}
+                  —o <em>jam</em>, <span className="whitespace-nowrap">örtöö</span> en mongol— fue
+                  la red de postas del Imperio Mongol. Estaciones cada 30 o 60 kilómetros
+                  donde el mensajero no descansaba: entregaba, cambiaba de caballo y seguía.
+                  Así movían un mensaje 300 kilómetros en un día, ochocientos años antes de
+                  que existiera un camión.
+                </p>
+                <p>
+                  Dos cosas de ese sistema son, literalmente, esta plataforma. La{" "}
+                  <strong className="font-semibold text-slate-900 dark:text-white">paiza</strong> —
+                  «lo que da testimonio»— era la tablilla que el mensajero mostraba en cada
+                  posta para que le entregaran caballo fresco: una guía que se valida en cada
+                  punto del trayecto. Y sus corredores llevaban cascabeles al cinto, para que
+                  en la estación siguiente los oyeran llegar y tuvieran el relevo listo antes
+                  de verlos.
+                </p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  El CEDI es la posta, la guía es la paiza y la campana de las notificaciones
+                  es el cascabel. El oficio no cambió tanto; nosotros solo le pusimos pantalla.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Footer */}
         <footer className="border-t border-gray-200 dark:border-gray-800">
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-6">
-            © 2026 A Tiempo Logística · Medellín, Colombia
+            {MARCA.app} es una plataforma de {MARCA.empresa}
+            <br className="sm:hidden" />
+            <span className="hidden sm:inline"> · </span>© 2026 · {MARCA.ciudad}
           </p>
         </footer>
 

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
+import { GUIA_EJEMPLO } from "@/lib/marca";
 import { formatDateTime } from "@/lib/utils";
 import type { TrackingResult } from "@/lib/types";
 
@@ -64,7 +65,7 @@ export default function TrackingPage() {
                 No encontramos esa guía
               </h1>
               <p className="mt-2 text-[15px] text-slate-500 dark:text-slate-400 mb-8">
-                Verifica el número (ej. ATL-100008) e inténtalo de nuevo.
+                Verifica el número (ej. {GUIA_EJEMPLO}) e inténtalo de nuevo.
               </p>
               <Link
                 href="/"

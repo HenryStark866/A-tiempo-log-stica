@@ -1,8 +1,45 @@
-# 📦 aTiempo Logística
+# 📦 JAM — Red de mensajería de A Tiempo Logística
 
 Plataforma SaaS de logística de última milla que conecta comercios remitentes, un centro de distribución (CEDI) y mensajeros, con visibilidad en tiempo real tanto para quien envía como para quien recibe.
 
 🔗 **Producción**: [atiempo-logistica.vercel.app](https://atiempo-logistica.vercel.app)
+
+## Los dos nombres
+
+Aparecen juntos en pantalla y significan cosas distintas:
+
+| | Qué es | Dónde aparece |
+| --- | --- | --- |
+| **A Tiempo Logística** (ATL) | La empresa. Tiene la marca registrada, firma las facturas y responde por el paquete. | Rótulos, facturación, mensajes al comercio, prefijo de las guías (`ATL-…`) |
+| **JAM** | La plataforma. Marca registrada de ATL. | Nombre de la app, PWA, inicio de sesión, títulos de página |
+
+Regla para elegir: si la frase la diría un abogado o va en un papel pegado a una
+caja, es **ATL**. Si es algo con lo que la persona interactúa, es **JAM**. La
+fuente única está en [`src/lib/marca.ts`](src/lib/marca.ts) — no escribas los
+nombres a mano en las pantallas.
+
+El prefijo de las guías se queda en `ATL-` a propósito: lo emite la base de
+datos, ya viaja impreso en rótulos en circulación y quien responde por ese
+paquete es la empresa. Cambiarlo rompería el rastreo de lo que ya salió.
+
+### De dónde sale «JAM»
+
+El *yam* —o *jam*; en mongol **örtöö**, «puesto de relevo»— fue la red de postas
+del Imperio Mongol: estaciones cada 32-64 km donde el mensajero entregaba,
+cambiaba de caballo y seguía sin descansar, moviendo un mensaje 200-300 km por
+día en el siglo XIII.
+
+Dos piezas de ese sistema son literalmente este software:
+
+- La **paiza** (*gerege*, «lo que da testimonio») era la tablilla que el
+  mensajero mostraba en cada posta para reclamar caballo fresco y alojamiento:
+  una guía de transporte que se valida en cada punto del trayecto.
+- Marco Polo describió que los corredores llevaban **cascabeles al cinto**, para
+  que en la posta siguiente los oyeran llegar y tuvieran el relevo listo antes
+  de verlos: una notificación anticipada.
+
+El CEDI es la posta, la guía es la paiza y la campana de notificaciones es el
+cascabel.
 
 ---
 
@@ -27,7 +64,7 @@ Plataforma SaaS de logística de última milla que conecta comercios remitentes,
 
 ## 📝 Descripción
 
-**aTiempo Logística** es una plataforma SaaS diseñada para gestionar el ciclo completo de una entrega de última milla en e-commerce (Medellín y área metropolitana): recolección en origen, procesamiento en centro de distribución (CEDI), ruteo, asignación con capacidad límite por mensajero y entrega final con rastreo en vivo y opción de punto de cruce en tiempo real.
+**JAM**, la plataforma de **A Tiempo Logística**, es una plataforma SaaS diseñada para gestionar el ciclo completo de una entrega de última milla en e-commerce (Medellín y área metropolitana): recolección en origen, procesamiento en centro de distribución (CEDI), ruteo, asignación con capacidad límite por mensajero y entrega final con rastreo en vivo y opción de punto de cruce en tiempo real.
 
 ---
 
@@ -273,7 +310,7 @@ Mes 3: Escala & Ecosistema (🔵 Fase 2)
 
 ## 📄 Licencia
 
-Software propietario. Todos los derechos reservados a **aTiempo Logística S.A.S.**
+Software propietario. Todos los derechos reservados a **A Tiempo Logística S.A.S.** JAM es marca registrada de A Tiempo Logística S.A.S.
 
 ---
 

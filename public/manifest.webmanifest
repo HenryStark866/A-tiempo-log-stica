@@ -1,7 +1,7 @@
 {
-  "name": "A Tiempo Logística",
-  "short_name": "A Tiempo",
-  "description": "Última milla para e-commerce: recogidas, rutas, recaudo contraentrega y rastreo en vivo.",
+  "name": "JAM — Red de mensajería de A Tiempo Logística",
+  "short_name": "JAM",
+  "description": "La plataforma de última milla de A Tiempo Logística: recogidas, rutas, recaudo contraentrega y rastreo en vivo.",
   "id": "/",
   "start_url": "/dashboard",
   "scope": "/",

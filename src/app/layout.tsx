@@ -1,22 +1,26 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RegistrarSW } from "@/components/RegistrarSW";
+import { MARCA } from "@/lib/marca";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "A Tiempo Logística — Última milla para e-commerce",
-    template: "%s | A Tiempo Logística",
+    // JAM es la plataforma; A Tiempo Logística es quien responde por el
+    // paquete. En el título van las dos: el nombre que la gente reconoce y la
+    // empresa que lo respalda.
+    default: `${MARCA.app} — Red de mensajería de ${MARCA.empresa}`,
+    template: `%s | ${MARCA.app}`,
   },
   description:
-    "Plataforma de logística de última milla para e-commerce en Medellín: recogida, CEDI, ruteo, recaudo contraentrega y facturación con trazabilidad en tiempo real.",
+    "JAM es la plataforma de última milla de A Tiempo Logística en Medellín: recogida, CEDI, ruteo, recaudo contraentrega y facturación con trazabilidad en tiempo real.",
   // Instalable en el teléfono del mensajero: en pantalla completa el navegador
   // no suspende el rastreo tan agresivamente como en una pestaña más.
   manifest: "/manifest.webmanifest",
-  applicationName: "A Tiempo",
+  applicationName: MARCA.app,
   appleWebApp: {
     capable: true,
-    title: "A Tiempo",
+    title: MARCA.app,
     statusBarStyle: "black-translucent",
   },
   icons: {

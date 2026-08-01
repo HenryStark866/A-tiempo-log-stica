@@ -63,19 +63,19 @@ self.addEventListener("fetch", (event) => {
           new Response(
             `<!doctype html><html lang="es"><head><meta charset="utf-8">
              <meta name="viewport" content="width=device-width,initial-scale=1">
-             <title>Sin conexión · A Tiempo</title>
+             <title>Sin conexión · JAM</title>
              <style>
                body{margin:0;height:100dvh;display:grid;place-items:center;
                     background:#1C1C1E;color:#fff;
                     font-family:system-ui,-apple-system,sans-serif;text-align:center;padding:24px}
                h1{font-size:20px;margin:16px 0 8px}
                p{color:#98989D;font-size:15px;line-height:1.5;max-width:34ch;margin:0 auto}
-               .p{color:#ff812c;font-size:44px}
+               .p{color:#ff812c;font-size:44px;font-weight:700}
                button{margin-top:24px;min-height:48px;padding:0 24px;border:0;border-radius:14px;
                       background:#ff812c;color:#1C1C1E;font-weight:700;font-size:15px}
              </style></head>
              <body><div>
-               <div class="p">◷</div>
+               <div class="p">&#187;</div>
                <h1>Te quedaste sin señal</h1>
                <p>No pudimos cargar la pantalla. Tu trabajo no se pierde: en cuanto
                   vuelva la conexión, sigue donde ibas.</p>

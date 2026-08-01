@@ -212,7 +212,7 @@ export default function ProductsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "plantilla-productos-atiempo.csv";
+    a.download = "plantilla-productos-jam.csv";
     a.click();
     URL.revokeObjectURL(url);
   }

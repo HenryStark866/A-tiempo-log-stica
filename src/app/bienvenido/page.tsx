@@ -7,7 +7,8 @@ import type { Role } from "@/lib/types";
 
 import { FondoBienvenido } from "@/components/fondos/FondoBienvenido";
 export const metadata = {
-  title: "Cuenta confirmada — A Tiempo Logística",
+  // La plantilla del layout le añade « | JAM » al final.
+  title: "Cuenta confirmada",
 };
 
 /** Qué ve cada quien al entrar por primera vez. */

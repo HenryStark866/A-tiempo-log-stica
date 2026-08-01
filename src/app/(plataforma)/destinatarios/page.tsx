@@ -279,7 +279,7 @@ export default function RecipientsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "plantilla-clientes-atiempo.csv";
+    a.download = "plantilla-clientes-jam.csv";
     a.click();
     URL.revokeObjectURL(url);
   }

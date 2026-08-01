@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { CediDestino } from "@/components/CediDestino";
 import { StatusBadge } from "@/components/StatusBadge";
+import { MARCA } from "@/lib/marca";
 import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
 
@@ -150,7 +151,7 @@ export default function CediPage() {
             <input
               value={scan}
               onChange={(e) => setScan(e.target.value)}
-              placeholder="Escanea o digita la guía (ATL-…)"
+              placeholder={`Escanea o digita la guía (${MARCA.prefijoGuia}-…)`}
               className="flex-1 min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
             />
             <button 

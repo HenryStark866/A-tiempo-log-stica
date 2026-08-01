@@ -12,6 +12,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { MARCA } from "@/lib/marca";
 import { formatDateTime } from "@/lib/utils";
 
 interface ShopifyStatus {
@@ -258,7 +259,7 @@ export function ShopifyConnect() {
                 <li>
                   Pulsa <strong>Desarrollar aplicaciones</strong> y luego{" "}
                   <strong>Crear una aplicación</strong>. Ponle el nombre que quieras, por
-                  ejemplo &ldquo;A Tiempo Logística&rdquo;.
+                  ejemplo &ldquo;{MARCA.app}&rdquo;.
                 </li>
                 <li>
                   En <strong>Configurar los alcances de la API de Admin</strong>, marca{" "}

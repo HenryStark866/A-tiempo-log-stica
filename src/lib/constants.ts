@@ -44,6 +44,7 @@ export const GUIDE_STATUS_COLORS: Record<GuideStatus, string> = {
 export const PICKUP_STATUS_LABELS: Record<PickupStatus, string> = {
   pendiente: "Pendiente",
   asignada: "Asignada",
+  en_curso: "En curso",
   completada: "Completada",
   cancelada: "Cancelada",
 };

@@ -19,7 +19,15 @@ export type GuideStatus =
   | "devuelta"
   | "cancelada";
 
-export type PickupStatus = "pendiente" | "asignada" | "completada" | "cancelada";
+// `en_curso` lo añadió la migración 0028 cuando el mensajero pasó a arrancar la
+// recogida desde su teléfono, pero el tipo se quedó atrás: la pantalla del CEDI
+// no sabía distinguir «asignada» de «el mensajero ya va en camino».
+export type PickupStatus =
+  | "pendiente"
+  | "asignada"
+  | "en_curso"
+  | "completada"
+  | "cancelada";
 export type SettlementStatus = "pendiente" | "consignado" | "conciliado" | "con_diferencia";
 export type InvoiceStatus = "borrador" | "emitida" | "pagada" | "anulada";
 export type BillingCycle = "quincenal" | "mensual";

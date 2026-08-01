@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban } from "lucide-react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
@@ -40,6 +40,10 @@ function PickupBadge({ status }: { status: PickupStatus }) {
 
   if (status === "asignada") {
     colorClass = "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400";
+  } else if (status === "en_curso") {
+    // Naranja de marca: es el único estado donde hay alguien conduciendo hacia
+    // el comercio ahora mismo, y el CEDI necesita verlo de un vistazo.
+    colorClass = "bg-[#ff812c]/10 text-[#ff812c] dark:bg-[#ff812c]/15 dark:text-[#ff812c]";
   } else if (status === "completada") {
     colorClass = "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
   } else if (status === "cancelada") {
@@ -65,8 +69,6 @@ export default function PickupsPage() {
   const [assigningPickup, setAssigningPickup] = useState<Pickup | null>(null);
   const [selectedCourierId, setSelectedCourierId] = useState<string>("");
   const [showNew, setShowNew] = useState(false);
-  const [completing, setCompleting] = useState<Pickup | null>(null);
-  const [packageCount, setPackageCount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -309,25 +311,6 @@ export default function PickupsPage() {
     load();
   }
 
-  async function completePickup() {
-    if (!completing) return;
-    setBusy(true);
-    const supabase = createClient();
-    const count = packageCount.trim() ? Number(packageCount) : null;
-    await supabase
-      .from("at_pickups")
-      .update({
-        status: "completada",
-        completed_at: new Date().toISOString(),
-        package_count: count,
-      })
-      .eq("id", completing.id);
-    setBusy(false);
-    setCompleting(null);
-    setPackageCount("");
-    load();
-  }
-
   /**
    * Los botones de cada solicitud. Se pintan igual en la tabla del escritorio y
    * en la tarjeta del teléfono, así que viven en un solo sitio: si mañana se
@@ -387,13 +370,19 @@ export default function PickupsPage() {
                 {p.operator ? "Reasignar" : "Asignar mensajero"}
               </button>
             )}
-            {p.status === "asignada" && (
-              <button
-                onClick={() => setCompleting(p)}
-                className="inline-flex items-center min-h-[40px] px-4 rounded-xl font-semibold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-all text-xs sm:text-sm"
-              >
-                Completar
-              </button>
+            {/* Aquí había un botón «Completar» que ponía la recogida en
+                completada de un plumazo, con un número de paquetes escrito a
+                mano y sin tocar ninguna guía. No es de esta pantalla: la
+                recogida la cierra el mensajero en el local, cuando tiene las
+                cajas delante, verifica guía por guía y confirma. Eso es lo que
+                pasa las guías a «recogida» y deja el rastro de quién recibió
+                qué. Desde el CEDI se asigna y se coordina; no se da por
+                recibido lo que nadie ha visto. */}
+            {(p.status === "asignada" || p.status === "en_curso") && (
+              <span className="inline-flex items-center gap-1.5 min-h-[40px] px-3 text-[13px] font-medium text-slate-500 dark:text-slate-400">
+                <Hourglass className="w-3.5 h-3.5 shrink-0" />
+                {p.status === "en_curso" ? "Mensajero en camino" : "Espera al mensajero"}
+              </span>
             )}
           </>
         )}
@@ -783,73 +772,6 @@ export default function PickupsPage() {
         </div>
       )}
 
-      {/* Completar Recogida Modal */}
-      {completing && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
-              <div>
-                <h3 className="text-[19px] font-bold text-slate-900 dark:text-white pr-4">Completar recogida</h3>
-                <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                  {completing.at_clients?.business_name}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setCompleting(null);
-                  setPackageCount("");
-                }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="space-y-2">
-                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                  Paquetes contados en el punto
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={packageCount}
-                  onChange={(e) => setPackageCount(e.target.value)}
-                  placeholder={`Mínimo esperado: ${MIN_PACKAGES}`}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
-                />
-                {packageCount.trim() !== "" && Number(packageCount) < MIN_PACKAGES && (
-                  <p className="flex items-center gap-1.5 text-[13px] font-medium text-amber-600 dark:text-amber-400">
-                    <TriangleAlert className="w-3.5 h-3.5 shrink-0" />
-                    Bajo el mínimo de {MIN_PACKAGES}. Se completará igual — queda registrado para seguimiento comercial.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCompleting(null);
-                    setPackageCount("");
-                  }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
-                >
-                  Cancelar
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={completePickup}
-                  className="flex-1 min-h-[52px] rounded-2xl font-bold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center"
-                >
-                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirmar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Assign Pickup Modal */}
       {assigningPickup && (

@@ -124,7 +124,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
       <div className="absolute inset-0 bg-navy-950/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
         <h2 className="mb-4 text-lg font-bold text-navy-900">{title}</h2>
         {children}
       </div>

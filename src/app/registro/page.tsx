@@ -244,7 +244,10 @@ export default function RegisterPage() {
                           businessType ? "" : "text-slate-400 dark:text-slate-500"
                         }`}
                       >
-                        <option value="">Selecciona el tipo de negocio…</option>
+                        {/* Corto a propósito: al lado ya está la etiqueta
+                            «Tipo», y el texto largo no cabía en el desplegable
+                            de un teléfono angosto. */}
+                        <option value="">Selecciona…</option>
                         {BUSINESS_TYPES.map((t) => (
                           <option key={t} value={t} className="text-slate-900">
                             {t}

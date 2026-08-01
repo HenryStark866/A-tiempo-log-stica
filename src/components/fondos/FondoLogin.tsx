@@ -11,6 +11,17 @@ import { Fondo, Rejilla, Resplandor, Vinneta, NARANJA } from "@/components/fondo
 /** Las doce marcas del bisel, igual que en el logo. */
 const MARCAS = Array.from({ length: 12 }, (_, i) => i * 30);
 
+/**
+ * Redondea a tres decimales antes de escribir la coordenada en el SVG.
+ *
+ * `Math.cos` y `Math.sin` no están obligados a dar el mismo último dígito en
+ * todos los motores, y no lo daban: Node servía `103.36036506672718` y el
+ * navegador calculaba `...724`, así que React declaraba que el HTML del
+ * servidor no coincidía y tiraba el árbol entero de la pantalla de ingreso.
+ * Sobre un lienzo de 1000 unidades, tres decimales son invisibles.
+ */
+const coord = (n: number) => Math.round(n * 1000) / 1000;
+
 export function FondoLogin() {
   return (
     <Fondo>
@@ -37,10 +48,10 @@ export function FondoLogin() {
             return (
               <line
                 key={a}
-                x1={500 + Math.cos(rad) * r1}
-                y1={500 + Math.sin(rad) * r1}
-                x2={500 + Math.cos(rad) * 470}
-                y2={500 + Math.sin(rad) * 470}
+                x1={coord(500 + Math.cos(rad) * r1)}
+                y1={coord(500 + Math.sin(rad) * r1)}
+                x2={coord(500 + Math.cos(rad) * 470)}
+                y2={coord(500 + Math.sin(rad) * 470)}
                 stroke={NARANJA}
                 strokeWidth={larga ? 3 : 1.5}
                 strokeLinecap="round"

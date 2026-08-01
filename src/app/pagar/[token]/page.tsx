@@ -91,7 +91,7 @@ function Contenido({ info }: { info: PaymentInfo }) {
         <p className="text-[15px] text-slate-500 dark:text-slate-400">
           Pago a <strong className="text-slate-700 dark:text-slate-300">{info.business_name}</strong>
         </p>
-        <p className="mt-3 text-[40px] font-bold tracking-tight leading-none">
+        <p className="mt-3 text-[32px] sm:text-[40px] font-bold tracking-tight leading-none tabular-nums break-words">
           {formatCOP(info.cod_amount)}
         </p>
         <p className="mt-2 text-[14px] text-slate-400 dark:text-slate-500">

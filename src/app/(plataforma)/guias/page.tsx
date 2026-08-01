@@ -163,7 +163,65 @@ export default function GuidesPage() {
             <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay guías que coincidan con el filtro</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* En teléfono la tabla mide 900 px y toca arrastrarla de lado para
+              leer una guía completa. Ahí va la misma información apilada. */}
+          <ul className="divide-y divide-slate-100 dark:divide-slate-700/50 lg:hidden">
+            {filtered.map((g) => (
+              <li key={g.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/guias/${g.id}`}
+                      className="text-[16px] font-bold text-[#ff812c] hover:underline"
+                    >
+                      {g.guide_number}
+                    </Link>
+                    <p className="mt-0.5 truncate text-[13px] text-slate-500 dark:text-slate-400">
+                      {g.at_clients?.business_name ?? "—"} · {formatDateTime(g.created_at)}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <GuideBadge status={g.status} />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[15px] font-bold text-slate-900 dark:text-white">
+                    {g.recipient_name}
+                  </p>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                    {g.recipient_address}
+                    {g.at_zones?.name ? ` · ${g.at_zones.name}` : ""}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[14px] font-semibold text-slate-700 dark:text-slate-300">
+                    {g.is_cod ? formatCOP(g.cod_amount) : "Sin contraentrega"}
+                  </span>
+                  {g.status === "creada" && (
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/guias/${g.id}/editar`}
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#F2F2F7] px-3 text-[14px] font-semibold text-slate-700 active:scale-95 dark:bg-[#1C1C1E] dark:text-slate-300"
+                      >
+                        <Edit2 className="w-4 h-4 text-[#ff812c]" /> Editar
+                      </Link>
+                      <button
+                        onClick={() => { setDeleteError(null); setDeleteTarget(g); }}
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-rose-50 px-3 text-[14px] font-semibold text-rose-700 active:scale-95 dark:bg-rose-500/10 dark:text-rose-400"
+                      >
+                        <Trash2 className="w-4 h-4" /> Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700/50 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
@@ -228,6 +286,7 @@ export default function GuidesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -194,7 +194,7 @@ export default function EditGuidePage() {
 
   return (
     <div className="pb-28 max-w-2xl mx-auto w-full font-sans">
-      <div className="flex items-center justify-between px-4 py-4 mb-2">
+      <div className="relative flex items-center justify-between px-4 py-4 mb-2">
         <button
           onClick={() => router.back()}
           className="flex items-center text-[#ff812c] active:opacity-70 transition-opacity"

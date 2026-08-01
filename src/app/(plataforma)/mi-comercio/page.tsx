@@ -450,7 +450,7 @@ export default function MiComercioPage() {
       {/* ── Modal de medio de pago ── */}
       {editando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-          <div className="w-full sm:max-w-md bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-t-3xl sm:rounded-3xl p-5 max-h-[90vh] overflow-y-auto">
+          <div className="w-full sm:max-w-md bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-t-3xl sm:rounded-3xl p-5 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                 {editando === "nuevo" ? "Nuevo medio de pago" : "Editar medio de pago"}

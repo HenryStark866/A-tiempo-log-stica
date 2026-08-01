@@ -430,7 +430,7 @@ export default function ProductsPage() {
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setEditing(null)}>
-          <div className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
                 {editing === "nuevo" ? "Nuevo producto" : `Editar ${(editing as Product).name}`}

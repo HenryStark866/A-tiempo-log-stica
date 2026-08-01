@@ -64,11 +64,13 @@ function Kpi({
   hint?: string;
 }) {
   return (
-    <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 shadow-sm transition-colors duration-300 flex flex-col justify-between h-full">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
+    <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300 flex flex-col justify-between h-full">
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
+        {/* `min-w-0` + tamaño menor en teléfono: un recaudo como $12.345.678 a
+            32 px no cabe al lado del icono y se salía de la tarjeta. */}
+        <div className="min-w-0 flex-1">
           <p className="text-[14px] font-semibold text-slate-500 dark:text-slate-400 leading-snug">{label}</p>
-          <p className="mt-2 text-[32px] font-extrabold tracking-tight text-slate-900 dark:text-white leading-none">
+          <p className="mt-2 text-[26px] sm:text-[32px] font-extrabold tracking-tight text-slate-900 dark:text-white leading-none tabular-nums break-words">
             {value}
           </p>
         </div>
@@ -174,17 +176,19 @@ export default function DashboardPage() {
             const n = kpis.by_status[s] ?? 0;
             if (n === 0) return null;
             return (
-              <div key={s} className="flex items-center gap-4">
-                <span className="w-32 shrink-0 text-[14px] font-semibold text-slate-600 dark:text-slate-400">
+              /* La etiqueta se estrecha en teléfono: con 128 px fijos la barra
+                 se quedaba en un muñón de 40 px y el gráfico no decía nada. */
+              <div key={s} className="flex items-center gap-3 sm:gap-4">
+                <span className="w-20 sm:w-32 shrink-0 truncate text-[13px] sm:text-[14px] font-semibold text-slate-600 dark:text-slate-400">
                   {GUIDE_STATUS_LABELS[s]}
                 </span>
-                <div className="h-7 flex-1 overflow-hidden rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E]">
+                <div className="h-7 min-w-0 flex-1 overflow-hidden rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E]">
                   <div
                     className={`h-full rounded-xl transition-all duration-500 ease-out ${BAR_COLORS[s]}`}
                     style={{ width: `${(n / max) * 100}%` }}
                   />
                 </div>
-                <span className="w-10 text-right text-[15px] font-bold text-slate-900 dark:text-white">
+                <span className="w-8 sm:w-10 shrink-0 text-right text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
                   {n}
                 </span>
               </div>

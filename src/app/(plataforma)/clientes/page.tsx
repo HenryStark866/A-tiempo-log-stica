@@ -240,7 +240,7 @@ export default function ClientsPage() {
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col transition-colors duration-300"
+            className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[90dvh] flex flex-col transition-colors duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

@@ -207,13 +207,15 @@ export default function MyRoutePage() {
                 : "Elige tu app de mapas para guiarte parada a parada."}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-xl p-1">
+          {/* El selector y el botón sumaban más ancho del que tiene un teléfono:
+              se envuelven, y en móvil cada uno ocupa su propia línea completa. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-1 sm:flex-none bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-xl p-1">
               {(Object.keys(NAV_PROVIDER_LABELS) as NavProvider[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => chooseProvider(p)}
-                  className={`min-h-[40px] px-4 rounded-lg text-[14px] font-semibold transition-all active:scale-95 ${
+                  className={`min-h-[40px] flex-1 sm:flex-none px-3 sm:px-4 rounded-lg text-[14px] font-semibold transition-all active:scale-95 ${
                     navProvider === p
                       ? "bg-[#ff812c] text-[#1C1C1E] shadow-sm"
                       : "text-slate-600 dark:text-slate-300"
@@ -227,7 +229,7 @@ export default function MyRoutePage() {
               <button
                 disabled={busy}
                 onClick={startFullRoute}
-                className="min-h-[48px] px-4 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100 whitespace-nowrap"
+                className="w-full sm:w-auto min-h-[48px] px-4 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100 whitespace-nowrap"
               >
                 {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Navigation className="w-5 h-5" />}
                 <span>Iniciar ruta ({zonificadas.length})</span>
@@ -366,10 +368,14 @@ export default function MyRoutePage() {
 
       {/* Action Modal (Apple HIG Style Bottom Sheet/Alert) */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
-            
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-6">
+          {/* Este formulario es largo (código, foto, quién recibe, observación).
+              Sin alto máximo el botón «Confirmar» se salía de la pantalla del
+              teléfono y el mensajero no podía cerrar la entrega. `dvh` y no
+              `vh`: en el móvil `vh` ignora la barra del navegador y recorta. */}
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[90dvh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex shrink-0 items-center justify-between">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate pr-4">
                 {modal.action === "entregada" ? "Confirmar entrega" : "Reportar novedad"}
               </h3>
@@ -381,7 +387,7 @@ export default function MyRoutePage() {
               </button>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-5">
               <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400">
                 Guía: <span className="font-bold text-slate-900 dark:text-white">{modal.guide.guide_number}</span>
               </p>

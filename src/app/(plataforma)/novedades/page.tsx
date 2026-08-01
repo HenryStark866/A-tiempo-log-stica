@@ -282,7 +282,7 @@ function ActionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-[#2C2C2E] rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-white dark:bg-[#2C2C2E] rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>

@@ -31,6 +31,75 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   BASE RESPONSIVE
+
+   Tres reglas que evitan el 90% de los desbordamientos horizontales. Van aquí
+   y no repartidas por las pantallas porque son comportamiento por defecto del
+   navegador que no nos sirve, no decisiones de diseño de cada vista.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Un `input` trae un ancho intrínseco de ~20 caracteres y, como todo hijo de
+   flex arranca con `min-width: auto`, `flex-1` NO lo deja encoger por debajo de
+   ese ancho: en las filas "etiqueta + campo" el campo se salía de la tarjeta y
+   quedaba recortado en teléfonos de 320-375 px. Dejarlo en 0 es lo que permite
+   que el campo se adapte al espacio que realmente hay. */
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+/* Ningún medio empuja el layout más allá del ancho disponible. */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+/* Las palabras largas sin espacios (URLs, correos, números de guía) parten
+   línea en vez de estirar la caja que las contiene. */
+body {
+  overflow-wrap: break-word;
+}
+
+/* ── Utilidades propias ──────────────────────────────────────────────────── */
+
+/* Carruseles y barras de navegación que se desplazan a dedo: el scroll existe,
+   pero sin la barra gris encima, que en la barra inferior del teléfono se comía
+   varios píxeles de los rótulos. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Zona segura de iOS. El manifiesto declara `viewport-fit: cover` y barra de
+   estado translúcida, así que la app se dibuja por debajo del notch y de la
+   barra de gestos: sin este respiro, la barra inferior queda tapada por el
+   indicador de inicio.
+
+   Ojo al usarlas: fijan el padding entero, no lo suman. Donde ya hay un padding
+   base que conservar va `pb-[calc(1rem+env(safe-area-inset-bottom,0px))]`. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility px-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Hueco que deja libre el contenido para la barra de pestañas del teléfono:
+   sus 68 px de alto, aire suficiente para que el último botón no quede pegado
+   a la barra, y encima la zona de gestos del sistema. */
+@utility pb-nav {
+  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    FONDOS ANIMADOS
 
    Todo el movimiento vive aquí, en CSS, y no en JavaScript: son animaciones de

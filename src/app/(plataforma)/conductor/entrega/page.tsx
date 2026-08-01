@@ -54,7 +54,7 @@ export default function EntregaActivaPage() {
 
       {/* Navigation Bar */}
       <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">
-        <div className="flex items-center justify-between px-4 h-12">
+        <div className="relative flex items-center justify-between px-4 h-12">
           <Link href="#" className="flex items-center text-[#ff812c] active:opacity-70 transition-opacity">
             <ChevronLeft className="w-6 h-6 -ml-2" />
             <span className="text-[17px]">Ruta</span>

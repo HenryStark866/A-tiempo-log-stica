@@ -265,7 +265,40 @@ export default function UsersPage() {
             <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay usuarios registrados</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Versión apilada para teléfono: la tabla de 700 px obligaba a
+              arrastrar de lado para llegar al botón de gestionar el rol. */}
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800 lg:hidden">
+            {profiles.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
+                <div className="min-w-0 space-y-2">
+                  <div>
+                    <p className="font-bold text-[16px] text-slate-900 dark:text-white">
+                      {p.full_name || "(sin nombre)"}
+                    </p>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      {p.phone ? `${p.phone} · ` : ""}{formatDate(p.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Pill
+                      label={p.role === "pendiente" && p.requested_role ? `Solicita ${ROLE_LABELS[p.requested_role]}` : ROLE_LABELS[p.role]}
+                      tone={p.role === "pendiente" ? "amber" : p.role === "admin" ? "blue" : "slate"}
+                    />
+                    <Pill label={p.active ? "Activo" : "Inactivo"} tone={p.active ? "green" : "red"} />
+                  </div>
+                </div>
+                <button
+                  onClick={() => openEdit(p)}
+                  className="inline-flex shrink-0 items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
+                >
+                  <ShieldCheck className="w-4 h-4" /> Rol
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
@@ -308,13 +341,14 @@ export default function UsersPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {/* Action Modal (Apple HIG Style Bottom Sheet/Alert) */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[92vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-[32px] shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
 
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
               <div>

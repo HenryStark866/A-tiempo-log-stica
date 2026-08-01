@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -101,6 +101,15 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [pendingRequests, setPendingRequests] = useState(0);
+  const tabActiva = useRef<HTMLAnchorElement>(null);
+
+  // La barra de abajo no alcanza a mostrar todas las secciones de un rol con
+  // muchos permisos, así que se desplaza a dedo. Al cambiar de pantalla se trae
+  // la pestaña actual al centro: si no, el mensajero abre una sección y la
+  // barra le sigue mostrando el tramo del principio, sin nada resaltado.
+  useEffect(() => {
+    tabActiva.current?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [pathname]);
 
   useEffect(() => {
     if (profile.role !== "admin") return;
@@ -152,30 +161,39 @@ export function AppShell({
       <NotificationsProvider userId={profile.id}>
       <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col md:flex-row font-sans">
           
-          {/* Top Header (Mobile Only) */}
-          <header className="md:hidden flex items-center justify-between px-6 py-4 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-200/60 dark:border-gray-800/60">
-            <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex items-center gap-2">
+          {/* Top Header (Mobile Only) — al padding de arriba se le suma la zona
+              segura: la barra de estado de iOS es translúcida y la app se
+              dibuja por debajo de la hora. */}
+          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-200/60 dark:border-gray-800/60">
+            <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex min-w-0 items-center gap-2">
               <Logo className="scale-[0.8] origin-left" />
             </Link>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <NotificationBell />
               <ThemeToggle />
             </div>
           </header>
 
-          {/* Desktop Left Sidebar */}
-          <aside className="hidden md:flex flex-col w-64 fixed inset-y-0 left-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
-            <div className="p-6 flex items-center justify-between">
-              <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex items-center gap-2">
+          {/* Desktop Left Sidebar — algo más angosta en tablet, donde 256 px se
+              comían un tercio del ancho útil de la pantalla. */}
+          <aside className="hidden md:flex flex-col w-56 lg:w-64 fixed inset-y-0 left-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
+            {/* Arriba solo marca y campana. El logo ocupa 147 px y los controles
+                40 cada uno: los tres juntos no caben en una barra de 224-256 px,
+                y antes la campana se salía por el borde. El cambio de tema se
+                fue abajo, con la cuenta, que es donde se lo espera. */}
+            <div className="flex items-center justify-between gap-2 px-3 pt-5 lg:px-5 lg:pt-6">
+              <Link
+                href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'}
+                className="flex min-w-0 items-center gap-2"
+              >
                 <Logo className="scale-90 origin-left" />
               </Link>
-              <div className="flex items-center gap-1">
-                <NotificationBell />
-                <ThemeToggle />
+              <div className="shrink-0">
+                <NotificationBell align="left" />
               </div>
             </div>
 
-            <nav className="flex-1 px-4 py-2 space-y-2 overflow-y-auto no-scrollbar">
+            <nav className="flex-1 px-3 lg:px-4 py-2 space-y-1.5 overflow-y-auto no-scrollbar">
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);
                 return (
@@ -183,14 +201,14 @@ export function AppShell({
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-medium transition-all",
+                      "flex items-center gap-3 rounded-2xl px-3 lg:px-4 py-3 text-[15px] font-medium transition-all",
                       active
                         ? "bg-[#ff812c]/10 text-[#ff812c]"
                         : "text-slate-500 hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-slate-400"
                     )}
                   >
                     <item.icon className={cn("w-5 h-5 shrink-0", active && "text-[#ff812c]")} />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
                     {item.href === "/usuarios" && pendingRequests > 0 && (
                       <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#ff812c] text-white text-[11px] font-bold">
                         {pendingRequests}
@@ -201,15 +219,18 @@ export function AppShell({
               })}
             </nav>
 
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between px-2 mb-4">
-                <div className="overflow-hidden">
+            <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:p-4 lg:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-gray-200 dark:border-gray-800">
+              <div className="mb-3 flex items-center justify-between gap-2 px-1">
+                <div className="min-w-0">
                   <p className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
                     {profile.full_name || email}
                   </p>
-                  <p className="text-[12px] text-slate-500 dark:text-slate-400">
+                  <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
                     {ROLE_LABELS[profile.role]}
                   </p>
+                </div>
+                <div className="shrink-0">
+                  <ThemeToggle />
                 </div>
               </div>
               <button
@@ -221,23 +242,26 @@ export function AppShell({
             </div>
           </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 md:ml-64 px-4 py-6 md:p-8 pb-24 md:pb-8 w-full min-h-screen">
+          {/* Main Content — `min-w-0` es lo que impide que una tabla ancha
+              estire la columna entera en vez de desplazarse dentro de su
+              tarjeta, y con ella toda la página. */}
+          <main className="flex-1 min-w-0 md:ml-56 lg:ml-64 px-4 py-6 md:p-8 pb-nav md:pb-8 min-h-screen">
             <div className="max-w-6xl mx-auto">
               {children}
             </div>
           </main>
 
           {/* Mobile Bottom Tab Bar */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-safe z-50">
-            <div className="flex items-center justify-start h-[68px] px-2 overflow-x-auto no-scrollbar gap-2">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-safe px-safe z-50">
+            <div className="flex items-center justify-start h-[68px] px-2 overflow-x-auto overscroll-x-contain no-scrollbar gap-1">
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex flex-col items-center justify-center min-w-[72px] h-full space-y-1 active:scale-95 transition-transform"
+                    ref={active ? tabActiva : undefined}
+                    className="flex flex-col items-center justify-center min-w-[72px] shrink-0 h-full space-y-1 active:scale-95 transition-transform"
                   >
                     <span className="relative">
                       <item.icon
@@ -254,7 +278,7 @@ export function AppShell({
                     </span>
                     <span
                       className={cn(
-                        "text-[10px] font-medium tracking-wide",
+                        "max-w-full truncate px-0.5 text-[10px] font-medium tracking-wide",
                         active ? "text-[#ff812c]" : "text-slate-500 dark:text-slate-400"
                       )}
                     >
@@ -266,7 +290,7 @@ export function AppShell({
               
               <button
                 onClick={signOut}
-                className="flex flex-col items-center justify-center min-w-[72px] h-full space-y-1 active:scale-95 transition-transform"
+                className="flex flex-col items-center justify-center min-w-[72px] shrink-0 h-full space-y-1 active:scale-95 transition-transform"
               >
                 <LogOut className="w-6 h-6 text-slate-400 dark:text-slate-500" />
                 <span className="text-[10px] font-medium tracking-wide text-slate-500 dark:text-slate-400">

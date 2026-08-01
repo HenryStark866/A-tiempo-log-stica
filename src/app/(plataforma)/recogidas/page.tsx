@@ -328,6 +328,83 @@ export default function PickupsPage() {
     load();
   }
 
+  /**
+   * Los botones de cada solicitud. Se pintan igual en la tabla del escritorio y
+   * en la tarjeta del teléfono, así que viven en un solo sitio: si mañana se
+   * agrega una acción, no hay que acordarse de agregarla dos veces.
+   */
+  function acciones(p: Pickup) {
+    return (
+      <>
+        {/* Corregir y cancelar: para el comercio dueño y para el
+            CEDI, mientras el mensajero no haya arrancado. */}
+        {EDITABLES.includes(p.status) && (
+          <>
+            <button
+              onClick={() => abrirEdicion(p)}
+              title="Corregir esta solicitud"
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+            >
+              <Pencil className="w-4 h-4 text-[#ff812c]" />
+              Editar
+            </button>
+            <button
+              onClick={() => {
+                setCancelando(p);
+                setMotivoCancelar("");
+                setError(null);
+              }}
+              title="Cancelar esta solicitud"
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 active:scale-95 transition-all text-xs sm:text-sm"
+            >
+              <Ban className="w-4 h-4" />
+              Cancelar
+            </button>
+          </>
+        )}
+        {isStaff && (
+          <>
+            {p.contact_phone && (
+              <a
+                href={whatsappUrl(p.contact_phone, p.at_clients?.business_name ?? "")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#25D366]/10 text-[#1C7F45] dark:text-[#34C759] hover:bg-[#25D366]/20 active:scale-95 transition-all shrink-0"
+                title="Coordinar vía WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 fill-[#25D366] text-[#25D366]" />
+              </a>
+            )}
+            {p.status !== "completada" && p.status !== "cancelada" && (
+              <button
+                onClick={() => {
+                  setAssigningPickup(p);
+                  setSelectedCourierId(p.operator_id || "");
+                }}
+                className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+              >
+                <UserCheck className="w-4 h-4 text-[#ff812c]" />
+                {p.operator ? "Reasignar" : "Asignar mensajero"}
+              </button>
+            )}
+            {p.status === "asignada" && (
+              <button
+                onClick={() => setCompleting(p)}
+                className="inline-flex items-center min-h-[40px] px-4 rounded-xl font-semibold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-all text-xs sm:text-sm"
+              >
+                Completar
+              </button>
+            )}
+          </>
+        )}
+        {/* Sin nada que hacer: guion para que la celda no quede vacía */}
+        {!isStaff && !EDITABLES.includes(p.status) && (
+          <span className="text-[13px] text-slate-400 dark:text-slate-500">—</span>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="pb-10 space-y-6 font-sans">
       {/* Page Header */}
@@ -364,7 +441,63 @@ export default function PickupsPage() {
             <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay recogidas registradas</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Teléfono: la misma solicitud apilada. La tabla de 800 px dejaba las
+              acciones fuera de pantalla hasta arrastrarla toda hacia el lado. */}
+          <ul className="divide-y divide-gray-100 dark:divide-slate-800 lg:hidden">
+            {pickups.map((p) => (
+              <li key={p.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-[16px] text-slate-900 dark:text-white">
+                      {p.at_clients?.business_name}
+                    </p>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      {formatDate(p.scheduled_date)}
+                      {p.scheduled_time ? ` · ${p.scheduled_time.slice(0, 5)}` : ""}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <PickupBadge status={p.status} />
+                  </div>
+                </div>
+
+                <p className="text-[14px] text-slate-700 dark:text-slate-200">{p.address}</p>
+                {p.notes && (
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400">{p.notes}</p>
+                )}
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-500 dark:text-slate-400">
+                  <span>Operario: {p.operator?.full_name ?? "—"}</span>
+                  {(p.at_guides?.length ?? 0) > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Package className="w-3.5 h-3.5 shrink-0" />
+                      {p.at_guides!.length} guía(s)
+                    </span>
+                  )}
+                  {p.status === "completada" && p.package_count !== null && (
+                    <span
+                      className={`flex items-center gap-1 font-medium ${
+                        p.package_count < MIN_PACKAGES
+                          ? "text-amber-600 dark:text-amber-400"
+                          : ""
+                      }`}
+                    >
+                      {p.package_count < MIN_PACKAGES && (
+                        <TriangleAlert className="w-3.5 h-3.5 shrink-0" />
+                      )}
+                      {p.package_count} paquete{p.package_count === 1 ? "" : "s"}
+                      {p.package_count < MIN_PACKAGES && ` · bajo el mínimo (${MIN_PACKAGES})`}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">{acciones(p)}</div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-slate-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
@@ -425,86 +558,21 @@ export default function PickupsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Corregir y cancelar: para el comercio dueño y para el
-                            CEDI, mientras el mensajero no haya arrancado. */}
-                        {EDITABLES.includes(p.status) && (
-                          <>
-                            <button
-                              onClick={() => abrirEdicion(p)}
-                              title="Corregir esta solicitud"
-                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
-                            >
-                              <Pencil className="w-4 h-4 text-[#ff812c]" />
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => {
-                                setCancelando(p);
-                                setMotivoCancelar("");
-                                setError(null);
-                              }}
-                              title="Cancelar esta solicitud"
-                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 active:scale-95 transition-all text-xs sm:text-sm"
-                            >
-                              <Ban className="w-4 h-4" />
-                              Cancelar
-                            </button>
-                          </>
-                        )}
-                        {isStaff && (
-                          <>
-                          {p.contact_phone && (
-                            <a
-                              href={whatsappUrl(p.contact_phone, p.at_clients?.business_name ?? "")}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#25D366]/10 text-[#1C7F45] dark:text-[#34C759] hover:bg-[#25D366]/20 active:scale-95 transition-all shrink-0"
-                              title="Coordinar vía WhatsApp"
-                            >
-                              <MessageCircle className="w-4 h-4 fill-[#25D366] text-[#25D366]" />
-                            </a>
-                          )}
-                          {p.status !== "completada" && p.status !== "cancelada" && (
-                            <button
-                              onClick={() => {
-                                setAssigningPickup(p);
-                                setSelectedCourierId(p.operator_id || "");
-                              }}
-                              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
-                            >
-                              <UserCheck className="w-4 h-4 text-[#ff812c]" />
-                              {p.operator ? "Reasignar" : "Asignar mensajero"}
-                            </button>
-                          )}
-                          {p.status === "asignada" && (
-                            <button
-                              onClick={() => setCompleting(p)}
-                              className="inline-flex items-center min-h-[40px] px-4 rounded-xl font-semibold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-95 transition-all text-xs sm:text-sm"
-                            >
-                              Completar
-                            </button>
-                          )}
-                          </>
-                        )}
-                        {/* Sin nada que hacer: guion para que la celda no quede vacía */}
-                        {!isStaff && !EDITABLES.includes(p.status) && (
-                          <span className="text-[13px] text-slate-400 dark:text-slate-500">—</span>
-                        )}
-                      </div>
+                      <div className="flex items-center justify-end gap-2">{acciones(p)}</div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {/* New Pickup Modal */}
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90dvh] overflow-y-auto">
 
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between sticky top-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] z-10">
               <div className="pr-4">
@@ -861,7 +929,7 @@ export default function PickupsPage() {
       {/* Editar solicitud — solo mientras el mensajero no haya arrancado */}
       {editando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300 max-h-[90dvh] overflow-y-auto">
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between sticky top-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] z-10">
               <div className="pr-4">
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">Corregir la solicitud</h3>

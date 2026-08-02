@@ -17,6 +17,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { CediDestino } from "@/components/CediDestino";
+import { RecogidaQR } from "@/components/RecogidaQR";
 import { PositionReporter, activarUbicacion } from "@/components/PositionReporter";
 import {
   buildNavUrl,
@@ -38,6 +39,8 @@ interface PickupGuide {
 
 interface Pickup {
   pickup_id: string;
+  /** El código que el operario escanea en el muelle para ingresar el lote. */
+  pickup_token: string;
   status: string;
   address: string;
   contact_name: string | null;
@@ -414,6 +417,25 @@ export default function CourierPickupPage() {
                     Al confirmar, el CEDI recibe el aviso de que vas en camino.
                   </p>
                 </div>
+
+                {/* El QR del lote, en la pantalla del mensajero.
+                    El comercio lo imprime y lo pega en la estiba, pero el papel
+                    se moja, se despega y se pierde en el camión. Llevarlo
+                    también aquí significa que en el muelle siempre hay algo que
+                    escanear. Aparece cuando ya arrancó: antes no hay lote. */}
+                {arrancada && (
+                  <div className="border-t border-gray-100 p-5 dark:border-gray-800">
+                    <p className="mb-4 text-center text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                      Muéstralo al llegar al CEDI
+                    </p>
+                    <RecogidaQR
+                      compacto
+                      token={p.pickup_token}
+                      comercio={p.business_name}
+                      paquetes={p.guias.length}
+                    />
+                  </div>
+                )}
               </section>
             );
           })}

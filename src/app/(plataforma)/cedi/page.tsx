@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ScanBarcode, Undo2, Loader2, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,23 @@ import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
 
 const ROLES_CEDI = ["admin", "coordinador", "operario"];
+
+/**
+ * Saca el código del lote de lo que sea que haya entrado por el campo.
+ *
+ * Vale tanto la URL completa del QR —lo que teclea una pistola de código de
+ * barras al leerlo— como el token pelado, que es lo que va impreso debajo del
+ * QR para cuando el papel está mojado y toca escribirlo a mano.
+ *
+ * Devuelve null si es otra cosa (un número de guía), y ahí la pantalla sigue
+ * por el camino de siempre.
+ */
+function tokenDeRecogida(texto: string): string | null {
+  const t = texto.trim();
+  const enUrl = t.match(/[?&]recogida=([0-9a-f]{24})\b/i);
+  if (enUrl) return enUrl[1].toLowerCase();
+  return /^[0-9a-f]{24}$/i.test(t) ? t.toLowerCase() : null;
+}
 
 export default function CediPage() {
   const profile = useProfile();
@@ -62,10 +79,103 @@ export default function CediPage() {
     load();
   }
 
+  /**
+   * Ingresa de una todas las guías de un lote.
+   *
+   * Es el atajo del muelle: el mensajero llega con veinte cajas del mismo
+   * comercio y el operario escanea un código en vez de veinte. Solo mueve lo
+   * que el mensajero ya verificó en el local; lo que nunca salió de allá se
+   * reporta y se queda quieto, porque darlo por recibido sería inventar un
+   * movimiento que nadie vio.
+   */
+  const recibirLote = useCallback(
+    async (token: string) => {
+      setBusy(true);
+      setMsg(null);
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("at_receive_pickup", { p_token: token });
+      setBusy(false);
+
+      if (error) {
+        setMsg({ ok: false, text: error.message });
+        return;
+      }
+
+      const r = data as {
+        recibidas: number;
+        ya_estaban: number;
+        sin_salir: number;
+        comercio: string | null;
+      };
+      const comercio = r.comercio ?? "el comercio";
+
+      if (r.recibidas === 0 && r.ya_estaban > 0) {
+        setMsg({
+          ok: true,
+          text: `Este lote de ${comercio} ya estaba ingresado (${r.ya_estaban} guía(s)). No se repitió nada.`,
+        });
+      } else if (r.recibidas === 0) {
+        setMsg({
+          ok: false,
+          text: `El lote de ${comercio} no tiene guías recogidas. El mensajero todavía no ha confirmado la recogida en el local.`,
+        });
+      } else {
+        setMsg({
+          ok: true,
+          text:
+            `${r.recibidas} guía(s) de ${comercio} ingresaron al CEDI ✓` +
+            (r.sin_salir > 0
+              ? ` · Ojo: ${r.sin_salir} nunca salieron del comercio y quedaron por fuera.`
+              : ""),
+        });
+      }
+      load();
+    },
+    [load]
+  );
+
+  /**
+   * Llegada por cámara del teléfono.
+   *
+   * El QR del lote abre esta pantalla con `?recogida=<token>`, así que quien lo
+   * apuntó con la cámara ya dijo lo que quería: se recibe sin pedirle que además
+   * le dé a un botón, con las manos ocupadas sosteniendo cajas.
+   *
+   * Se lee de `window.location` y no con `useSearchParams` para no arrastrar una
+   * frontera de Suspense a una pantalla que no la necesita. Y se limpia la URL
+   * al terminar: sin eso, recargar la página volvería a disparar el ingreso.
+   */
+  const yaProcesado = useRef(false);
+  useEffect(() => {
+    if (yaProcesado.current || !ROLES_CEDI.includes(profile.role)) return;
+    const token = tokenDeRecogida(window.location.search);
+    if (!token) return;
+    yaProcesado.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+    recibirLote(token);
+  }, [profile.role, recibirLote]);
+
+  /**
+   * Un solo campo para las dos cosas.
+   *
+   * El operario tiene una pistola en la mano y no va a elegir modo antes de
+   * cada disparo: se dispara y la pantalla decide. El QR del lote lleva una URL
+   * con `?recogida=<token>` y el token es hexadecimal de 24; un número de guía
+   * es ATL-100008. No se pisan, así que distinguirlos es seguro.
+   */
   async function receiveByScan(e: React.FormEvent) {
     e.preventDefault();
-    const num = scan.trim().toUpperCase();
-    if (!num) return;
+    const texto = scan.trim();
+    if (!texto) return;
+
+    const token = tokenDeRecogida(texto);
+    if (token) {
+      setScan("");
+      await recibirLote(token);
+      return;
+    }
+
+    const num = texto.toUpperCase();
     const g = (incoming ?? []).find((x) => x.guide_number.toUpperCase() === num);
     if (!g) {
       setMsg({ ok: false, text: `La guía ${num} no está en estado "recogida"` });
@@ -144,14 +254,15 @@ export default function CediPage() {
             Recepción en bodega
           </h2>
           <p className="mb-5 mt-1 text-[14px] text-slate-500 dark:text-slate-400 pl-11">
-            Guías recogidas en comercio pendientes de escaneo de entrada
+            Escanea el QR de la recogida y entra el lote completo, o una guía suelta
           </p>
 
           <form onSubmit={receiveByScan} className="mb-5 flex flex-col sm:flex-row gap-3">
             <input
               value={scan}
               onChange={(e) => setScan(e.target.value)}
-              placeholder={`Escanea o digita la guía (${MARCA.prefijoGuia}-…)`}
+              autoFocus
+              placeholder={`QR del lote o guía (${MARCA.prefijoGuia}-…)`}
               className="flex-1 min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
             />
             <button 

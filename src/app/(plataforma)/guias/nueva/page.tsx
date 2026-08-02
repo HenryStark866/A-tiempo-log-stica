@@ -27,6 +27,19 @@ import { formatCOP } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
 import type { Client, Zone, Recipient, Product } from "@/lib/types";
 
+/**
+ * ¿Son el mismo dato escrito por dos manos distintas?
+ *
+ * Se usa para no llenar la libreta del comercio de duplicados: «Cra 43 #1-50»
+ * un día y «cra  43 #1-50» al siguiente son la misma casa. No pretende ser una
+ * normalización de direcciones —eso no se resuelve con una función— sino evitar
+ * el duplicado obvio de mayúsculas y espacios de más.
+ */
+function igual(a: string, b: string) {
+  const limpio = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  return limpio(a) === limpio(b) && limpio(a).length > 0;
+}
+
 export default function NewGuidePage() {
   const router = useRouter();
   const profile = useProfile();
@@ -44,6 +57,10 @@ export default function NewGuidePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [zonaManual, setZonaManual] = useState(false);
+  // Encendido por defecto: quien escribe un comprador a mano casi siempre va a
+  // volver a despacharle. Apagarlo es la excepción (una venta de una sola vez,
+  // un regalo a una dirección ajena), no lo normal.
+  const [guardarComprador, setGuardarComprador] = useState(true);
 
   const [form, setForm] = useState({
     client_id: "",
@@ -204,13 +221,43 @@ export default function NewGuidePage() {
       return;
     }
 
-    // Contador de uso: ordena los destinatarios por los más frecuentes.
-    if (recipientId) {
-      const usado = recipients.find((r) => r.id === recipientId);
-      await supabase
-        .from("at_recipients")
-        .update({ times_used: (usado?.times_used ?? 0) + 1, last_used_at: new Date().toISOString() })
-        .eq("id", recipientId);
+    // La libreta de compradores del comercio. O se actualiza el que se usó, o
+    // se guarda el que se acaba de escribir: sin esto, despacharle por segunda
+    // vez al mismo comprador obligaba a irse a «Clientes» y teclear otra vez
+    // nombre, teléfono y dirección, y en la práctica nadie lo hacía.
+    //
+    // Nada de esto puede tumbar la guía, que ya está creada y es lo que
+    // importa: una libreta se vuelve a llenar, un envío perdido no.
+    if (clientId) {
+      const yaEnLaBase = recipientId
+        ? recipients.find((r) => r.id === recipientId)
+        : recipients.find(
+            (r) =>
+              igual(r.full_name, form.recipient_name) &&
+              igual(r.address, form.recipient_address)
+          );
+
+      if (yaEnLaBase) {
+        // Sube en la lista: el buscador ordena por los más despachados.
+        await supabase
+          .from("at_recipients")
+          .update({
+            times_used: (yaEnLaBase.times_used ?? 0) + 1,
+            last_used_at: new Date().toISOString(),
+          })
+          .eq("id", yaEnLaBase.id);
+      } else if (guardarComprador) {
+        await supabase.from("at_recipients").insert({
+          client_id: clientId,
+          full_name: form.recipient_name.trim(),
+          phone: form.recipient_phone.trim() || null,
+          address: form.recipient_address.trim(),
+          city: form.recipient_city.trim(),
+          zone_id: form.zone_id || null,
+          times_used: 1,
+          last_used_at: new Date().toISOString(),
+        });
+      }
     }
 
     router.push(`/guias/${data.id}`);
@@ -484,7 +531,7 @@ export default function NewGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Zona</label>
                 <select
                   value={form.zone_id}
@@ -496,10 +543,41 @@ export default function NewGuidePage() {
                 >
                   <option value="">(Se define en el CEDI)</option>
                   {zones.map((z) => (
-                    <option key={z.id} value={z.id}>{z.name}</option>
+                    <option key={z.id} value={z.id}>
+                      {z.name}
+                      {z.coverage ? ` — ${z.coverage}` : ""}
+                    </option>
                   ))}
                 </select>
               </div>
+
+              {/* Guardar al comprador desde aquí mismo. Solo aparece cuando los
+                  datos se escribieron a mano: si vienen de la libreta ya está
+                  guardado y ofrecerlo otra vez confunde. */}
+              {!recipientId && (
+                <div
+                  className="flex items-center gap-3 px-4 min-h-[52px] cursor-pointer transition-colors"
+                  onClick={() => setGuardarComprador((v) => !v)}
+                >
+                  <Contact className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" />
+                  <div className="flex-1 min-w-0 py-2">
+                    <label className="block text-[16px] font-medium text-slate-900 dark:text-white cursor-pointer">
+                      Guardar en mis clientes
+                    </label>
+                    <p className="text-[13px] leading-snug text-slate-500 dark:text-slate-400">
+                      La próxima vez lo buscas por el nombre y se llena solo
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={guardarComprador}
+                    readOnly
+                    aria-label="Guardar este comprador en mis clientes"
+                    className="w-14 h-8 shrink-0 rounded-full appearance-none bg-gray-300 dark:bg-gray-600 checked:bg-[#ff812c] transition-colors relative cursor-pointer
+                      after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-7 after:h-7 after:bg-white after:rounded-full after:shadow-sm after:transition-transform checked:after:translate-x-6"
+                  />
+                </div>
+              )}
 
             </div>
 
@@ -579,7 +657,10 @@ export default function NewGuidePage() {
             </div>
           )}
 
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-8 z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
+          {/* En el teléfono se apoya encima de la barra de pestañas, no en el
+              borde de la pantalla: con `bottom-0` el botón «Crear guía» caía
+              dentro de los 68 px de las pestañas y quedaba tapado a medias. */}
+          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
             <div className="flex gap-3 max-w-2xl mx-auto">
               <button
                 type="button"

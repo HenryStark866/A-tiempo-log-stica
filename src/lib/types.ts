@@ -219,6 +219,12 @@ export interface Pickup {
   package_count: number | null;
   requested_at: string;
   completed_at: string | null;
+  /**
+   * Código del QR del lote. Nace con la solicitud, no al asignarla: el comercio
+   * tiene que poder imprimirlo y pegarlo en la estiba desde el primer momento.
+   * En el CEDI, un escaneo ingresa todas las guías de esta recogida.
+   */
+  pickup_token: string;
   at_clients?: { business_name: string } | null;
   operator?: { full_name: string } | null;
   /** Guías asociadas a la recogida; se embeben solo los ids para contarlas. */

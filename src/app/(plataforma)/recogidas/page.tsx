@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass } from "lucide-react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass, QrCode } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
+import { RecogidaQR, ImprimirQR } from "@/components/RecogidaQR";
 import { PICKUP_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import type { Client, Pickup, PickupStatus, Guide, Profile } from "@/lib/types";
@@ -71,6 +72,8 @@ export default function PickupsPage() {
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Recogida cuyo QR se está mirando o imprimiendo.
+  const [qrDe, setQrDe] = useState<Pickup | null>(null);
 
   // Guías del comercio listas para recoger (creadas y sin recogida asociada).
   const [pendientes, setPendientes] = useState<Guide[]>([]);
@@ -319,6 +322,21 @@ export default function PickupsPage() {
   function acciones(p: Pickup) {
     return (
       <>
+        {/* El QR del lote. Va de primero y lo ven todos: el comercio lo imprime
+            y lo pega en la estiba apenas pide la recogida, y el CEDI lo tiene a
+            mano si el papel no llegó. Deja de ofrecerse cuando la recogida se
+            cancela, que es cuando ya no hay lote que recibir. */}
+        {p.status !== "cancelada" && (
+          <button
+            onClick={() => setQrDe(p)}
+            title="QR del lote para el ingreso al CEDI"
+            className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+          >
+            <QrCode className="w-4 h-4 text-[#ff812c]" />
+            QR
+          </button>
+        )}
+
         {/* Corregir y cancelar: para el comercio dueño y para el
             CEDI, mientras el mensajero no haya arrancado. */}
         {EDITABLES.includes(p.status) && (
@@ -1075,6 +1093,43 @@ export default function PickupsPage() {
                   <span>Sí, cancelar</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR del lote */}
+      {qrDe && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setQrDe(null)}
+        >
+          <div
+            className="w-full max-w-sm max-h-[90dvh] flex flex-col rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] shadow-2xl overflow-hidden print:max-h-none print:shadow-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-5 py-4 print:hidden">
+              <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
+                QR de la recogida
+              </h2>
+              <div className="flex items-center gap-3">
+                <ImprimirQR />
+                <button
+                  onClick={() => setQrDe(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500 dark:text-slate-400 active:opacity-70 transition-opacity"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-0 overflow-y-auto p-6">
+              <RecogidaQR
+                token={qrDe.pickup_token}
+                comercio={qrDe.at_clients?.business_name ?? "Recogida"}
+                paquetes={qrDe.at_guides?.length ?? qrDe.package_count}
+                fecha={formatDate(qrDe.scheduled_date)}
+              />
             </div>
           </div>
         </div>

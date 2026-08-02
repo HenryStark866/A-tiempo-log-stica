@@ -12,8 +12,52 @@ function isPublic(pathname: string) {
   );
 }
 
+const SUPABASE_ORIGIN = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin;
+const SUPABASE_WS_ORIGIN = SUPABASE_ORIGIN.replace(/^https:/, "wss:");
+
+/**
+ * CSP con nonce por request, siguiendo la receta oficial de Next.js: el nonce
+ * viaja en `x-nonce` para que el layout se lo pase a next-themes (que inyecta
+ * un script inline para poner el tema antes del primer pintado — sin nonce,
+ * `script-src` tendría que abrir 'unsafe-inline' y perder el sentido).
+ *
+ * Solo corre en producción: en dev, React Refresh y el HMR de webpack
+ * necesitan eval() y conexiones que una CSP estricta bloquearía, y esta app
+ * no tiene forma de distinguir "es HMR" de "es un script inyectado" en modo
+ * desarrollo.
+ */
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src 'self' data: blob: https://tile.openstreetmap.org ${SUPABASE_ORIGIN}`,
+    "font-src 'self' data:",
+    `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WS_ORIGIN}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const nonce = crypto.randomUUID();
+  const csp = process.env.NODE_ENV === "production" ? buildCsp(nonce) : null;
+
+  // El nonce va en un header de REQUEST (no de response): así llega a los
+  // Server Components vía `headers()`, que es de donde lo lee el layout raíz.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  const requestConNonce = { headers: requestHeaders };
+
+  function conCsp(res: NextResponse): NextResponse {
+    if (csp) res.headers.set("Content-Security-Policy", csp);
+    return res;
+  }
+
+  let supabaseResponse = NextResponse.next({ request: requestConNonce });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +71,7 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({ request: requestConNonce });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -46,7 +90,7 @@ export async function middleware(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/confirmar";
-    return NextResponse.redirect(url);
+    return conCsp(NextResponse.redirect(url));
   }
 
   // IMPORTANTE: mantiene la sesión fresca en cada request
@@ -58,10 +102,10 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return conCsp(NextResponse.redirect(url));
   }
 
-  return supabaseResponse;
+  return conCsp(supabaseResponse);
 }
 
 export const config = {

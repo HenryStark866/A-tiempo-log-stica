@@ -38,6 +38,19 @@ function LoginForm() {
           : error.message
       );
       setLoading(false);
+      // Llamada aparte y sin esperar: el intento de login ya falló y no tiene
+      // sesión, así que esta es una transacción nueva e independiente — no se
+      // pierde aunque la de arriba haya fallado. Si el registro mismo falla,
+      // que no le arruine la pantalla a quien solo se equivocó de clave.
+      supabase
+        .rpc("at_log_security_event", {
+          p_event_type: "login_fallido",
+          p_severity: "info",
+          p_detail: { email },
+          p_path: "/login",
+          p_user_agent: navigator.userAgent,
+        })
+        .then(() => {});
       return;
     }
     router.push(params.get("next") ?? "/dashboard");

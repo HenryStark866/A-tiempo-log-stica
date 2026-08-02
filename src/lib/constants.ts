@@ -6,6 +6,8 @@ import type {
   InvoiceStatus,
   PickupStatus,
   Role,
+  SecurityEventType,
+  SecuritySeverity,
   SettlementStatus,
 } from "./types";
 
@@ -157,6 +159,29 @@ export const COURIER_REQUIRED_DOCS: Record<CourierType, DocType[]> = {
     "tarjeta_propiedad",
     "soat",
   ],
+};
+
+// ── Registro de seguridad ───────────────────────────────────────────────
+
+export const SECURITY_EVENT_LABELS: Record<SecurityEventType, string> = {
+  login_fallido: "Credenciales fallidas",
+  escalar_rol_bloqueado: "Intento de escalar rol bloqueado",
+  cambio_rol_admin: "Cambio de rol/comercio por un admin",
+  mensajero_habilitado: "Mensajero habilitado",
+  mensajero_revocado: "Habilitación de mensajero retirada",
+  documento_rechazado: "Documento de mensajero rechazado",
+};
+
+export const SECURITY_SEVERITY_LABELS: Record<SecuritySeverity, string> = {
+  info: "Informativo",
+  advertencia: "Advertencia",
+  critico: "Crítico",
+};
+
+export const SECURITY_SEVERITY_COLORS: Record<SecuritySeverity, string> = {
+  info: "bg-slate-100 text-slate-700 border-slate-200",
+  advertencia: "bg-amber-50 text-amber-700 border-amber-200",
+  critico: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 // Catálogo inicial de tipos de negocio para clientes e-commerce (editable).

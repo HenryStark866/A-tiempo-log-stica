@@ -19,6 +19,20 @@ const nextConfig: NextConfig = {
           key: "Permissions-Policy",
           value: "camera=(), microphone=(), geolocation=(self)",
         },
+        // Un año, con subdominios: una vez que el navegador la recuerda no
+        // vuelve a intentar http:// para este dominio ni para uno colgante.
+        // La Content-Security-Policy va aparte, en el middleware: necesita un
+        // nonce distinto por request para el script de next-themes, y eso no
+        // se puede fijar aquí (este bloque es estático).
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=31536000; includeSubDomains",
+        },
+        { key: "X-DNS-Prefetch-Control", value: "off" },
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        // "cross-origin" y no "same-origin": los rótulos y el QR de pago se
+        // abren desde el navegador de cualquiera, muchas veces sin cuenta.
+        { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
       ],
     },
   ],

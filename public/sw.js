@@ -15,7 +15,7 @@
    (skipWaiting + clients.claim) y borra las cachés de versiones anteriores.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const VERSION = "atl-v1";
+const VERSION = "atl-v2";
 const ESTATICOS = `${VERSION}-estaticos`;
 
 // Lo único que se precarga: cosas que no caducan.

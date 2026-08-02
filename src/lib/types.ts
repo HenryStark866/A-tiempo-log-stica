@@ -335,6 +335,31 @@ export interface Shipment {
   courier_position_at: string | null;
 }
 
+export type SecurityEventType =
+  | "login_fallido"
+  | "escalar_rol_bloqueado"
+  | "cambio_rol_admin"
+  | "mensajero_habilitado"
+  | "mensajero_revocado"
+  | "documento_rechazado";
+
+export type SecuritySeverity = "info" | "advertencia" | "critico";
+
+/** Fila de at_security_events. Ver at_log_security_event: lista cerrada de
+ * tipos, nunca texto libre — lo que llegue por fuera de ese catálogo la base
+ * ya lo descarta antes de guardarlo. */
+export interface SecurityEvent {
+  id: string;
+  created_at: string;
+  event_type: SecurityEventType;
+  severity: SecuritySeverity;
+  actor_id: string | null;
+  actor_role: Role | null;
+  detail: Record<string, unknown>;
+  path: string | null;
+  user_agent: string | null;
+}
+
 export interface DashboardKpis {
   by_status: Partial<Record<GuideStatus, number>>;
   guides_today: number;

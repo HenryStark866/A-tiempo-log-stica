@@ -22,6 +22,7 @@ import {
   Receipt,
   Route,
   Clock,
+  ShieldAlert,
   Store,
   Tag,
   Users,
@@ -87,6 +88,7 @@ const NAV: NavItem[] = [
   // llega incompleta. Modificar sus datos sigue siendo de coordinación.
   { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador", "operario", "mensajero"] },
   { href: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
+  { href: "/seguridad", label: "Seguridad", icon: ShieldAlert, roles: ["admin", "coordinador"] },
 ];
 
 export function AppShell({

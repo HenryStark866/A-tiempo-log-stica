@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RegistrarSW } from "@/components/RegistrarSW";
 import { MARCA } from "@/lib/marca";
@@ -38,13 +39,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // El middleware genera un nonce por request y lo pasa a next-themes: es el
+  // script que decide el tema antes del primer pintado, el único inline que
+  // esta app necesita, y con nonce no hace falta abrir 'unsafe-inline' en la
+  // CSP para dejarlo pasar.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="es" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} nonce={nonce}>
           {children}
           <RegistrarSW />
         </ThemeProvider>

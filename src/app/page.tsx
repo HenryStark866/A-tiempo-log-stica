@@ -1,22 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   History,
   MapPinned,
   PackageSearch,
-  Search,
   Warehouse,
   Truck,
   Receipt
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BuscadorGuia } from "@/components/BuscadorGuia";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
-import { GUIA_EJEMPLO, MARCA } from "@/lib/marca";
+import { MARCA } from "@/lib/marca";
 
 const PILLARS = [
   {
@@ -37,14 +34,6 @@ const PILLARS = [
 ];
 
 export default function LandingPage() {
-  const router = useRouter();
-  const [guide, setGuide] = useState("");
-
-  function track(e: React.FormEvent) {
-    e.preventDefault();
-    if (guide.trim()) router.push(`/rastreo/${encodeURIComponent(guide.trim())}`);
-  }
-
   return (
     <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 pb-16 transition-colors duration-300">
       <FondoInicio />
@@ -71,25 +60,13 @@ export default function LandingPage() {
         {/* Tracking Section (Centered) */}
         <div className="max-w-md mx-auto">
           <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 rounded-3xl shadow-sm transition-colors duration-300">
-            <h2 className="text-[18px] font-bold text-slate-900 dark:text-white mb-4">Rastrear Envío</h2>
-            <form onSubmit={track} className="flex flex-col gap-4">
-              <div className="flex items-center px-4 min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus-within:border-[#ff812c] focus-within:ring-1 focus-within:ring-[#ff812c] rounded-2xl transition-all">
-                <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
-                <input
-                  value={guide}
-                  onChange={(e) => setGuide(e.target.value)}
-                  placeholder={`Ej. ${GUIA_EJEMPLO}`}
-                  className="flex-1 bg-transparent text-[16px] font-medium focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 hover:scale-[1.01] active:scale-[0.98] transition-all text-[#1C1C1E] font-bold rounded-2xl min-h-[52px] shadow-sm"
-              >
-                <span className="text-[16px]">Rastrear Paquete</span>
-                <ArrowRight className="w-5 h-5 text-[#1C1C1E]" />
-              </button>
-            </form>
+            <h2 className="text-[18px] font-bold text-slate-900 dark:text-white mb-1">
+              Rastrear envío
+            </h2>
+            <p className="mb-4 text-[14px] text-slate-500 dark:text-slate-400">
+              Con tu número de guía. No necesitas cuenta.
+            </p>
+            <BuscadorGuia />
           </section>
         </div>
 

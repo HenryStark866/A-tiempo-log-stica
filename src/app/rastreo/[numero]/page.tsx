@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { CheckCircle2, Circle, LoaderCircle, PackageX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
+import { BuscadorGuia } from "@/components/BuscadorGuia";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
 import { GUIA_EJEMPLO } from "@/lib/marca";
@@ -59,20 +60,24 @@ export default function TrackingPage() {
               <p className="text-[16px] font-medium">Consultando guía…</p>
             </div>
           ) : notFound || !result ? (
-            <div className="py-12 text-center">
+            /* Quien se equivoca de número lo corrige aquí mismo. Antes solo
+               había un botón «volver al inicio», que obligaba a empezar de
+               cero para cambiar un dígito. */
+            <div className="py-8 text-center">
               <PackageX className="mx-auto mb-4 w-12 h-12 text-slate-400 dark:text-slate-500" />
               <h1 className="text-[22px] font-bold text-slate-900 dark:text-white">
                 No encontramos esa guía
               </h1>
-              <p className="mt-2 text-[15px] text-slate-500 dark:text-slate-400 mb-8">
-                Verifica el número (ej. {GUIA_EJEMPLO}) e inténtalo de nuevo.
+              <p className="mx-auto mt-2 mb-6 max-w-xs text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
+                Revisa el número que buscaste
+                <span className="mt-1 block font-semibold text-slate-700 dark:text-slate-300 break-all">
+                  {decodeURIComponent(numero)}
+                </span>
+                <span className="mt-2 block">Debería verse como {GUIA_EJEMPLO}.</span>
               </p>
-              <Link
-                href="/"
-                className="w-full flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px]"
-              >
-                Volver al inicio
-              </Link>
+              <div className="text-left">
+                <BuscadorGuia textoBoton="Buscar de nuevo" />
+              </div>
             </div>
           ) : (
             <>

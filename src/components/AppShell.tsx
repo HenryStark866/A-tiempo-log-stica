@@ -164,7 +164,7 @@ export function AppShell({
           {/* Top Header (Mobile Only) — al padding de arriba se le suma la zona
               segura: la barra de estado de iOS es translúcida y la app se
               dibuja por debajo de la hora. */}
-          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-200/60 dark:border-gray-800/60">
+          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl sticky top-0 z-30 border-b border-gray-200/60 dark:border-gray-800/60">
             <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex min-w-0 items-center gap-2">
               <Logo className="scale-[0.8] origin-left" />
             </Link>
@@ -176,7 +176,7 @@ export function AppShell({
 
           {/* Desktop Left Sidebar — algo más angosta en tablet, donde 256 px se
               comían un tercio del ancho útil de la pantalla. */}
-          <aside className="hidden md:flex flex-col w-56 lg:w-64 fixed inset-y-0 left-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-gray-800 z-50 transition-colors duration-300">
+          <aside className="hidden md:flex flex-col w-56 lg:w-64 fixed inset-y-0 left-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-gray-800 z-30 transition-colors duration-300">
             {/* Arriba solo marca y campana. El logo ocupa 147 px y los controles
                 40 cada uno: los tres juntos no caben en una barra de 224-256 px,
                 y antes la campana se salía por el borde. El cambio de tema se
@@ -251,9 +251,13 @@ export function AppShell({
             </div>
           </main>
 
-          {/* Mobile Bottom Tab Bar */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-safe px-safe z-50">
-            <div className="flex items-center justify-start h-[68px] px-2 overflow-x-auto overscroll-x-contain no-scrollbar gap-1">
+          {/* Mobile Bottom Tab Bar — va en la capa del armazón (30), no en la de
+              los modales (50). Estaban las dos en 50 y, empatadas, mandaba el
+              orden del DOM: la barra se dibuja después de <main>, así que tapaba
+              los botones de cada hoja que sube desde abajo. Su alto sale de
+              --atl-nav, el mismo que usan `pb-nav` y `bottom-nav`. */}
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-safe px-safe z-30">
+            <div className="flex items-center justify-start h-[var(--atl-nav)] px-2 overflow-x-auto overscroll-x-contain no-scrollbar gap-1">
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);
                 return (

@@ -246,9 +246,12 @@ export default function CollectionsPage() {
       {/* Action Modal (Apple HIG Style Bottom Sheet/Alert) */}
       {deposit && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
-            
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+          {/* Con tope de alto y cuerpo desplazable: el mensajero lo abre en la
+              calle, con el teclado tapando media pantalla, y «Reportar» tiene
+              que seguir alcanzable. */}
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[90dvh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+
+            <div className="shrink-0 px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
               <div>
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate">Reportar consignación</h3>
                 <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-1">Esperados: <span className="font-bold text-amber-600 dark:text-amber-500">{formatCOP(deposit.expected_amount)}</span></p>
@@ -261,7 +264,7 @@ export default function CollectionsPage() {
               </button>
             </div>
 
-            <form onSubmit={reportDeposit} className="p-6 space-y-5">
+            <form onSubmit={reportDeposit} className="min-h-0 overflow-y-auto p-6 space-y-5">
               <div className="space-y-2">
                 <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
                   Valor consignado (COP)

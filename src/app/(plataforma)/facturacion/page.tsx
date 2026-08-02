@@ -271,10 +271,10 @@ export default function BillingPage() {
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowNew(false)}>
           <div
-            className="w-full max-w-md bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl transition-colors duration-300"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl transition-colors duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">Generar factura del periodo</h2>
               <button
                 onClick={() => setShowNew(false)}
@@ -283,7 +283,9 @@ export default function BillingPage() {
                 ×
               </button>
             </div>
-            <form onSubmit={generate} className="p-5 space-y-5">
+            {/* Desplaza: en un teléfono bajo, o con el teclado abierto sobre el
+                selector de fechas, «Generar» se salía por debajo. */}
+            <form onSubmit={generate} className="min-h-0 overflow-y-auto p-5 space-y-5">
               <section>
                 <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Cliente</h3>
                 <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
@@ -363,11 +365,15 @@ export default function BillingPage() {
       {/* Invoice Detail Modal */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setDetail(null)}>
+          {/* El detalle crece con las entregas del periodo: una factura de un
+              comercio activo trae decenas de renglones. Sin tope de alto el
+              modal se estiraba más que la pantalla y, como no desplazaba, el
+              total y la propia ✕ quedaban fuera y no había cómo cerrarlo. */}
           <div
-            className="w-full max-w-md bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl transition-colors duration-300"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl transition-colors duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
               <div>
                 <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">{detail.invoice.invoice_number}</h2>
                 <p className="text-[14px] text-slate-500 dark:text-slate-400">{detail.invoice.at_clients?.business_name ?? ""}</p>
@@ -380,7 +386,7 @@ export default function BillingPage() {
               </button>
             </div>
 
-            <div className="p-5 space-y-3">
+            <div className="min-h-0 overflow-y-auto p-5 space-y-3">
               <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
                 {detail.items.map((it) => (
                   <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3.5">

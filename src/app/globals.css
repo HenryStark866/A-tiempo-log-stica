@@ -63,6 +63,41 @@ body {
   overflow-wrap: break-word;
 }
 
+/* Los desplegables de la app. Van aquí, sobre el elemento, y no repartidos por
+   las pantallas, porque los doce `<select>` sufren lo mismo y ninguno de los
+   dos arreglos es una decisión de diseño de cada vista.
+
+   LA FLECHA. Todos llevan `appearance-none` para quitar el control gris del
+   sistema, pero con él se va también la flecha, y sin flecha un desplegable
+   parece texto plano: en «Nueva guía» el campo Zona no se veía que abriera
+   nada. Se vuelve a dibujar aquí, en SVG incrustado —sin pedirle un archivo al
+   servidor— y con el gris de los iconos de la app.
+
+   LAS OPCIONES. La lista que se abre la pinta el sistema operativo, no la
+   página: hereda el `color` del select pero no su fondo. En modo oscuro eso
+   daba letras blancas sobre el menú blanco de Windows, ilegible. Cada opción
+   fija sus dos colores a mano, que es la única forma de que el desplegable
+   respete el tema. */
+select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 1.25rem 1.25rem;
+  /* Sitio para la flecha: sin esto el texto de la opción larga le pasa por
+     debajo y se lee «Zona Norte exten…▼». */
+  padding-right: 1.5rem;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.dark select option {
+  background-color: #2c2c2e;
+  color: #ffffff;
+}
+
 /* ── Utilidades propias ──────────────────────────────────────────────────── */
 
 /* Carruseles y barras de navegación que se desplazan a dedo: el scroll existe,
@@ -92,12 +127,49 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-/* Hueco que deja libre el contenido para la barra de pestañas del teléfono:
-   sus 68 px de alto, aire suficiente para que el último botón no quede pegado
-   a la barra, y encima la zona de gestos del sistema. */
-@utility pb-nav {
-  padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+/* Alto de la barra de pestañas del teléfono. Está aquí y no suelto en el JSX
+   porque tres cosas dependen de él —el hueco que deja el contenido, dónde
+   arranca una barra de acciones fija y la barra misma— y si se separan, una
+   queda tapando a la otra. */
+:root {
+  --atl-nav: 4.25rem; /* 68 px */
 }
+
+/* Hueco que deja libre el contenido para la barra de pestañas del teléfono:
+   su alto, aire suficiente para que el último botón no quede pegado a la
+   barra, y encima la zona de gestos del sistema. */
+@utility pb-nav {
+  padding-bottom: calc(var(--atl-nav) + 2.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Dónde apoya una barra de acciones fija —el «Crear guía» del formulario, el
+   deslizador de entrega— para quedar JUSTO ENCIMA de las pestañas y no debajo.
+   Con `bottom-0` el botón caía dentro de los 68 px de la barra de navegación y
+   quedaba tapado: se veía la mitad y no se podía tocar. */
+@utility bottom-nav {
+  bottom: calc(var(--atl-nav) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAPAS
+
+   Un solo orden para toda la app, porque el problema no es el número sino que
+   dos cosas usen el mismo. La barra de pestañas y los modales estaban ambos en
+   z-50; empatados, gana el último del DOM —la barra—, así que toda hoja que
+   sube desde abajo perdía sus botones detrás de las pestañas.
+
+     -1   fondos animados (.atl-fondo)
+      0   contenido
+     10   cabeceras pegajosas de cada pantalla
+     20   barras de acción fijas de cada pantalla
+     30   armazón: cabecera móvil, barra lateral, barra de pestañas
+     50   modales y hojas — tapan el armazón, que es de lo que se trata
+     55   velo de la campana de notificaciones
+     60   panel de la campana y permisos del turno
+
+   Nada por encima de 60. Si algo necesita más, es que está en la capa
+   equivocada.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    FONDOS ANIMADOS

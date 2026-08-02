@@ -384,7 +384,9 @@ export default function EditGuidePage() {
             </div>
           )}
 
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-8 z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
+          {/* Igual que en «Nueva guía»: apoyada encima de las pestañas, que es
+              lo único que impide que «Guardar cambios» quede debajo de ellas. */}
+          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
             <div className="flex gap-3 max-w-2xl mx-auto">
               <button
                 type="button"

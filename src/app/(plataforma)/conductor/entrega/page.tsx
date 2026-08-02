@@ -131,8 +131,11 @@ export default function EntregaActivaPage() {
 
       </div>
 
-      {/* Swipe to Confirm CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#F2F2F7] dark:from-[#1C1C1E] via-[#F2F2F7]/90 dark:via-[#1C1C1E]/90 to-transparent pb-10 pt-14 z-20 transition-colors duration-300">
+      {/* Swipe to Confirm CTA — encima de la barra de pestañas. Con `bottom-0`
+          el tercio de abajo del deslizador quedaba detrás de las pestañas: el
+          mensajero veía el control cortado y el arrastre se le moría a media
+          pista, que es justo el gesto con el que cierra la entrega. */}
+      <div className="fixed bottom-nav left-0 right-0 p-4 bg-gradient-to-t from-[#F2F2F7] dark:from-[#1C1C1E] via-[#F2F2F7]/90 dark:via-[#1C1C1E]/90 to-transparent pt-14 z-20 transition-colors duration-300">
         <div
           ref={trackRef}
           className={`relative h-[64px] rounded-full flex items-center p-1 shadow-sm overflow-hidden transition-colors duration-300 ${isConfirmed ? "bg-[#34C759]" : "bg-[#1C1C1E] dark:bg-[#ff812c]/20 dark:border dark:border-[#ff812c]/30"

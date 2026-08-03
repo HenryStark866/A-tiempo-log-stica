@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RegistrarSW } from "@/components/RegistrarSW";
+import { Splash } from "@/components/Splash";
 import { MARCA } from "@/lib/marca";
 import "./globals.css";
 
@@ -49,10 +50,18 @@ export default async function RootLayout({
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <html lang="es" suppressHydrationWarning>
+    // `data-scroll-behavior` le confirma a Next que el scroll suave de
+    // globals.css es a propósito. Sin él, avisa en consola que en una versión
+    // futura dejará de desactivarlo solo al cambiar de ruta — y ahí cada
+    // navegación se iría deslizando en vez de empezar arriba de una.
+    <html lang="es" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} nonce={nonce}>
           {children}
+          {/* Va de último y tapa por z-index, no por orden del DOM: así el
+              contenido real ya está pintado debajo cuando el splash se
+              retira, y nadie ve la app armándose. */}
+          <Splash />
           <RegistrarSW />
         </ThemeProvider>
       </body>

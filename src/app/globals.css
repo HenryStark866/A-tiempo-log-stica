@@ -166,9 +166,13 @@ select option {
      50   modales y hojas — tapan el armazón, que es de lo que se trata
      55   velo de la campana de notificaciones
      60   panel de la campana y permisos del turno
+     70   el splash de arranque (.atl-splash)
 
-   Nada por encima de 60. Si algo necesita más, es que está en la capa
-   equivocada.
+   Nada por encima de 70, y 70 es de uno solo. El splash es la única excepción
+   legítima a «nada por encima de 60»: no compite con nada porque no convive
+   con nada —tapa la app entera durante segundo y medio y se retira—, y si
+   quedara por debajo de un modal se vería el modal pintándose detrás del
+   arranque. Si algo más pide 70, es que está en la capa equivocada.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -284,6 +288,111 @@ select option {
   .atl-fondo *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL SPLASH DE ARRANQUE
+
+   La ruta de postas del yam, en segundo y medio. Ver src/components/Splash.tsx
+   para qué cuenta cada pieza; aquí solo está el movimiento.
+
+   Todo el ciclo de vida vive en estas reglas, sin JavaScript: el splash entra
+   opaco, corre su animación y termina en `visibility: hidden` con `forwards`.
+   Es a propósito —es lo primero que se pinta y tiene que irse solo aunque el
+   JavaScript nunca cargue—, y obliga a dos cuidados:
+
+     · `pointer-events: none` desde el primer cuadro. Mientras se desvanece
+       sigue ocupando la pantalla completa y, sin esto, se comería el primer
+       toque de quien ya alcanzó a ver la app debajo.
+     · En `prefers-reduced-motion` se salta entero con `display: none`, no se
+       «deja quieto». Sin animaciones, `forwards` nunca llegaría a ocultarlo y
+       el splash quedaría tapando la app para siempre.
+
+   Los tiempos están escalonados para que se lea como una secuencia y no como
+   cosas apareciendo a la vez: ruta (260ms) → postas en cascada (320ms, cada
+   110ms) → correo (380ms) → cascabel (900ms) → salida (1180ms).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.atl-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  /* Nunca intercepta un toque, ni siquiera mientras se desvanece. */
+  pointer-events: none;
+  /* Opaco: su trabajo es tapar la app hasta que esté lista. */
+  background: #f2f2f7;
+  animation: atl-splash-salida 380ms ease-out 1180ms forwards;
+}
+
+.dark .atl-splash {
+  background: #1c1c1e;
+}
+
+@keyframes atl-splash-salida {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* El logo entra subiendo un poco. Nada de rebotes: es una app de trabajo. */
+.atl-splash-logo {
+  opacity: 0;
+  animation: atl-splash-entra 420ms ease-out 60ms forwards;
+}
+
+@keyframes atl-splash-entra {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Una posta que se enciende. Se pasa de tamaño y vuelve: el relevo llegó. */
+@keyframes atl-posta {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+/* La estela del logo, cruzando por detrás una sola vez. */
+.atl-splash-estela {
+  position: absolute;
+  top: 34%;
+  left: -40%;
+  width: 180%;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #ff812c, transparent);
+  opacity: 0;
+  animation: atl-estela 900ms ease-out 120ms forwards;
+}
+
+/* El pie entra al final, cuando el correo ya llegó a la última posta. */
+.atl-splash-pie {
+  opacity: 0;
+  animation: atl-splash-entra 400ms ease-out 780ms forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atl-splash {
+    display: none;
   }
 }
 

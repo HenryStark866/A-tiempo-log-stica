@@ -114,6 +114,17 @@ function LoginForm() {
         <span>Ingresar</span>
       </button>
 
+      {/* Va debajo del botón y no al lado del campo: quien entra bien no
+          necesita verlo, y quien falló ya tiene el error justo encima. */}
+      <p className="text-center text-[15px] text-slate-500 dark:text-slate-400">
+        <Link
+          href="/recuperar"
+          className="font-semibold text-[#ff812c] hover:underline active:opacity-70 transition-opacity"
+        >
+          ¿Olvidaste tu contraseña?
+        </Link>
+      </p>
+
       <p className="text-center text-[15px] text-slate-500 dark:text-slate-400">
         ¿No tienes cuenta?{" "}
         <Link href="/registro" className="font-semibold text-[#ff812c] hover:underline active:opacity-70 transition-opacity">

@@ -4,7 +4,12 @@ import { NextResponse, type NextRequest } from "next/server";
 // /auth/* es público porque el enlace del correo llega sin sesión: es
 // justamente la ruta que la crea.
 // /pagar/<token> lo abre el destinatario desde el QR, sin cuenta.
-const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo", "/auth", "/pagar"];
+// /recuperar es pública por lo mismo que /login: la abre quien no puede entrar.
+// Ojo: /nueva-clave NO va aquí. Se llega desde el enlace del correo, que pasa
+// por /auth/confirmar y deja sesión abierta; es esa sesión la que autoriza el
+// cambio de contraseña. Dejarla pública permitiría abrirla sin haber probado
+// nunca que se tiene acceso al correo.
+const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo", "/auth", "/pagar", "/recuperar"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(
@@ -34,6 +39,10 @@ function buildCsp(nonce: string): string {
     `img-src 'self' data: blob: https://tile.openstreetmap.org ${SUPABASE_ORIGIN}`,
     "font-src 'self' data:",
     `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WS_ORIGIN}`,
+    // /seguimiento embebe el mapa de OpenStreetMap en un iframe mientras el
+    // mensajero va en ruta: sin frame-src explícito, cae en default-src
+    // 'self' y lo bloquea.
+    "frame-src https://www.openstreetmap.org",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

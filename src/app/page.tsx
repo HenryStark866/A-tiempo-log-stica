@@ -13,6 +13,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BuscadorGuia } from "@/components/BuscadorGuia";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
+import { PieMarca } from "@/components/PieMarca";
 import { MARCA } from "@/lib/marca";
 
 const PILLARS = [
@@ -173,11 +174,7 @@ export default function LandingPage() {
 
         {/* Footer */}
         <footer className="border-t border-gray-200 dark:border-gray-800">
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-6">
-            {MARCA.app} es una plataforma de {MARCA.empresa}
-            <br className="sm:hidden" />
-            <span className="hidden sm:inline"> · </span>© 2026 · {MARCA.ciudad}
-          </p>
+          <PieMarca className="py-6" />
         </footer>
 
       </main>

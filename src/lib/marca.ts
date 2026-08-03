@@ -62,6 +62,22 @@ export const MARCA = {
   prefijoGuia: "ATL",
 
   ciudad: "Medellín, Colombia",
+
+  /**
+   * Quién construyó la plataforma. ATL es la dueña del negocio y de la marca;
+   * CDH Maker IT es quien hace la tecnología. Son dos empresas distintas y en
+   * el pie aparecen como tales, no mezcladas en una sola frase.
+   */
+  desarrollador: "CDH Maker IT",
+  desarrolladorUrl: "https://cdh-maker-portafolio.web.app/",
+
+  /**
+   * Año del aviso de copyright. Fijo y a mano, no `new Date().getFullYear()`:
+   * el pie se pinta en pantallas que son componentes de cliente, y el año
+   * calculado en el servidor y en el navegador puede no coincidir en el
+   * cambio de año — React lo cuenta como error de hidratación.
+   */
+  anioCopyright: 2026,
 } as const;
 
 /** Ejemplo de guía para los campos de búsqueda y rastreo. */

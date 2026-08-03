@@ -4,7 +4,7 @@ import { PackageSearch } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { BuscadorGuia } from "@/components/BuscadorGuia";
 import { FondoRastreo } from "@/components/fondos/FondoRastreo";
-import { MARCA } from "@/lib/marca";
+import { PieMarca } from "@/components/PieMarca";
 
 export const metadata: Metadata = {
   title: "Rastrea tu envío",
@@ -65,9 +65,7 @@ export default function RastreoPage() {
           con el mensajero en el mapa cuando va en camino.
         </p>
 
-        <p className="pt-4 text-center text-[12px] text-slate-400 dark:text-slate-500">
-          {MARCA.app} es una plataforma de {MARCA.empresa}
-        </p>
+        <PieMarca className="pt-4" />
       </main>
     </div>
   );

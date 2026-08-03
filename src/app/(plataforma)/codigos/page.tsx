@@ -2,7 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Lock, PhoneOff, RefreshCw, Send, TriangleAlert } from "lucide-react";
+import {
+  BadgeCheck,
+  Check,
+  Lock,
+  MessageCircle,
+  PhoneOff,
+  RefreshCw,
+  Send,
+  TriangleAlert,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { PageHeader, Card, Loading, Empty, Button } from "@/components/ui";
@@ -25,11 +34,31 @@ interface CodeRow {
   ultimo_error: string | null;
 }
 
+/**
+ * WhatsApp quiere el número pelado: sin «+», sin espacios y con indicativo.
+ * Los teléfonos llegan como los escribió el comercio («313 546 7802»).
+ */
+function aWhatsapp(raw: string): string | null {
+  const d = raw.replace(/\D/g, "");
+  if (d.length === 10 && d.startsWith("3")) return `57${d}`;
+  if (d.length === 12 && d.startsWith("57")) return d;
+  // Un número con indicativo de otro país ya viene completo.
+  if (d.length > 10) return d;
+  return null;
+}
+
 export default function DeliveryCodesPage() {
   const profile = useProfile();
   const [rows, setRows] = useState<CodeRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Qué guía está esperando el «ya lo envié». Se guarda el id del mensaje
+  // porque es lo que hay que marcar, y la guía para saber en qué fila pintar
+  // el botón de confirmar.
+  const [porConfirmar, setPorConfirmar] = useState<{
+    guideId: string;
+    messageId: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -41,6 +70,55 @@ export default function DeliveryCodesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  /**
+   * Abre WhatsApp con el chat del comprador y el mensaje listo. No marca nada:
+   * eso lo hace el botón de confirmar, porque desde aquí no hay forma de saber
+   * si la persona llegó a pulsar «enviar» o cerró la ventana.
+   */
+  async function abrirWhatsapp(guideId: string) {
+    setBusy(guideId);
+    setError(null);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("at_delivery_code_whatsapp", {
+      p_guide_id: guideId,
+    });
+    setBusy(null);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    const msg = data as { message_id: string; phone: string; body: string };
+    const numero = aWhatsapp(msg.phone);
+    if (!numero) {
+      setError(
+        `El teléfono «${msg.phone}» no tiene un formato que WhatsApp entienda. Corrígelo en la guía.`
+      );
+      return;
+    }
+
+    window.open(
+      `https://wa.me/${numero}?text=${encodeURIComponent(msg.body)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+    setPorConfirmar({ guideId, messageId: msg.message_id });
+  }
+
+  async function confirmarEnviado() {
+    if (!porConfirmar) return;
+    setBusy(porConfirmar.guideId);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_delivery_code_marcar_enviado", {
+      p_message_id: porConfirmar.messageId,
+    });
+    setBusy(null);
+    setPorConfirmar(null);
+    if (error) setError(error.message);
+    else load();
+  }
 
   async function reenviar(guideId: string) {
     setBusy(guideId);
@@ -65,7 +143,17 @@ export default function DeliveryCodesPage() {
 
   if (!rows) return <Loading />;
 
-  const sinTelefono = rows.filter((r) => r.todos_fallaron && !r.verificado);
+  // `todos_fallaron` es «no salió el mensaje», por el motivo que sea: puede ser
+  // un teléfono mal escrito, pero también un rechazo del proveedor o una cola
+  // que se anuló. Decirle «sin teléfono» a todo mandaba a pedirle al comercio
+  // un dato que en la mayoría de los casos ya estaba bien.
+  //
+  // Se excluyen las entregadas: si el paquete ya llegó, que el código no
+  // saliera es historia, no una tarea. Dejarlas dentro llenaba el aviso de
+  // «requieren tu atención» con guías cerradas hace semanas.
+  const noSalieron = rows.filter(
+    (r) => r.todos_fallaron && !r.verificado && r.status !== "entregada"
+  );
   const bloqueados = rows.filter((r) => r.locked && !r.verificado);
   const entregados = rows.filter((r) => r.verificado);
 
@@ -73,7 +161,7 @@ export default function DeliveryCodesPage() {
     <>
       <PageHeader
         title="Códigos de entrega"
-        subtitle={`${entregados.length} verificadas · ${bloqueados.length} bloqueadas · ${sinTelefono.length} sin teléfono`}
+        subtitle={`${entregados.length} verificadas · ${bloqueados.length} bloqueadas · ${noSalieron.length} sin enviar`}
       />
 
       {error && (
@@ -82,14 +170,14 @@ export default function DeliveryCodesPage() {
         </div>
       )}
 
-      {(sinTelefono.length > 0 || bloqueados.length > 0) && (
+      {(noSalieron.length > 0 || bloqueados.length > 0) && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
           <TriangleAlert className="mt-0.5 size-5 shrink-0 text-amber-600" />
           <div className="text-sm">
             <p className="font-semibold text-amber-800 dark:text-amber-300">Requieren tu atención</p>
             <p className="text-amber-700 dark:text-amber-400">
-              {sinTelefono.length > 0 &&
-                `${sinTelefono.length} guía(s) sin teléfono del destinatario: el comprador nunca recibió el código y el mensajero no va a poder entregar. Pídele el número al comercio y reenvía. `}
+              {noSalieron.length > 0 &&
+                `${noSalieron.length} guía(s) con el mensaje sin salir: el comprador no tiene el código todavía. Revisa el teléfono en la guía —el error de cada una está debajo— y reenvía. `}
               {bloqueados.length > 0 &&
                 `${bloqueados.length} código(s) bloqueado(s) por intentos fallidos: reenvía para generar uno nuevo.`}
             </p>
@@ -146,14 +234,37 @@ export default function DeliveryCodesPage() {
                 </div>
 
                 {!r.verificado && r.status !== "entregada" && (
-                  <Button
-                    variant="secondary"
-                    disabled={busy === r.guide_id}
-                    onClick={() => reenviar(r.guide_id)}
-                  >
-                    <RefreshCw className={busy === r.guide_id ? "size-4 animate-spin" : "size-4"} />
-                    Reenviar
-                  </Button>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {porConfirmar?.guideId === r.guide_id ? (
+                      // Solo aparece tras abrir WhatsApp: confirma que salió y,
+                      // con eso, el código pasa a exigírsele al mensajero.
+                      <Button disabled={busy === r.guide_id} onClick={confirmarEnviado}>
+                        <Check className="size-4" />
+                        Ya lo envié
+                      </Button>
+                    ) : (
+                      !r.algun_envio_ok && (
+                        <Button
+                          variant="secondary"
+                          disabled={busy === r.guide_id}
+                          onClick={() => abrirWhatsapp(r.guide_id)}
+                        >
+                          <MessageCircle className="size-4" />
+                          WhatsApp
+                        </Button>
+                      )
+                    )}
+                    <Button
+                      variant="secondary"
+                      disabled={busy === r.guide_id}
+                      onClick={() => reenviar(r.guide_id)}
+                    >
+                      <RefreshCw
+                        className={busy === r.guide_id ? "size-4 animate-spin" : "size-4"}
+                      />
+                      Reenviar
+                    </Button>
+                  </div>
                 )}
               </div>
             </Card>
@@ -162,10 +273,16 @@ export default function DeliveryCodesPage() {
       )}
 
       <p className="mt-6 px-1 text-sm text-slate-500 dark:text-slate-400">
-        El código nunca se muestra aquí ni en ninguna pantalla: solo existe en el mensaje que
-        recibió el comprador. Reenviar genera uno nuevo y anula el anterior. Mientras no haya
-        proveedor de mensajería conectado, el código no se le exige al mensajero: la exigencia se
-        activa sola, guía por guía, en cuanto el mensaje empiece a salir.
+        <strong>WhatsApp</strong> abre el chat del comprador con el mensaje ya escrito: sale desde
+        el número de la empresa y no cuesta nada. Confirma con <strong>Ya lo envié</strong> solo si
+        de verdad lo mandaste — al confirmarlo, el mensajero empieza a exigir ese código, y si el
+        comprador no lo tiene la entrega se traba en la puerta.{" "}
+        <strong>Reenviar</strong> genera un código nuevo y anula el anterior.
+      </p>
+      <p className="mt-2 px-1 text-sm text-slate-500 dark:text-slate-400">
+        El código no se muestra en esta pantalla ni en ninguna otra: viaja directo al mensaje. En la
+        base está como hash, así que ni consultándola se puede leer. El mensajero es el único que
+        nunca lo ve — su trabajo es pedírselo a quien recibe el paquete.
       </p>
     </>
   );

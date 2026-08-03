@@ -326,6 +326,10 @@ export interface Shipment {
   delivery_attempts: number;
   created_at: string;
   delivered_at: string | null;
+  client_id: string;
+  /** Solo lo necesita staff, que ve el seguimiento de todos los comercios a
+   * la vez: para el rol cliente siempre es el mismo, así que no se usa. */
+  client_name: string | null;
   zone_name: string | null;
   delivery_rate: number | null;
   courier_name: string | null;

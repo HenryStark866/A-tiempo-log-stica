@@ -11,6 +11,9 @@ import {
   RefreshCw,
   Banknote,
   TriangleAlert,
+  Search,
+  Store,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
@@ -68,6 +71,9 @@ export default function TrackingPage() {
   const [error, setError] = useState<string | null>(null);
   const [ultimo, setUltimo] = useState<Date | null>(null);
   const [refrescando, setRefrescando] = useState(false);
+  // Solo tiene sentido para staff: un cliente e-commerce solo ve su propio
+  // comercio, así que filtrar por cliente no le cambia nada.
+  const [buscarCliente, setBuscarCliente] = useState("");
   // Evita pisar el estado si el componente se desmonta a mitad del fetch.
   const vivo = useRef(true);
 
@@ -104,7 +110,18 @@ export default function TrackingPage() {
     };
   }, [cargar, esCliente, cargandoComercio]);
 
-  const enRuta = (envios ?? []).filter((e) => e.status === "en_ruta");
+  // Sin acentos ni mayúsculas: "restrepo" debe encontrar "Restrepo".
+  const normaliza = (s: string) =>
+    s.toLowerCase().replaceAll("á","a").replaceAll("é","e").replaceAll("í","i").replaceAll("ó","o").replaceAll("ú","u").replaceAll("ñ","n");
+
+  const filtro = normaliza(buscarCliente.trim());
+  const visibles =
+    esCliente || !filtro
+      ? envios ?? []
+      : (envios ?? []).filter((e) => e.client_name && normaliza(e.client_name).includes(filtro));
+
+  const enRuta = visibles.filter((e) => e.status === "en_ruta");
+  const comercios = new Set(visibles.map((e) => e.client_id)).size;
 
   return (
     <div className="pb-10 space-y-6 font-sans">
@@ -132,8 +149,34 @@ export default function TrackingPage() {
         </div>
       )}
 
+      {/* Buscador por comercio: solo para staff, que ve todos los comercios
+          mezclados en la misma lista. */}
+      {!esCliente && envios !== null && envios.length > 0 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="search"
+            value={buscarCliente}
+            onChange={(ev) => setBuscarCliente(ev.target.value)}
+            placeholder="Buscar por comercio…"
+            aria-label="Buscar por comercio"
+            className="w-full rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] pl-11 pr-12 min-h-[48px] text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 shadow-sm outline-none focus:ring-2 focus:ring-[#ff812c]/40 [&::-webkit-search-cancel-button]:appearance-none"
+          />
+          {buscarCliente && (
+            <button
+              type="button"
+              onClick={() => setBuscarCliente("")}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-2 top-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 rounded-full text-slate-400 active:bg-slate-100 dark:active:bg-slate-700"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Resumen */}
-      {envios !== null && envios.length > 0 && (
+      {envios !== null && visibles.length > 0 && (
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2 rounded-2xl bg-[#ff812c]/10 px-4 py-2.5">
             <Radio className="w-4 h-4 text-[#ff812c] shrink-0" />
@@ -142,9 +185,17 @@ export default function TrackingPage() {
           <div className="flex items-center gap-2 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-2.5 shadow-sm">
             <PackageSearch className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="text-[14px] font-semibold text-slate-600 dark:text-slate-300">
-              {envios.length} envío(s) activo(s)
+              {visibles.length} envío(s) activo(s)
             </span>
           </div>
+          {!esCliente && (
+            <div className="flex items-center gap-2 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-2.5 shadow-sm">
+              <Store className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-[14px] font-semibold text-slate-600 dark:text-slate-300">
+                {comercios} comercio(s)
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -166,9 +217,23 @@ export default function TrackingPage() {
             Crear una guía
           </Link>
         </div>
+      ) : visibles.length === 0 ? (
+        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] py-20 px-6 text-center shadow-sm">
+          <Store className="mx-auto mb-4 w-12 h-12 text-slate-300 dark:text-slate-600" />
+          <p className="text-[16px] text-slate-500 dark:text-slate-400">
+            Ningún comercio en curso coincide con «{buscarCliente.trim()}»
+          </p>
+          <button
+            type="button"
+            onClick={() => setBuscarCliente("")}
+            className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#ff812c] px-6 min-h-[48px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
+          >
+            Ver todos los envíos
+          </button>
+        </div>
       ) : (
         <ul className="space-y-4">
-          {envios.map((e) => {
+          {visibles.map((e) => {
             const fase = faseActual(e.status);
             const tienePos = e.courier_lat != null && e.courier_lng != null;
             return (
@@ -191,6 +256,13 @@ export default function TrackingPage() {
                       <p className="text-[13px] text-slate-500 dark:text-slate-400">
                         {e.recipient_address} · {e.recipient_city}
                       </p>
+                      {/* De qué comercio es la guía: el cliente ya lo sabe. */}
+                      {!esCliente && e.client_name && (
+                        <p className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">
+                          <Store className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate">{e.client_name}</span>
+                        </p>
+                      )}
                     </div>
                     <span className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-bold ${tono(e.status)}`}>
                       {GUIDE_STATUS_LABELS[e.status]}

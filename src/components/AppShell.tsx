@@ -165,8 +165,25 @@ export function AppShell({
           
           {/* Top Header (Mobile Only) — al padding de arriba se le suma la zona
               segura: la barra de estado de iOS es translúcida y la app se
-              dibuja por debajo de la hora. */}
-          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl sticky top-0 z-30 border-b border-gray-200/60 dark:border-gray-800/60">
+              dibuja por debajo de la hora.
+
+              El `md:` de aquí es el umbral del armazón: por debajo manda esta
+              cabecera, por encima la barra lateral. NotificationBell usa ese
+              mismo ancho para decidir si abre una hoja o un desplegable; si
+              cambia uno, cambia el otro. */}
+          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sticky top-0 z-30 border-b border-gray-200/60 dark:border-gray-800/60">
+            {/* El fondo esmerilado va en su propia capa, sin hijos. Un
+                backdrop-blur en el <header> mismo crea un containing block
+                nuevo para cualquier descendiente `position: fixed`, que
+                entonces se ancla a los 73 px del header en vez de a la
+                pantalla. Ya rompió una vez el panel de notificaciones: se
+                abría hacia arriba y solo asomaba una franja.
+
+                La campana ya no depende de esto —su hoja cuelga de <body>
+                por un portal, ver NotificationBell—, pero la capa se queda:
+                cuesta un div y evita que el próximo `fixed` que alguien
+                ponga aquí dentro se rompa por un motivo invisible. */}
+            <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
             <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex min-w-0 items-center gap-2">
               <Logo className="scale-[0.8] origin-left" />
             </Link>
@@ -258,7 +275,11 @@ export function AppShell({
               orden del DOM: la barra se dibuja después de <main>, así que tapaba
               los botones de cada hoja que sube desde abajo. Su alto sale de
               --atl-nav, el mismo que usan `pb-nav` y `bottom-nav`. */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 pb-safe px-safe z-30">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-gray-200/60 dark:border-gray-800/60 pb-safe px-safe z-30">
+            {/* Misma separación que en el header móvil: el fondo esmerilado
+                no debe envolver nada position:fixed que se agregue aquí más
+                adelante. */}
+            <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
             <div className="flex items-center justify-start h-[var(--atl-nav)] px-2 overflow-x-auto overscroll-x-contain no-scrollbar gap-1">
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);

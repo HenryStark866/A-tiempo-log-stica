@@ -12,7 +12,7 @@ import type {
 } from "./types";
 
 // Los nombres de la marca viven en `lib/marca.ts`, que distingue la plataforma
-// (JAM) de la empresa (A Tiempo Logística). Aquí había un APP_NAME suelto que
+// (YAM) de la empresa (A Tiempo Logística). Aquí había un APP_NAME suelto que
 // no usaba nadie y que ya decía el nombre equivocado.
 
 export const GUIDE_STATUS_LABELS: Record<GuideStatus, string> = {

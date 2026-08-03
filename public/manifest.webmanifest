@@ -1,6 +1,6 @@
 {
-  "name": "JAM — Red de mensajería de A Tiempo Logística",
-  "short_name": "JAM",
+  "name": "YAM — Red de mensajería de A Tiempo Logística",
+  "short_name": "YAM",
   "description": "La plataforma de última milla de A Tiempo Logística: recogidas, rutas, recaudo contraentrega y rastreo en vivo.",
   "id": "/",
   "start_url": "/dashboard",

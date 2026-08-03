@@ -63,7 +63,7 @@ self.addEventListener("fetch", (event) => {
           new Response(
             `<!doctype html><html lang="es"><head><meta charset="utf-8">
              <meta name="viewport" content="width=device-width,initial-scale=1">
-             <title>Sin conexión · JAM</title>
+             <title>Sin conexión · YAM</title>
              <style>
                body{margin:0;height:100dvh;display:grid;place-items:center;
                     background:#1C1C1E;color:#fff;

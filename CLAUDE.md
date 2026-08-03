@@ -40,7 +40,7 @@ supabase/functions/    edge functions (enviar-mensajes, shopify-sync)
 
 | Necesitas | Archivo |
 | --- | --- |
-| Nombres de marca (JAM vs ATL) | `src/lib/marca.ts` — fuente única, nunca a mano |
+| Nombres de marca (YAM vs ATL) | `src/lib/marca.ts` — fuente única, nunca a mano |
 | Etiquetas y colores de estados | `src/lib/constants.ts` |
 | Tipos del dominio | `src/lib/types.ts` |
 | Menú y permisos por rol | `src/lib/nav.ts` |

@@ -1,4 +1,4 @@
-# 📦 JAM — Red de mensajería de A Tiempo Logística
+# 📦 YAM — Red de mensajería de A Tiempo Logística
 
 Plataforma SaaS de logística de última milla que conecta comercios remitentes, un centro de distribución (CEDI) y mensajeros, con visibilidad en tiempo real tanto para quien envía como para quien recibe.
 
@@ -11,10 +11,10 @@ Aparecen juntos en pantalla y significan cosas distintas:
 | | Qué es | Dónde aparece |
 | --- | --- | --- |
 | **A Tiempo Logística** (ATL) | La empresa. Tiene la marca registrada, firma las facturas y responde por el paquete. | Rótulos, facturación, mensajes al comercio, prefijo de las guías (`ATL-…`) |
-| **JAM** | La plataforma. Marca registrada de ATL. | Nombre de la app, PWA, inicio de sesión, títulos de página |
+| **YAM** | La plataforma. Marca registrada de ATL. | Nombre de la app, PWA, inicio de sesión, títulos de página |
 
 Regla para elegir: si la frase la diría un abogado o va en un papel pegado a una
-caja, es **ATL**. Si es algo con lo que la persona interactúa, es **JAM**. La
+caja, es **ATL**. Si es algo con lo que la persona interactúa, es **YAM**. La
 fuente única está en [`src/lib/marca.ts`](src/lib/marca.ts) — no escribas los
 nombres a mano en las pantallas.
 
@@ -22,7 +22,7 @@ El prefijo de las guías se queda en `ATL-` a propósito: lo emite la base de
 datos, ya viaja impreso en rótulos en circulación y quien responde por ese
 paquete es la empresa. Cambiarlo rompería el rastreo de lo que ya salió.
 
-### De dónde sale «JAM»
+### De dónde sale «YAM»
 
 El *yam* —o *jam*; en mongol **örtöö**, «puesto de relevo»— fue la red de postas
 del Imperio Mongol: estaciones cada 32-64 km donde el mensajero entregaba,
@@ -64,7 +64,7 @@ cascabel.
 
 ## 📝 Descripción
 
-**JAM**, la plataforma de **A Tiempo Logística**, es una plataforma SaaS diseñada para gestionar el ciclo completo de una entrega de última milla en e-commerce (Medellín y área metropolitana): recolección en origen, procesamiento en centro de distribución (CEDI), ruteo, asignación con capacidad límite por mensajero y entrega final con rastreo en vivo y opción de punto de cruce en tiempo real.
+**YAM**, la plataforma de **A Tiempo Logística**, es una plataforma SaaS diseñada para gestionar el ciclo completo de una entrega de última milla en e-commerce (Medellín y área metropolitana): recolección en origen, procesamiento en centro de distribución (CEDI), ruteo, asignación con capacidad límite por mensajero y entrega final con rastreo en vivo y opción de punto de cruce en tiempo real.
 
 ---
 
@@ -310,7 +310,7 @@ Mes 3: Escala & Ecosistema (🔵 Fase 2)
 
 ## 📄 Licencia
 
-Software propietario. Todos los derechos reservados a **A Tiempo Logística S.A.S.** JAM es marca registrada de A Tiempo Logística S.A.S.
+Software propietario. Todos los derechos reservados a **A Tiempo Logística S.A.S.** YAM es marca registrada de A Tiempo Logística S.A.S.
 
 ---
 

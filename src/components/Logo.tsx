@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { MARCA } from "@/lib/marca";
 
 /**
- * El relevo — marca de JAM.
+ * El relevo — marca de YAM.
  *
  * Hereda de A Tiempo Logística exactamente lo que hace familia: el mismo bisel
  * abierto por la izquierda (es el mismo arco, carácter por carácter), la misma
@@ -88,7 +88,7 @@ export function Logo({
         <span
           className={cn(
             "font-semibold leading-none",
-            // JAM son tres letras: sin un poco de aire se leen como un bloque.
+            // YAM son tres letras: sin un poco de aire se leen como un bloque.
             isVertical ? "text-2xl tracking-[0.18em]" : "text-xl tracking-[0.16em]",
             dark ? "text-white" : "text-slate-900 dark:text-white"
           )}

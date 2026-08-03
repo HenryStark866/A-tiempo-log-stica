@@ -8,14 +8,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    // JAM es la plataforma; A Tiempo Logística es quien responde por el
+    // YAM es la plataforma; A Tiempo Logística es quien responde por el
     // paquete. En el título van las dos: el nombre que la gente reconoce y la
     // empresa que lo respalda.
     default: `${MARCA.app} — Red de mensajería de ${MARCA.empresa}`,
     template: `%s | ${MARCA.app}`,
   },
-  description:
-    "JAM es la plataforma de última milla de A Tiempo Logística en Medellín: recogida, CEDI, ruteo, recaudo contraentrega y facturación con trazabilidad en tiempo real.",
+  description: `${MARCA.app} es la plataforma de última milla de ${MARCA.empresa} en Medellín: recogida, CEDI, ruteo, recaudo contraentrega y facturación con trazabilidad en tiempo real.`,
   // Instalable en el teléfono del mensajero: en pantalla completa el navegador
   // no suspende el rastreo tan agresivamente como en una pestaña más.
   manifest: "/manifest.webmanifest",

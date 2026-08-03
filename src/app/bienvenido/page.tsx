@@ -7,7 +7,7 @@ import type { Role } from "@/lib/types";
 
 import { FondoBienvenido } from "@/components/fondos/FondoBienvenido";
 export const metadata = {
-  // La plantilla del layout le añade « | JAM » al final.
+  // La plantilla del layout le añade « | YAM » al final.
   title: "Cuenta confirmada",
 };
 

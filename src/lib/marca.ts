@@ -9,16 +9,16 @@
  *     registrada, quien firma las facturas, quien responde por el paquete y
  *     quien figura como remitente en los rótulos.
  *
- *   · JAM — la plataforma. Es el producto que se instala en el teléfono del
+ *   · YAM — la plataforma. Es el producto que se instala en el teléfono del
  *     mensajero y en el computador del comercio. Es marca registrada de ATL.
  *
  * Regla para elegir: si la frase la diría un abogado o va en un documento que
  * viaja pegado a una caja, es ATL. Si es algo con lo que la persona interactúa
- * —abrir la app, iniciar sesión, recibir una notificación—, es JAM.
+ * —abrir la app, iniciar sesión, recibir una notificación—, es YAM.
  *
  * ── De dónde sale el nombre ──────────────────────────────────────────────
  *
- * El «yam» (o jam; en mongol örtöö, «puesto de relevo») fue la red de postas
+ * El «yam» (en mongol örtöö, «puesto de relevo») fue la red de postas
  * del Imperio Mongol. Estaciones cada 32-64 km donde el mensajero no descansaba:
  * entregaba el mensaje, cambiaba de caballo y seguía. Así cubrían 200-300 km al
  * día en el siglo XIII.
@@ -40,11 +40,11 @@
 
 export const MARCA = {
   /** La plataforma. Lo que la gente abre. */
-  app: "JAM",
+  app: "YAM",
   /** Va debajo del logotipo. Corto a propósito: tiene que caber en la barra. */
   descriptor: "MENSAJERÍA",
-  /** Para títulos donde «JAM» solo no dice de qué se trata. */
-  appLargo: "JAM — Red de mensajería",
+  /** Para títulos donde «YAM» solo no dice de qué se trata. */
+  appLargo: "YAM — Red de mensajería",
 
   /** La empresa. Lo que va en los papeles. */
   empresa: "A Tiempo Logística",
@@ -54,7 +54,7 @@ export const MARCA = {
   firma: "por A Tiempo Logística",
 
   /**
-   * Prefijo de los números de guía. Se queda en ATL y no pasa a JAM: lo emite
+   * Prefijo de los números de guía. Se queda en ATL y no pasa a YAM: lo emite
    * la base de datos, viaja impreso en rótulos que ya están pegados a cajas en
    * circulación, y quien responde por ese paquete es la empresa, no la app.
    * Cambiarlo rompería el rastreo de todo lo que ya salió a la calle.

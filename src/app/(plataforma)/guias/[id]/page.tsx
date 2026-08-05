@@ -19,7 +19,12 @@ import { useProfile } from "@/components/ProfileContext";
 import { PageHeader, Card, Loading, Button, Modal, Field, inputCls } from "@/components/ui";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GuiaQR } from "@/components/GuiaQR";
-import { GUIDE_STATUS_LABELS, OPS_ROLES } from "@/lib/constants";
+import {
+  GUIDE_STATUS_LABELS,
+  OPS_ROLES,
+  PACKAGE_SIZE_LABELS,
+  PACKAGE_TYPE_LABELS,
+} from "@/lib/constants";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import { uploadDeliveryEvidence } from "@/lib/evidence";
 import type { Guide, GuideEvent, GuideStatus, Profile, Zone } from "@/lib/types";
@@ -325,6 +330,8 @@ export default function GuideDetailPage() {
             </dl>
           </Card>
 
+          <ContenidoDelPaquete guide={guide} />
+
           {(acts.length > 0 || canAssign || canProcessReturn) && (
             <Card className="p-6">
               <h2 className="mb-4 font-bold text-navy-900">Acciones</h2>
@@ -580,5 +587,94 @@ export default function GuideDetailPage() {
         </Modal>
       )}
     </>
+  );
+}
+
+/**
+ * Qué lleva el paquete y cómo viene empacado.
+ *
+ * Se pinta aparte de «Información del envío» porque responde otra pregunta:
+ * esa dice a dónde va y cuánto se cobra, esta dice qué hay adentro. Es lo que
+ * mira el CEDI para saber quién puede cargarlo, y lo primero que se pide
+ * cuando hay un reclamo por avería o faltante.
+ *
+ * Las guías anteriores a la migración 0042 no tienen nada de esto: en ese caso
+ * la tarjeta no aparece, en vez de mostrar una fila de guiones.
+ */
+function ContenidoDelPaquete({ guide }: { guide: Guide }) {
+  const items = guide.items ?? [];
+  const tipificado =
+    guide.package_type || guide.package_size || guide.package_weight_kg || guide.is_fragile;
+
+  if (items.length === 0 && !tipificado && !guide.content_description) return null;
+
+  const total = items.reduce((suma, i) => suma + i.unit_price * i.qty, 0);
+  const unidades = items.reduce((n, i) => n + i.qty, 0);
+
+  const etiquetas = [
+    guide.package_type ? PACKAGE_TYPE_LABELS[guide.package_type] : null,
+    guide.package_size ? PACKAGE_SIZE_LABELS[guide.package_size] : null,
+    guide.package_weight_kg ? `${guide.package_weight_kg} kg` : null,
+  ].filter(Boolean) as string[];
+
+  return (
+    <Card className="p-6">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="font-bold text-navy-900">Contenido del paquete</h2>
+        {guide.is_fragile && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-700">
+            <AlertTriangle className="size-3.5" /> Frágil
+          </span>
+        )}
+      </div>
+
+      {etiquetas.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {etiquetas.map((e) => (
+            <span
+              key={e}
+              className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
+            >
+              {e}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <>
+          <ul className="divide-y divide-slate-100">
+            {items.map((it, i) => (
+              <li
+                key={`${it.product_id ?? "libre"}-${i}`}
+                className="flex items-start justify-between gap-3 py-2.5 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-navy-900">
+                    <span className="tabular-nums text-slate-500">{it.qty}×</span> {it.name}
+                  </p>
+                  {it.sku && <p className="text-xs text-slate-400">SKU {it.sku}</p>}
+                </div>
+                <p className="shrink-0 font-semibold tabular-nums text-navy-900">
+                  {formatCOP(it.unit_price * it.qty)}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-sm">
+            <span className="text-slate-400">
+              {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
+            </span>
+            <span className="font-bold tabular-nums text-navy-900">{formatCOP(total)}</span>
+          </div>
+        </>
+      )}
+
+      {guide.content_description && (
+        <p className="mt-4 border-l-2 border-slate-200 pl-3 text-sm leading-relaxed text-slate-700">
+          {guide.content_description}
+        </p>
+      )}
+    </Card>
   );
 }

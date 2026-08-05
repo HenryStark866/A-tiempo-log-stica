@@ -231,6 +231,26 @@ export interface Pickup {
   at_guides?: { id: string }[];
 }
 
+/** Cómo viene empacado. Decide quién puede cargarlo y cómo se manipula. */
+export type PackageType = "sobre" | "caja" | "bolsa" | "tubo" | "otro";
+export type PackageSize = "pequeno" | "mediano" | "grande";
+
+/**
+ * Una línea del contenido del paquete.
+ *
+ * Es una copia congelada de lo que había en el catálogo al crear la guía, no
+ * una referencia viva: si el comercio le sube el precio al producto o lo borra,
+ * lo que viajó en esa caja sigue diciendo lo que viajó. `product_id` se guarda
+ * solo por trazabilidad, y puede apuntar a un producto que ya no existe.
+ */
+export interface GuideItem {
+  product_id: string | null;
+  name: string;
+  sku: string | null;
+  qty: number;
+  unit_price: number;
+}
+
 export interface Guide {
   id: string;
   guide_number: string;
@@ -255,7 +275,15 @@ export interface Guide {
   returned_at: string | null;
   delivery_evidence_url: string | null;
   delivery_signature_name: string | null;
+  /** Instrucciones para quien entrega («timbre dañado, llamar»). */
   notes: string | null;
+  /** Qué va adentro, en palabras. No confundir con `notes`. */
+  content_description: string | null;
+  package_type: PackageType | null;
+  package_size: PackageSize | null;
+  package_weight_kg: number | null;
+  is_fragile: boolean;
+  items: GuideItem[];
   created_at: string;
   /** Token aleatorio del QR de pago; no se deriva del número de guía. */
   payment_token: string;

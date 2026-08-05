@@ -4,6 +4,8 @@ import type {
   DocType,
   GuideStatus,
   InvoiceStatus,
+  PackageSize,
+  PackageType,
   PickupStatus,
   Role,
   SecurityEventType,
@@ -42,6 +44,38 @@ export const GUIDE_STATUS_COLORS: Record<GuideStatus, string> = {
   devuelta: "bg-red-50 text-red-700 border-red-200",
   cancelada: "bg-gray-100 text-gray-500 border-gray-200",
 };
+
+// ── Tipificación del paquete ────────────────────────────────────────────
+// Los `hint` no son decoración: son el criterio con el que el comercio elige
+// sin tener que preguntar. Los valores están en la base con un CHECK; si se
+// agrega uno aquí, hay que agregarlo allá (migración 0042).
+
+export const PACKAGE_TYPES: { value: PackageType; label: string; hint: string }[] = [
+  { value: "sobre", label: "Sobre",  hint: "Documentos, algo plano que no se dobla mal" },
+  { value: "caja",  label: "Caja",   hint: "Lo más común: cartón cerrado" },
+  { value: "bolsa", label: "Bolsa",  hint: "Ropa, textiles, empaque flexible" },
+  { value: "tubo",  label: "Tubo",   hint: "Cuadros, planos, algo enrollado" },
+  { value: "otro",  label: "Otro",   hint: "Cualquier cosa que no encaje arriba" },
+];
+
+export const PACKAGE_TYPE_LABELS: Record<PackageType, string> = Object.fromEntries(
+  PACKAGE_TYPES.map((t) => [t.value, t.label])
+) as Record<PackageType, string>;
+
+/**
+ * El tamaño se pide con referencias de la vida real y no en centímetros: el
+ * comercio empaca a ojo y a nadie le sirve obligarlo a medir. Lo que el CEDI
+ * necesita saber es si cabe en un maletín de moto.
+ */
+export const PACKAGE_SIZES: { value: PackageSize; label: string; hint: string }[] = [
+  { value: "pequeno", label: "Pequeño", hint: "Cabe en un bolsillo o en un sobre" },
+  { value: "mediano", label: "Mediano", hint: "Cabe en el maletín de la moto" },
+  { value: "grande",  label: "Grande",  hint: "No cabe en el maletín: hay que amarrarlo" },
+];
+
+export const PACKAGE_SIZE_LABELS: Record<PackageSize, string> = Object.fromEntries(
+  PACKAGE_SIZES.map((t) => [t.value, t.label])
+) as Record<PackageSize, string>;
 
 export const PICKUP_STATUS_LABELS: Record<PickupStatus, string> = {
   pendiente: "Pendiente",

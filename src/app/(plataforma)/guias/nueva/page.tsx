@@ -18,14 +18,29 @@ import {
   X,
   Upload,
   Tag,
+  Plus,
+  Minus,
+  Trash2,
+  Boxes,
+  Scale,
+  TriangleAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { PriceList } from "@/components/PriceList";
-import { formatCOP } from "@/lib/utils";
+import { PACKAGE_SIZES, PACKAGE_TYPES } from "@/lib/constants";
+import { formatCOP, cn } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
-import type { Client, Zone, Recipient, Product } from "@/lib/types";
+import type {
+  Client,
+  Zone,
+  Recipient,
+  Product,
+  GuideItem,
+  PackageSize,
+  PackageType,
+} from "@/lib/types";
 
 /**
  * ¿Son el mismo dato escrito por dos manos distintas?
@@ -52,8 +67,17 @@ export default function NewGuidePage() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientId, setRecipientId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [buscador, setBuscador] = useState("");
+  // Lo que va dentro de la caja. Antes esto era un único producto seleccionado
+  // que se escribía como texto dentro de las notas: no se podían mandar dos
+  // cosas, el segundo reemplazaba el valor del primero y no había forma de
+  // quitar uno agregado por error.
+  const [items, setItems] = useState<GuideItem[]>([]);
+  const [buscadorProducto, setBuscadorProducto] = useState("");
+  // Mientras nadie toque el monto a mano, manda la suma del contenido. En
+  // cuanto alguien lo edita, deja de pisarse solo: puede haber un descuento,
+  // un domicilio incluido o un abono ya hecho.
+  const [codManual, setCodManual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [zonaManual, setZonaManual] = useState(false);
@@ -72,6 +96,11 @@ export default function NewGuidePage() {
     is_cod: false,
     cod_amount: "",
     notes: "",
+    content_description: "",
+    package_type: "" as PackageType | "",
+    package_size: "" as PackageSize | "",
+    package_weight_kg: "",
+    is_fragile: false,
   });
 
   // Zonas y tarifas: el cliente ve el listado de precios completo.
@@ -174,6 +203,73 @@ export default function NewGuidePage() {
     }));
   }
 
+  // ── Contenido del paquete ───────────────────────────────────────────────
+
+  const totalContenido = useMemo(
+    () => items.reduce((suma, i) => suma + i.unit_price * i.qty, 0),
+    [items]
+  );
+  const unidades = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
+
+  const catalogoFiltrado = useMemo(() => {
+    const s = buscadorProducto.trim().toLowerCase();
+    if (!s) return products;
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(s) ||
+        (p.sku ?? "").toLowerCase().includes(s) ||
+        (p.description ?? "").toLowerCase().includes(s)
+    );
+  }, [products, buscadorProducto]);
+
+  /**
+   * Agregar el mismo producto dos veces no lo duplica en la lista: le sube la
+   * cantidad. Es lo que espera cualquiera que haya usado un carrito, y evita
+   * un rótulo con «Vestido flores» repetido cuatro veces.
+   */
+  function agregarProducto(p: Product) {
+    setItems((lista) => {
+      const i = lista.findIndex((x) => x.product_id === p.id);
+      if (i === -1) {
+        return [
+          ...lista,
+          {
+            product_id: p.id,
+            name: p.name,
+            sku: p.sku,
+            qty: 1,
+            unit_price: Number(p.price) || 0,
+          },
+        ];
+      }
+      const copia = [...lista];
+      copia[i] = { ...copia[i], qty: copia[i].qty + 1 };
+      return copia;
+    });
+  }
+
+  function cambiarCantidad(indice: number, delta: number) {
+    setItems((lista) =>
+      lista
+        .map((it, i) => (i === indice ? { ...it, qty: it.qty + delta } : it))
+        .filter((it) => it.qty > 0)
+    );
+  }
+
+  function quitarItem(indice: number) {
+    setItems((lista) => lista.filter((_, i) => i !== indice));
+  }
+
+  // El valor a recaudar sigue al contenido mientras nadie lo escriba a mano.
+  useEffect(() => {
+    if (items.length === 0 || codManual) return;
+    setForm((f) =>
+      f.is_cod && f.cod_amount === String(totalContenido)
+        ? f
+        : { ...f, is_cod: true, cod_amount: String(totalContenido) }
+    );
+  }, [items.length, totalContenido, codManual]);
+
   function limpiarDestinatario() {
     setRecipientId(null);
     setZonaManual(false);
@@ -209,6 +305,18 @@ export default function NewGuidePage() {
         zone_id: form.zone_id || null,
         is_cod: form.is_cod,
         cod_amount: form.is_cod ? Number(form.cod_amount) || 0 : 0,
+        // Lo que vale la mercancía, se cobre o no contraentrega: es el dato
+        // que importa en un reclamo por pérdida o avería.
+        declared_value: totalContenido,
+        items,
+        content_description: form.content_description.trim() || null,
+        package_type: form.package_type || null,
+        package_size: form.package_size || null,
+        // Un "0" escrito en el campo es una cadena con valor, pero la base
+        // exige peso > 0: se guarda como «no lo sé», que es lo que significa.
+        package_weight_kg:
+          Number(form.package_weight_kg) > 0 ? Number(form.package_weight_kg) : null,
+        is_fragile: form.is_fragile,
         notes: form.notes || null,
         created_by: profile.id,
       })
@@ -327,67 +435,329 @@ export default function NewGuidePage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Catálogo de Productos */}
-          {products.length > 0 && (
-            <section>
-              <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2 flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-[#ff812c]" />
-                Catálogo de Productos ({products.length})
-              </h3>
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm p-4 space-y-3 transition-colors duration-300">
-                <p className="text-[13px] text-slate-500 dark:text-slate-400">
-                  Selecciona un producto para autocompletar su valor y descripción:
+          {/* Contenido del paquete: el catálogo arriba, y lo que se va
+              agregando baja a la lista de abajo. */}
+          <section>
+            <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2 flex items-center gap-1.5">
+              <Boxes className="w-3.5 h-3.5 text-[#ff812c]" />
+              Contenido del paquete
+            </h3>
+            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+
+              {products.length > 0 ? (
+                <div className="p-4 space-y-3 border-b border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
+                    <Tag className="w-3.5 h-3.5 text-[#ff812c] shrink-0" />
+                    <span>
+                      Tu catálogo ({products.length}). Toca <strong className="text-slate-700 dark:text-slate-300">Agregar</strong> y baja a la lista.
+                    </span>
+                  </div>
+
+                  {/* Con más de media docena, buscar es más rápido que barrer
+                      una lista con el dedo. */}
+                  {products.length > 6 && (
+                    <div className="flex items-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-3 min-h-[44px]">
+                      <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                      <input
+                        value={buscadorProducto}
+                        onChange={(e) => setBuscadorProducto(e.target.value)}
+                        placeholder="Buscar por nombre o SKU…"
+                        className="flex-1 min-w-0 bg-transparent text-[15px] py-2 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                      />
+                      {buscadorProducto && (
+                        <button
+                          type="button"
+                          onClick={() => setBuscadorProducto("")}
+                          className="w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500"
+                          aria-label="Limpiar búsqueda"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {catalogoFiltrado.length === 0 ? (
+                    <p className="py-4 text-center text-[14px] text-slate-500 dark:text-slate-400">
+                      Ningún producto coincide con «{buscadorProducto}».
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2 max-h-64 overflow-y-auto pr-1">
+                      {catalogoFiltrado.map((p) => {
+                        const yaVan = items.find((i) => i.product_id === p.id)?.qty ?? 0;
+                        return (
+                          <div
+                            key={p.id}
+                            className={cn(
+                              "flex flex-col rounded-xl border p-3 transition-colors",
+                              yaVan > 0
+                                ? "border-[#ff812c] bg-[#ff812c]/5"
+                                : "border-slate-200 dark:border-slate-700 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-bold text-[14px] text-slate-900 dark:text-white line-clamp-2">
+                                {p.name}
+                              </p>
+                              <span className="font-bold text-[14px] text-[#ff812c] shrink-0">
+                                {formatCOP(p.price)}
+                              </span>
+                            </div>
+                            {p.sku && (
+                              <p className="mt-0.5 text-[12px] font-mono text-slate-500 dark:text-slate-400">
+                                SKU {p.sku}
+                              </p>
+                            )}
+                            {p.description && (
+                              <p className="mt-1 text-[12px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                                {p.description}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => agregarProducto(p)}
+                              className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#ff812c] min-h-[38px] text-[13px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
+                            >
+                              <Plus className="w-4 h-4" />
+                              {yaVan > 0 ? `Agregar otro (van ${yaVan})` : "Agregar"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="px-4 py-4 space-y-3 border-b border-gray-100 dark:border-gray-800">
+                  <p className="text-[14px] text-slate-500 dark:text-slate-400">
+                    Todavía no tienes catálogo. Puedes describir el contenido a mano más
+                    abajo, o cargarlo una vez y elegirlo con un toque en cada guía.
+                  </p>
+                  <Link
+                    href="/productos"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 min-h-[44px] text-[15px] font-semibold text-[#ff812c] active:scale-[0.98] transition-transform"
+                  >
+                    <Tag className="w-4 h-4" /> Cargar mis productos
+                  </Link>
+                </div>
+              )}
+
+              {/* La lista. Aquí es donde «bajan» los productos agregados. */}
+              {items.length === 0 ? (
+                <p className="px-4 py-5 text-center text-[14px] text-slate-400 dark:text-slate-500">
+                  Nada agregado todavía. Este paquete puede ir sin detalle.
                 </p>
-                <div className="grid gap-2 sm:grid-cols-2 max-h-56 overflow-y-auto pr-1">
-                  {products.map((p) => {
-                    const seleccionado = selectedProductId === p.id;
+              ) : (
+                <>
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {items.map((it, i) => (
+                      <li key={`${it.product_id ?? "libre"}-${i}`} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                              {it.name}
+                            </p>
+                            <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">
+                              {it.sku && <span className="font-mono">SKU {it.sku} · </span>}
+                              {formatCOP(it.unit_price)} c/u
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => quitarItem(i)}
+                            aria-label={`Quitar ${it.name}`}
+                            className="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-1 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1">
+                            <button
+                              type="button"
+                              onClick={() => cambiarCantidad(i, -1)}
+                              aria-label="Una menos"
+                              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
+                              {it.qty}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => cambiarCantidad(i, 1)}
+                              aria-label="Una más"
+                              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-[16px] font-bold text-slate-900 dark:text-white tabular-nums">
+                            {formatCOP(it.unit_price * it.qty)}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="flex items-center justify-between gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3">
+                    <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400">
+                      {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
+                    </p>
+                    <p className="text-[18px] font-bold text-slate-900 dark:text-white tabular-nums">
+                      {formatCOP(totalContenido)}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Tipificación: lo que el CEDI necesita para saber quién puede
+              cargarlo y cómo se manipula. Todo opcional a propósito — obligar
+              a tipificar un sobre de documentos solo agrega fricción. */}
+          <section>
+            <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2 flex items-center gap-1.5">
+              <PackagePlus className="w-3.5 h-3.5 text-[#ff812c]" />
+              Cómo viene el paquete
+            </h3>
+            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                <label className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+                  Empaque
+                </label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {PACKAGE_TYPES.map((t) => {
+                    const activo = form.package_type === t.value;
                     return (
                       <button
-                        key={p.id}
+                        key={t.value}
                         type="button"
-                        onClick={() => {
-                          if (seleccionado) {
-                            setSelectedProductId(null);
-                          } else {
-                            setSelectedProductId(p.id);
-                            const notaProd = `${p.name}${p.sku ? ` (SKU: ${p.sku})` : ""}${p.description ? ` - ${p.description}` : ""}`;
-                            setForm((f) => ({
-                              ...f,
-                              is_cod: true,
-                              cod_amount: String(p.price ?? 0),
-                              notes: f.notes ? `${f.notes}\n${notaProd}` : notaProd,
-                            }));
-                          }
-                        }}
-                        className={`text-left p-3 rounded-xl border transition-all ${
-                          seleccionado
-                            ? "border-[#ff812c] bg-[#ff812c]/10 text-slate-900 dark:text-white"
-                            : "border-slate-200 dark:border-slate-700 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50 hover:border-[#ff812c]/50 text-slate-700 dark:text-slate-300"
-                        }`}
+                        title={t.hint}
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            package_type: activo ? "" : t.value,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-xl px-4 min-h-[42px] text-[14px] font-semibold transition-colors",
+                          activo
+                            ? "bg-[#ff812c] text-[#1C1C1E]"
+                            : "bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-300"
+                        )}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-bold text-[14px] text-slate-900 dark:text-white line-clamp-1">{p.name}</p>
-                          <span className="font-bold text-[14px] text-[#ff812c] shrink-0">
-                            {formatCOP(p.price)}
-                          </span>
-                        </div>
-                        {p.sku && (
-                          <p className="text-[12px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                            SKU: {p.sku}
-                          </p>
-                        )}
-                        {p.description && (
-                          <p className="text-[12px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                            {p.description}
-                          </p>
-                        )}
+                        {t.label}
                       </button>
                     );
                   })}
                 </div>
+                {form.package_type && (
+                  <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400">
+                    {PACKAGE_TYPES.find((t) => t.value === form.package_type)?.hint}
+                  </p>
+                )}
               </div>
-            </section>
-          )}
+
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                <label className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+                  Tamaño
+                </label>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {PACKAGE_SIZES.map((t) => {
+                    const activo = form.package_size === t.value;
+                    return (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            package_size: activo ? "" : t.value,
+                          }))
+                        }
+                        className={cn(
+                          "rounded-xl px-2 py-2 min-h-[56px] text-[14px] font-semibold leading-tight transition-colors",
+                          activo
+                            ? "bg-[#ff812c] text-[#1C1C1E]"
+                            : "bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-300"
+                        )}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.package_size && (
+                  <p className="mt-2 text-[12px] text-slate-500 dark:text-slate-400">
+                    {PACKAGE_SIZES.find((t) => t.value === form.package_size)?.hint}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                <Scale className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={form.package_weight_kg}
+                  onChange={set("package_weight_kg")}
+                  placeholder="Peso aproximado"
+                  className="flex-1 min-w-0 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                />
+                <span className="ml-2 text-[15px] text-slate-400 dark:text-slate-500 shrink-0">kg</span>
+              </div>
+
+              <div
+                className="flex items-center gap-3 px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors"
+                onClick={() => setForm((f) => ({ ...f, is_fragile: !f.is_fragile }))}
+              >
+                <TriangleAlert
+                  className={cn(
+                    "w-5 h-5 shrink-0",
+                    form.is_fragile ? "text-[#ff812c]" : "text-slate-400 dark:text-slate-500"
+                  )}
+                />
+                <div className="flex-1 min-w-0 py-2">
+                  <label className="block text-[16px] font-medium text-slate-900 dark:text-white cursor-pointer">
+                    Frágil
+                  </label>
+                  <p className="text-[13px] leading-snug text-slate-500 dark:text-slate-400">
+                    Vidrio, cerámica, pantallas: el CEDI lo separa del resto
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={form.is_fragile}
+                  readOnly
+                  aria-label="Marcar el paquete como frágil"
+                  className="w-14 h-8 shrink-0 rounded-full appearance-none bg-gray-300 dark:bg-gray-600 checked:bg-[#ff812c] transition-colors relative cursor-pointer
+                    after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-7 after:h-7 after:bg-white after:rounded-full after:shadow-sm after:transition-transform checked:after:translate-x-6"
+                />
+              </div>
+
+              <div className="flex items-start px-4 py-2 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                <Boxes className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0 mt-2.5" />
+                <textarea
+                  value={form.content_description}
+                  onChange={set("content_description")}
+                  rows={2}
+                  placeholder={
+                    items.length > 0
+                      ? "Algo más que vaya adentro y no esté en la lista (opcional)"
+                      : "Qué va adentro: 2 camisas talla M y un cinturón"
+                  }
+                  className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white resize-none"
+                />
+              </div>
+
+            </div>
+          </section>
 
           {/* Clientes guardados, o invitación a sincronizar si no hay */}
           {esCliente && (
@@ -603,7 +973,7 @@ export default function NewGuidePage() {
           </section>
 
           <section>
-            <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">Recaudo y Notas</h3>
+            <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">Recaudo e instrucciones</h3>
             <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
 
               <div className="flex items-center justify-between px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 transition-colors cursor-pointer" onClick={() => setForm((f) => ({ ...f, is_cod: !f.is_cod }))}>
@@ -618,19 +988,48 @@ export default function NewGuidePage() {
               </div>
 
               {form.is_cod && (
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
-                  <Banknote className="w-5 h-5 text-[#ff812c] mr-4 shrink-0" />
-                  <span className="text-slate-400 dark:text-slate-500 mr-2">$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={form.cod_amount}
-                    onChange={set("cod_amount")}
-                    placeholder="Valor a recaudar"
-                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white font-semibold"
-                  />
-                </div>
+                <>
+                  <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
+                    <Banknote className="w-5 h-5 text-[#ff812c] mr-4 shrink-0" />
+                    <span className="text-slate-400 dark:text-slate-500 mr-2">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={form.cod_amount}
+                      onChange={(e) => {
+                        // A partir de aquí manda lo que escriba la persona: la
+                        // suma del contenido deja de pisar el monto.
+                        setCodManual(true);
+                        set("cod_amount")(e);
+                      }}
+                      placeholder="Valor a recaudar"
+                      className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  {/* Que el monto no cuadre con el contenido es legítimo —un
+                      descuento, un abono, el domicilio incluido—, pero también
+                      es como se cobra de menos por equivocación. Se avisa sin
+                      bloquear, y se ofrece cuadrarlo de un toque. */}
+                  {items.length > 0 && Number(form.cod_amount || 0) !== totalContenido && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+                      <p className="text-[13px] text-amber-700 dark:text-amber-400">
+                        El contenido suma {formatCOP(totalContenido)}.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCodManual(false);
+                          setForm((f) => ({ ...f, cod_amount: String(totalContenido) }));
+                        }}
+                        className="text-[13px] font-bold text-[#ff812c] active:opacity-70"
+                      >
+                        Cobrar ese valor
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="flex items-start px-4 py-2 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
@@ -638,7 +1037,8 @@ export default function NewGuidePage() {
                 <textarea
                   value={form.notes}
                   onChange={set("notes")}
-                  placeholder="Notas adicionales (opcional)"
+                  // El contenido ya no vive aquí: esto es para quien entrega.
+                  placeholder="Instrucciones para la entrega: timbre dañado, dejar en portería…"
                   rows={2}
                   className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white resize-none"
                 />

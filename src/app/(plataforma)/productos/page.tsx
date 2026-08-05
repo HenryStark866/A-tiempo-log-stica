@@ -27,7 +27,7 @@ import {
   type CsvRow,
   type ProductField,
 } from "@/lib/csv";
-import { formatCOP } from "@/lib/utils";
+import { formatCOP, cn } from "@/lib/utils";
 import type { Product, SyncRecipientsResult } from "@/lib/types";
 
 const CHUNK = 400;
@@ -46,6 +46,17 @@ export default function ProductsPage() {
 
   const [products, setProducts] = useState<Product[] | null>(null);
   const [query, setQuery] = useState("");
+
+  /**
+   * Los que se acaban de crear en esta sesión, del más nuevo al más viejo.
+   *
+   * La lista viene ordenada por nombre, así que un producto nuevo caía en
+   * cualquier parte de una lista de cientos: se guardaba bien, pero no se veía
+   * nada y parecía que no había pasado. Estos suben al principio y quedan
+   * marcados hasta que se recargue la pantalla.
+   */
+  const [recienAgregados, setRecienAgregados] = useState<string[]>([]);
+  const listaRef = useRef<HTMLDivElement>(null);
 
   const [editing, setEditing] = useState<Product | "nuevo" | null>(null);
   const [form, setForm] = useState({ ...FORM_VACIO });
@@ -111,10 +122,15 @@ export default function ProductsPage() {
       description: form.description.trim() || null,
     };
 
-    const { error } =
+    const { data, error } =
       editing === "nuevo"
-        ? await supabase.from("at_products").insert(payload)
-        : await supabase.from("at_products").update(payload).eq("id", (editing as Product).id);
+        ? await supabase.from("at_products").insert(payload).select("id").single()
+        : await supabase
+            .from("at_products")
+            .update(payload)
+            .eq("id", (editing as Product).id)
+            .select("id")
+            .single();
 
     setGuardando(false);
     if (error) {
@@ -125,8 +141,22 @@ export default function ProductsPage() {
       );
       return;
     }
+
+    const esNuevo = editing === "nuevo";
     setEditing(null);
-    load();
+    await load();
+
+    if (esNuevo && data?.id) {
+      setRecienAgregados((r) => [data.id, ...r.filter((x) => x !== data.id)]);
+      // Una búsqueda activa puede estar escondiendo justo lo que se acabó de
+      // crear, y entonces el trabajo parece haberse perdido.
+      setQuery("");
+      // El teclado y el modal dejaron la página a media altura: se sube a la
+      // lista para que lo nuevo quede a la vista sin tener que buscarlo.
+      requestAnimationFrame(() =>
+        listaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+    }
   }
 
   async function confirmarBorrado() {
@@ -212,20 +242,31 @@ export default function ProductsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "plantilla-productos-jam.csv";
+    a.download = "plantilla-productos-yam.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  const filtrados = (products ?? []).filter((p) => {
+  const filtrados = useMemo(() => {
     const s = query.trim().toLowerCase();
-    if (!s) return true;
-    return (
-      p.name.toLowerCase().includes(s) ||
-      (p.sku ?? "").toLowerCase().includes(s) ||
-      (p.description ?? "").toLowerCase().includes(s)
-    );
-  });
+    const base = (products ?? []).filter((p) => {
+      if (!s) return true;
+      return (
+        p.name.toLowerCase().includes(s) ||
+        (p.sku ?? "").toLowerCase().includes(s) ||
+        (p.description ?? "").toLowerCase().includes(s)
+      );
+    });
+    if (recienAgregados.length === 0) return base;
+
+    // Los recién creados primero, en el orden en que se crearon. El resto
+    // conserva el orden alfabético que trae la consulta.
+    const posicion = (id: string) => {
+      const i = recienAgregados.indexOf(id);
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    };
+    return [...base].sort((a, b) => posicion(a.id) - posicion(b.id));
+  }, [products, query, recienAgregados]);
 
   if (cargandoComercio) {
     return (
@@ -365,7 +406,7 @@ export default function ProductsPage() {
         />
       </div>
 
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm overflow-hidden">
+      <div ref={listaRef} className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm overflow-hidden scroll-mt-24">
         {products === null ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-7 h-7 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -386,22 +427,43 @@ export default function ProductsPage() {
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
             {filtrados.map((p) => (
-              <li key={p.id} className="flex items-start gap-3 px-4 sm:px-5 py-4">
+              <li
+                key={p.id}
+                className={cn(
+                  "flex items-start gap-3 px-4 sm:px-5 py-4 transition-colors",
+                  recienAgregados.includes(p.id) && "bg-[#ff812c]/5"
+                )}
+              >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-[16px] font-semibold text-slate-900 dark:text-white truncate">{p.name}</p>
-                    <p className="text-[16px] font-bold text-[#ff812c] shrink-0">{formatCOP(p.price)}</p>
+                    <p className="text-[16px] font-bold text-[#ff812c] shrink-0 tabular-nums">{formatCOP(p.price)}</p>
                   </div>
                   {p.description && (
-                    <p className="mt-0.5 text-[14px] text-slate-600 dark:text-slate-300">{p.description}</p>
+                    <p className="mt-1 text-[14px] leading-snug text-slate-600 dark:text-slate-300 line-clamp-2">
+                      {p.description}
+                    </p>
                   )}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {/* SKU y columnas extra del CSV como etiquetas: antes eran
+                      texto suelto del mismo color y se leían como una frase
+                      corrida. */}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {recienAgregados.includes(p.id) && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#ff812c] px-2 py-0.5 text-[11px] font-bold text-[#1C1C1E]">
+                        <CircleCheck className="w-3 h-3" /> Recién agregado
+                      </span>
+                    )}
                     {p.sku && (
-                      <span className="text-[12px] font-medium text-slate-400 dark:text-slate-500">SKU {p.sku}</span>
+                      <span className="rounded-md bg-[#F2F2F7] dark:bg-[#1C1C1E] px-2 py-0.5 font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        SKU {p.sku}
+                      </span>
                     )}
                     {Object.entries(p.extra ?? {}).map(([k, v]) => (
-                      <span key={k} className="text-[12px] text-slate-400 dark:text-slate-500">
-                        {k}: <span className="text-slate-500 dark:text-slate-400">{v}</span>
+                      <span
+                        key={k}
+                        className="rounded-md bg-[#F2F2F7] dark:bg-[#1C1C1E] px-2 py-0.5 text-[11px] text-slate-500 dark:text-slate-400"
+                      >
+                        {k}: <span className="font-medium text-slate-600 dark:text-slate-300">{v}</span>
                       </span>
                     ))}
                   </div>

@@ -7,6 +7,7 @@ import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
 import { INVOICE_STATUS_LABELS } from "@/lib/constants";
 import { formatCOP, formatDate } from "@/lib/utils";
+import { hoyEnColombia, primerDiaDelMes } from "@/lib/tiempo";
 import type { Client, Invoice, InvoiceItem, InvoiceStatus } from "@/lib/types";
 
 const TONES: Record<InvoiceStatus, "slate" | "blue" | "green" | "red"> = {
@@ -15,11 +16,6 @@ const TONES: Record<InvoiceStatus, "slate" | "blue" | "green" | "red"> = {
   pagada: "green",
   anulada: "red",
 };
-
-function firstOfMonth() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
 
 export default function BillingPage() {
   const profile = useProfile();
@@ -32,8 +28,12 @@ export default function BillingPage() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     client_id: "",
-    period_start: firstOfMonth(),
-    period_end: new Date().toISOString().slice(0, 10),
+    // Las dos, en fecha de Medellín. La de arranque venía saliendo un día
+    // antes de tiempo: `new Date(a, m, 1).toISOString()` construye la
+    // medianoche local y la pasa a UTC, o sea las 7 p. m. del último día del
+    // mes anterior — y ese día se colaba en la factura.
+    period_start: primerDiaDelMes(),
+    period_end: hoyEnColombia(),
   });
 
   const load = useCallback(async () => {

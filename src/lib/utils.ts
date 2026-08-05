@@ -7,24 +7,11 @@ export function formatCOP(value: number | null | undefined): string {
   }).format(value);
 }
 
-export function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("es-CO", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
+// Las fechas se fueron a `tiempo.ts`, donde quedaron ancladas a la zona de
+// Medellín. Se siguen exportando desde aquí porque es de donde las importan
+// las ~15 pantallas que ya existían, y no hay dos implementaciones: esto es
+// el mismo código, solo que alcanzable por el nombre de siempre.
+export { formatDate, formatDateTime, formatHora } from "./tiempo";
 
 export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");

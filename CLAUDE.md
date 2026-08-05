@@ -41,6 +41,8 @@ supabase/functions/    edge functions (enviar-mensajes, shopify-sync)
 | Necesitas | Archivo |
 | --- | --- |
 | Nombres de marca (YAM vs ATL) | `src/lib/marca.ts` — fuente única, nunca a mano |
+| Fechas y horas | `src/lib/tiempo.ts` — todo anclado a `America/Bogota` |
+| Versión publicada y hora del servidor | `src/lib/servidor.ts` + `app/api/version` |
 | Etiquetas y colores de estados | `src/lib/constants.ts` |
 | Tipos del dominio | `src/lib/types.ts` |
 | Menú y permisos por rol | `src/lib/nav.ts` |

@@ -31,6 +31,8 @@ import {
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationsProvider } from "@/components/NotificationsContext";
 import { ProfileProvider } from "@/components/ProfileContext";
+import { InstalarApp } from "@/components/InstalarApp";
+import { Reloj } from "@/components/Reloj";
 import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -184,9 +186,17 @@ export function AppShell({
                 cuesta un div y evita que el próximo `fixed` que alguien
                 ponga aquí dentro se rompa por un motivo invisible. */}
             <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
-            <Link href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'} className="flex min-w-0 items-center gap-2">
+            {/* `overflow-hidden`: en pantallas de 320 px el logo, el reloj y
+                los dos controles no caben juntos. Que lo que ceda sea el
+                descriptor de la marca —que ya se sabe de memoria— y no la
+                hora, que es dato de trabajo. */}
+            <Link
+              href={profile.role === 'mensajero' ? '/entregas' : '/dashboard'}
+              className="flex min-w-0 items-center gap-2 overflow-hidden"
+            >
               <Logo className="scale-[0.8] origin-left" />
             </Link>
+            <Reloj className="shrink-0" />
             <div className="flex shrink-0 items-center gap-1">
               <NotificationBell />
               <ThemeToggle />
@@ -210,6 +220,13 @@ export function AppShell({
               <div className="shrink-0">
                 <NotificationBell align="left" />
               </div>
+            </div>
+
+            {/* La hora de la operación, no la del computador: quien despacha
+                desde el CEDI y quien entrega en la calle tienen que estar
+                mirando el mismo reloj. */}
+            <div className="px-3 pt-4 pb-3 lg:px-5">
+              <Reloj variant="amplio" />
             </div>
 
             <nav className="flex-1 px-3 lg:px-4 py-2 space-y-1.5 overflow-y-auto no-scrollbar">
@@ -326,6 +343,10 @@ export function AppShell({
               </button>
             </div>
           </nav>
+
+          {/* Se asoma una sola vez, cuando el navegador dice que se puede
+              instalar, y se calla dos semanas si la cierran. */}
+          <InstalarApp />
       </div>
       </NotificationsProvider>
     </ProfileProvider>

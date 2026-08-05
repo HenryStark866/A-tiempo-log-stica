@@ -9,7 +9,20 @@ import { NextResponse, type NextRequest } from "next/server";
 // por /auth/confirmar y deja sesión abierta; es esa sesión la que autoriza el
 // cambio de contraseña. Dejarla pública permitiría abrirla sin haber probado
 // nunca que se tiene acceso al correo.
-const PUBLIC_PATHS = ["/", "/login", "/registro", "/rastreo", "/auth", "/pagar", "/recuperar"];
+// /api/version no dice nada de nadie —qué versión está publicada y qué hora
+// es en el servidor— y lo consulta también la pantalla de login para poner el
+// reloj en hora. Si pasara por el guardia, respondería un redirect a /login en
+// vez de JSON.
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/registro",
+  "/rastreo",
+  "/auth",
+  "/pagar",
+  "/recuperar",
+  "/api/version",
+];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(

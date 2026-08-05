@@ -9,6 +9,7 @@ import { useMyClient } from "@/components/useMyClient";
 import { RecogidaQR, ImprimirQR } from "@/components/RecogidaQR";
 import { PICKUP_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { hoyEnColombia } from "@/lib/tiempo";
 import type { Client, Pickup, PickupStatus, Guide, Profile } from "@/lib/types";
 
 const MIN_PACKAGES = 5;
@@ -98,7 +99,10 @@ export default function PickupsPage() {
 
   const [form, setForm] = useState({
     client_id: "",
-    scheduled_date: new Date().toISOString().slice(0, 10),
+    // Hoy en Medellín, no en UTC: después de las 7 p. m. lo segundo ya es
+    // mañana, y la recogida quedaba programada para el día siguiente sin que
+    // nadie lo pidiera.
+    scheduled_date: hoyEnColombia(),
     scheduled_time: "",
     address: "",
     contact_name: "",
@@ -895,7 +899,7 @@ export default function PickupsPage() {
                   <input
                     type="date"
                     required
-                    min={new Date().toISOString().slice(0, 10)}
+                    min={hoyEnColombia()}
                     value={editForm.scheduled_date}
                     onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })}
                     className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"

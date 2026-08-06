@@ -161,13 +161,18 @@ export function MarcaDelComercio({
           role="switch"
           aria-checked={enPortada}
           aria-label="Mostrar la marca en la portada"
-          className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-40 ${
+          /* `overflow-hidden` es el cinturón de seguridad: sin ninguna
+             posición `left` explícita en la bolita, su punto de partida
+             dependía de cómo cada navegador resuelve un absolute sin left/right
+             (la "posición estática"), y al activarlo se salía del óvalo en vez
+             de quedar pegada a su borde derecho. */
+          className={`relative h-7 w-12 shrink-0 overflow-hidden rounded-full transition-colors duration-200 disabled:opacity-40 ${
             enPortada ? "bg-[#ff812c]" : "bg-gray-300 dark:bg-gray-600"
           }`}
         >
           <span
-            className={`absolute top-[3px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
-              enPortada ? "translate-x-[22px]" : "translate-x-[3px]"
+            className={`absolute left-[3px] top-[3px] h-[22px] w-[22px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              enPortada ? "translate-x-[20px]" : "translate-x-0"
             }`}
           />
         </button>

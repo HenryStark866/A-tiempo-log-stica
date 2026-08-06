@@ -399,6 +399,9 @@ export default function ClientsPage() {
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
                     </div>
+                    <p className="px-4 py-2 text-[12px] text-slate-400 dark:text-slate-500 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
+                      * El valor del domicilio se calcula automáticamente según la zona del comercio y la zona del destinatario. La tarifa anterior actúa únicamente como valor base de contingencia.
+                    </p>
                     <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">T. Devolución</label>
                       <span className="text-slate-400 dark:text-slate-500 mr-1">$</span>

@@ -33,6 +33,7 @@ import { NotificationsProvider } from "@/components/NotificationsContext";
 import { OfflineProvider } from "@/components/OfflineContext";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { ProfileProvider } from "@/components/ProfileContext";
+import { SolicitudCediPendiente } from "@/components/SolicitudCediPendiente";
 import { InstalarApp } from "@/components/InstalarApp";
 import { Reloj } from "@/components/Reloj";
 import { createClient } from "@/lib/supabase/client";
@@ -137,6 +138,13 @@ export function AppShell({
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  // Quien pide afiliar un CEDI tiene algo que hacer mientras espera —subir
+  // sus documentos—, no solo esperar: por eso se saca de la pantalla
+  // genérica de abajo antes de llegar a ella.
+  if (profile.role === "pendiente" && profile.requested_role === "admin_cedi") {
+    return <SolicitudCediPendiente profile={profile} />;
   }
 
   if (profile.role === "pendiente" || !profile.active) {

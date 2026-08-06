@@ -2,6 +2,7 @@ import type {
   CourierType,
   DocStatus,
   DocType,
+  FacilityDocType,
   GuideStatus,
   InvoiceStatus,
   PackageSize,
@@ -195,6 +196,36 @@ export const COURIER_REQUIRED_DOCS: Record<CourierType, DocType[]> = {
     "soat",
   ],
 };
+
+/**
+ * Documentos de quien pide afiliar un CEDI: los mismos dos mundos que un
+ * mensajero colaborativo (persona + lo que va a operar), pero el "vehículo"
+ * aquí es el local. Todos obligatorios: sin ellos no hay con qué verificar
+ * ni a la persona ni la dirección donde va a quedar la bodega.
+ */
+export const FACILITY_DOCS: { value: FacilityDocType; label: string; hint: string }[] = [
+  { value: "cedula_frente", label: "Cédula (frente)", hint: "Foto legible por el lado de la foto." },
+  { value: "cedula_reverso", label: "Cédula (reverso)", hint: "El otro lado del documento." },
+  {
+    value: "documento_local",
+    label: "Propiedad o arriendo del local",
+    hint: "Escritura si es propio, o contrato de arrendamiento si es alquilado.",
+  },
+  {
+    value: "recibo_servicio_publico",
+    label: "Recibo de servicio público",
+    hint: "De agua, luz o gas, a nombre del local o de quien lo arrienda — confirma la dirección.",
+  },
+  {
+    value: "foto_local",
+    label: "Foto del local",
+    hint: "Fachada y por dentro: de ahí va a salir y entrar la mercancía.",
+  },
+];
+
+export const FACILITY_DOC_LABELS: Record<FacilityDocType, string> = Object.fromEntries(
+  FACILITY_DOCS.map((d) => [d.value, d.label])
+) as Record<FacilityDocType, string>;
 
 // ── Registro de seguridad ───────────────────────────────────────────────
 

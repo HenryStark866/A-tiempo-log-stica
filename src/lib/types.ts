@@ -54,6 +54,8 @@ export interface Profile {
   business_name: string | null;
   business_nit: string | null;
   business_address: string | null;
+  /** Ciudad propuesta por quien pide afiliar un CEDI. */
+  proposed_city: string | null;
   // Mensajeros. `active` dice si puede entrar a la app; `verified_at` si el
   // admin revisó sus papeles y puede recibir trabajo. Son cosas distintas.
   courier_type: CourierType | null;
@@ -88,6 +90,38 @@ export interface CourierDocument {
   reviewed_at: string | null;
   expires_on: string | null;
   uploaded_at: string;
+}
+
+/** Documentos de quien pide afiliar un CEDI: de la persona y del local. */
+export type FacilityDocType =
+  | "cedula_frente"
+  | "cedula_reverso"
+  | "documento_local"
+  | "recibo_servicio_publico"
+  | "foto_local";
+
+export interface FacilityDocument {
+  id: string;
+  applicant_id: string;
+  doc_type: FacilityDocType;
+  file_path: string;
+  status: DocStatus;
+  review_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  uploaded_at: string;
+}
+
+/** Lo que arma at_list_solicitudes_cedi para el panel del admin. */
+export interface SolicitudCedi {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  business_name: string | null;
+  business_address: string | null;
+  proposed_city: string | null;
+  created_at: string;
+  documentos: FacilityDocument[];
 }
 
 export interface Client {

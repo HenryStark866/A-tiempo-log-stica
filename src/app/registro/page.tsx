@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
 
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
-type RequestedRole = "cliente" | "mensajero" | "operario";
+type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi";
 
 export default function RegisterPage() {
   const [requestedRole, setRequestedRole] = useState<RequestedRole>("cliente");
@@ -22,12 +22,16 @@ export default function RegisterPage() {
   const [businessName, setBusinessName] = useState("");
   const [businessNit, setBusinessNit] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
+  // Datos del local (solo CEDI afiliado): reutiliza businessName/businessAddress
+  // con otro rótulo — es el mismo dato, "nombre y dirección de la operación".
+  const [proposedCity, setProposedCity] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isClient = requestedRole === "cliente";
+  const isCedi = requestedRole === "admin_cedi";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +39,10 @@ export default function RegisterPage() {
 
     if (isClient && !businessType) {
       setError("Selecciona el tipo de negocio.");
+      return;
+    }
+    if (isCedi && (!businessName.trim() || !proposedCity.trim() || !businessAddress.trim())) {
+      setError("El nombre del CEDI, la ciudad y la dirección del local son obligatorios.");
       return;
     }
 
@@ -57,6 +65,13 @@ export default function RegisterPage() {
                 business_name: businessName,
                 business_nit: businessNit || null,
                 business_address: businessAddress || null,
+              }
+            : {}),
+          ...(isCedi
+            ? {
+                business_name: businessName,
+                business_address: businessAddress,
+                proposed_city: proposedCity,
               }
             : {}),
         },
@@ -96,7 +111,9 @@ export default function RegisterPage() {
               <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400">
                 {requestedRole === "operario"
                   ? "Administración verificará tus datos y aprobará tu acceso"
-                  : "Confirma tu correo y entras de una vez"}
+                  : isCedi
+                    ? "Sube los documentos de tu solicitud y espera la aprobación"
+                    : "Confirma tu correo y entras de una vez"}
               </p>
             </>
           )}
@@ -113,6 +130,11 @@ export default function RegisterPage() {
                   <>
                     . Como te registraste como personal de A Tiempo, un
                     administrador revisará tus datos y activará tu acceso.
+                  </>
+                ) : isCedi ? (
+                  <>
+                    . Ahí mismo entras a subir los documentos de tu solicitud —cédula y
+                    los del local—, y un administrador nacional la revisa y la aprueba.
                   </>
                 ) : (
                   <>
@@ -142,12 +164,13 @@ export default function RegisterPage() {
                 <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                   ¿Cómo te vas a registrar?
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {(
                     [
                       { value: "cliente", label: "Cliente e-commerce", icon: Store },
                       { value: "mensajero", label: "Mensajero", icon: Bike },
                       { value: "operario", label: "Personal ATL", icon: IdCard },
+                      { value: "admin_cedi", label: "CEDI afiliado", icon: Warehouse },
                     ] as { value: RequestedRole; label: string; icon: typeof Store }[]
                   ).map((opt) => {
                     const selected = requestedRole === opt.value;
@@ -284,6 +307,51 @@ export default function RegisterPage() {
                       />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Datos del CEDI que se quiere afiliar */}
+              {isCedi && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
+                    Datos del CEDI
+                  </p>
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                    <div className={fieldRow}>
+                      <label className={fieldLabel}>Nombre</label>
+                      <input
+                        required
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        className={fieldInput}
+                        placeholder="CEDI Cali Norte"
+                      />
+                    </div>
+                    <div className={fieldRow}>
+                      <label className={fieldLabel}>Ciudad</label>
+                      <input
+                        required
+                        value={proposedCity}
+                        onChange={(e) => setProposedCity(e.target.value)}
+                        className={fieldInput}
+                        placeholder="Cali"
+                      />
+                    </div>
+                    <div className={`${fieldRow} border-b-0`}>
+                      <label className={fieldLabel}>Local</label>
+                      <input
+                        required
+                        value={businessAddress}
+                        onChange={(e) => setBusinessAddress(e.target.value)}
+                        className={fieldInput}
+                        placeholder="Dirección de la bodega o local"
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-2 ml-1 text-[13px] text-slate-500 dark:text-slate-400">
+                    Al confirmar el correo entras a subir tu cédula y los papeles del local.
+                    Nada de esto opera hasta que A Tiempo lo apruebe.
+                  </p>
                 </div>
               )}
 

@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationsProvider } from "@/components/NotificationsContext";
+import { OfflineProvider } from "@/components/OfflineContext";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { ProfileProvider } from "@/components/ProfileContext";
 import { InstalarApp } from "@/components/InstalarApp";
 import { Reloj } from "@/components/Reloj";
@@ -163,6 +165,10 @@ export function AppShell({
       {/* Las dos campanas (teléfono y escritorio) leen de aquí: una sola
           consulta, un solo sondeo y una sola suscripción a Realtime. */}
       <NotificationsProvider userId={profile.id}>
+      {/* Una sola cola de acciones sin conexión para toda la app: el mensajero
+          en la calle, el CEDI en la bodega y el comercio con mal servicio
+          comparten el mismo mecanismo, ver src/lib/offline. */}
+      <OfflineProvider>
       <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col md:flex-row font-sans">
           
           {/* Top Header (Mobile Only) — al padding de arriba se le suma la zona
@@ -347,7 +353,12 @@ export function AppShell({
           {/* Se asoma una sola vez, cuando el navegador dice que se puede
               instalar, y se calla dos semanas si la cierran. */}
           <InstalarApp />
+
+          {/* Silencioso casi siempre: solo aparece sin conexión o con
+              trabajo esperando a subirse. */}
+          <OfflineBanner />
       </div>
+      </OfflineProvider>
       </NotificationsProvider>
     </ProfileProvider>
   );

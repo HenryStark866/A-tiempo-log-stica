@@ -5,10 +5,13 @@ import Link from "next/link";
 import { Camera, CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { useOffline } from "@/components/OfflineContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { PositionReporter } from "@/components/PositionReporter";
 import { formatCOP } from "@/lib/utils";
 import { uploadDeliveryEvidence } from "@/lib/evidence";
+import { esFalloDeRed } from "@/lib/offline/queue";
+import * as cache from "@/lib/offline/cache";
 import {
   NAV_HANDOFF_ENABLED,
   NAV_PROVIDER_LABELS,
@@ -20,9 +23,13 @@ import {
 } from "@/lib/nav";
 import type { Guide } from "@/lib/types";
 
+const CACHE_KEY = "entregas";
+
 export default function MyRoutePage() {
   const profile = useProfile();
+  const offline = useOffline();
   const [guides, setGuides] = useState<Guide[] | null>(null);
+  const [viendoCache, setViendoCache] = useState(false);
   const [modal, setModal] = useState<{ guide: Guide; action: "entregada" | "novedad" } | null>(null);
   const [note, setNote] = useState("");
   const [signatureName, setSignatureName] = useState("");
@@ -51,15 +58,32 @@ export default function MyRoutePage() {
   }
 
   const load = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("at_guides")
-      .select("*, at_clients(business_name), at_zones(name)")
-      .eq("courier_id", profile.id)
-      .in("status", ["zonificada", "en_ruta", "novedad"])
-      .order("status")
-      .order("updated_at");
-    setGuides((data as Guide[]) ?? []);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("at_guides")
+        .select("*, at_clients(business_name), at_zones(name)")
+        .eq("courier_id", profile.id)
+        .in("status", ["zonificada", "en_ruta", "novedad"])
+        .order("status")
+        .order("updated_at");
+      if (error) throw error;
+      const lista = (data as Guide[]) ?? [];
+      setGuides(lista);
+      setViendoCache(false);
+      cache.guardar(CACHE_KEY, lista);
+    } catch (err) {
+      // Sin señal: se muestra la última foto buena en vez de una pantalla
+      // vacía. No se toca si no hay nada guardado — mejor "cargando" que
+      // "no tienes nada" cuando lo que pasa es que no hay conexión.
+      if (esFalloDeRed(err)) {
+        const guardada = cache.leer<Guide[]>(CACHE_KEY);
+        if (guardada) {
+          setGuides(guardada);
+          setViendoCache(true);
+        }
+      }
+    }
   }, [profile.id]);
 
   useEffect(() => {
@@ -83,24 +107,45 @@ export default function MyRoutePage() {
     else w.close();
   }
 
-  async function startRoute(g: Guide) {
-    const w = openNavWindow();
-    setBusy(true);
-    setMsg(null);
+  /**
+   * Mueve una guía a "en_ruta" en el servidor y, si no hay señal para
+   * lograrlo, la mueve igual en pantalla (estado optimista) y deja la acción
+   * en cola para que suba sola. El mensajero no puede quedarse esperando
+   * señal parado en la puerta del destinatario.
+   */
+  async function marcarEnRuta(g: Guide): Promise<boolean> {
     const supabase = createClient();
     const { error } = await supabase.rpc("at_change_guide_status", {
       p_guide_id: g.id,
       p_new_status: "en_ruta",
       p_note: null,
     });
-    setBusy(false);
-    if (error) {
-      navigateTo(w, null);
+    if (!error) return true;
+    if (!esFalloDeRed(error)) {
       setMsg(error.message);
-    } else {
-      navigateTo(w, g);
+      return false;
     }
-    load();
+    await offline.encolar("iniciar_ruta", { guideId: g.id });
+    // Se guarda también en la caché: si `load()` se vuelve a llamar sin
+    // señal, tiene que leer este mismo cambio y no la foto de antes.
+    setGuides((prev) => {
+      const siguiente = (prev ?? []).map((x) =>
+        x.id === g.id ? { ...x, status: "en_ruta" as const } : x
+      );
+      cache.guardar(CACHE_KEY, siguiente);
+      return siguiente;
+    });
+    return true;
+  }
+
+  async function startRoute(g: Guide) {
+    const w = openNavWindow();
+    setBusy(true);
+    setMsg(null);
+    const ok = await marcarEnRuta(g);
+    setBusy(false);
+    navigateTo(w, ok ? g : null);
+    if (ok) load();
   }
 
   async function startFullRoute() {
@@ -108,16 +153,9 @@ export default function MyRoutePage() {
     const w = openNavWindow();
     setBusy(true);
     setMsg(null);
-    const supabase = createClient();
     let failed = false;
     for (const g of zonificadas) {
-      const { error } = await supabase.rpc("at_change_guide_status", {
-        p_guide_id: g.id,
-        p_new_status: "en_ruta",
-        p_note: null,
-      });
-      if (error) {
-        setMsg(error.message);
+      if (!(await marcarEnRuta(g))) {
         failed = true;
         break;
       }
@@ -125,6 +163,16 @@ export default function MyRoutePage() {
     setBusy(false);
     navigateTo(w, failed ? null : zonificadas[0]);
     load();
+  }
+
+  /** Aplica en pantalla el mismo cambio que acaba de quedar en cola: la
+      tarjeta se mueve de sección aunque no haya señal. */
+  function moverGuiaLocal(guideId: string, status: Guide["status"]) {
+    setGuides((prev) => {
+      const siguiente = (prev ?? []).map((x) => (x.id === guideId ? { ...x, status } : x));
+      cache.guardar(CACHE_KEY, siguiente);
+      return siguiente;
+    });
   }
 
   async function confirmModalAction() {
@@ -140,7 +188,17 @@ export default function MyRoutePage() {
         p_note: note || null,
       });
       setBusy(false);
-      if (error) setMsg(error.message);
+      if (error && !esFalloDeRed(error)) {
+        setMsg(error.message);
+        return;
+      }
+      if (error) {
+        await offline.encolar("reportar_novedad", {
+          guideId: modal.guide.id,
+          note: note || null,
+        });
+        moverGuiaLocal(modal.guide.id, "novedad");
+      }
       closeModal();
       load();
       return;
@@ -152,31 +210,67 @@ export default function MyRoutePage() {
     const w = next ? openNavWindow() : null;
     setBusy(true);
     setMsg(null);
+    const guideId = modal.guide.id;
+    const datosEntrega = {
+      signatureName: signatureName || null,
+      note: note || null,
+      deliveryCode: deliveryCode || null,
+    };
+
+    /** Sin señal desde el principio: ni vale la pena intentar subir la foto,
+        esperar a que el navegador confirme el fallo cuesta segundos reales
+        en la calle. */
+    if (!navigator.onLine) {
+      await offline.encolar("confirmar_entrega", {
+        guideId,
+        ...datosEntrega,
+        evidencia: evidenceFile ? { blob: evidenceFile, nombre: evidenceFile.name } : null,
+      });
+      moverGuiaLocal(guideId, "entregada");
+      navigateTo(w, next);
+      closeModal();
+      setBusy(false);
+      load();
+      return;
+    }
+
     try {
       let evidenceUrl: string | null = null;
       if (evidenceFile) {
         setUploading(true);
-        evidenceUrl = await uploadDeliveryEvidence(modal.guide.id, evidenceFile);
+        evidenceUrl = await uploadDeliveryEvidence(guideId, evidenceFile);
         setUploading(false);
       }
       const supabase = createClient();
       const { error } = await supabase.rpc("at_confirm_delivery", {
-        p_guide_id: modal.guide.id,
+        p_guide_id: guideId,
         p_evidence_url: evidenceUrl,
-        p_signature_name: signatureName || null,
-        p_note: note || null,
-        p_delivery_code: deliveryCode || null,
+        p_signature_name: datosEntrega.signatureName,
+        p_note: datosEntrega.note,
+        p_delivery_code: datosEntrega.deliveryCode,
       });
-      if (error) {
-        navigateTo(w, null);
-        setMsg(error.message);
-      } else {
+      if (error) throw error;
+      navigateTo(w, next);
+      closeModal();
+    } catch (err) {
+      setUploading(false);
+      if (esFalloDeRed(err)) {
+        // La señal se fue a mitad de camino (subiendo la foto o llamando al
+        // RPC): se encola con el archivo original, sin importar si la subida
+        // alcanzó a completarse — repetirla no rompe nada, solo deja un
+        // archivo huérfano en el peor de los casos.
+        await offline.encolar("confirmar_entrega", {
+          guideId,
+          ...datosEntrega,
+          evidencia: evidenceFile ? { blob: evidenceFile, nombre: evidenceFile.name } : null,
+        });
+        moverGuiaLocal(guideId, "entregada");
         navigateTo(w, next);
         closeModal();
+      } else {
+        navigateTo(w, null);
+        setMsg(err instanceof Error ? err.message : "No se pudo subir la evidencia");
       }
-    } catch (err) {
-      navigateTo(w, null);
-      setMsg(err instanceof Error ? err.message : "No se pudo subir la evidencia");
     } finally {
       setUploading(false);
       setBusy(false);
@@ -193,6 +287,14 @@ export default function MyRoutePage() {
           Fase 4: gestión de ruta en última milla — tu carga digital del día
         </p>
       </div>
+
+      {viendoCache && (
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+          <p className="text-[13px] font-medium text-amber-800 dark:text-amber-400">
+            Sin conexión: esta es tu última ruta cargada. Puedes seguir marcando entregas, se sincronizan solas.
+          </p>
+        </div>
+      )}
 
       {/* Ubicación en vivo para que el comercio pueda seguir su paquete */}
       <PositionReporter />

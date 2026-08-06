@@ -7,9 +7,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
+import { useOffline } from "@/components/OfflineContext";
 import { RecogidaQR, ImprimirQR } from "@/components/RecogidaQR";
 import { FiltroActivo, Loading } from "@/components/ui";
 import { PICKUP_STATUS_LABELS } from "@/lib/constants";
+import { esFalloDeRed } from "@/lib/offline/queue";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { hoyEnColombia } from "@/lib/tiempo";
 import type { Client, Pickup, PickupStatus, Guide, Profile } from "@/lib/types";
@@ -81,6 +83,7 @@ function Pickups() {
   const estadoFiltro = params.get("estado") as PickupStatus | null;
   // La recogida siempre la solicita un comercio: si es un cliente, se autoaprovisiona.
   const { client: miComercio, clientId, loading: cargandoComercio } = useMyClient();
+  const offline = useOffline();
 
   const [pickups, setPickups] = useState<Pickup[] | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
@@ -90,6 +93,9 @@ function Pickups() {
   const [showNew, setShowNew] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Se avisó "sin señal, quedó en cola": no es un error, así que no comparte
+  // el banner rojo de `error`, pero tampoco puede desaparecer sin decir nada.
+  const [msgEnCola, setMsgEnCola] = useState(false);
   // Recogida cuyo QR se está mirando o imprimiendo.
   const [qrDe, setQrDe] = useState<Pickup | null>(null);
 
@@ -206,9 +212,7 @@ function Pickups() {
     setError(null);
     const supabase = createClient();
 
-    // Pasa por RPC: enlazar guías a la recogida requiere update sobre at_guides,
-    // que la política "ops edita guías" no permite al cliente.
-    const { error } = await supabase.rpc("at_request_pickup", {
+    const args = {
       // El cliente no puede suplantar: la RPC ignora este valor si el rol es cliente.
       p_client_id: form.client_id || null,
       p_scheduled_date: form.scheduled_date,
@@ -218,9 +222,25 @@ function Pickups() {
       p_contact_phone: form.contact_phone || null,
       p_notes: form.notes || null,
       p_guide_ids: Array.from(seleccionadas),
-    });
+    };
+
+    // Pasa por RPC: enlazar guías a la recogida requiere update sobre at_guides,
+    // que la política "ops edita guías" no permite al cliente.
+    const { error } = await supabase.rpc("at_request_pickup", args);
 
     setBusy(false);
+
+    if (error && esFalloDeRed(error)) {
+      // Sin señal: la solicitud queda en cola. No hay QR del lote que mostrar
+      // todavía —lo genera el servidor al crearla— así que solo se avisa.
+      await offline.encolar("solicitar_recogida", { args });
+      setShowNew(false);
+      setSeleccionadas(new Set());
+      setError(null);
+      setMsgEnCola(true);
+      return;
+    }
+
     if (error) {
       setError(error.message);
       return;
@@ -438,6 +458,14 @@ function Pickups() {
 
   return (
     <div className="pb-10 space-y-6 font-sans">
+      {msgEnCola && (
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+          <p className="text-[14px] font-medium text-amber-800 dark:text-amber-400">
+            Guardamos tu solicitud sin conexión. En cuanto vuelva la señal se envía sola al CEDI.
+          </p>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex flex-col">

@@ -5,10 +5,13 @@ import Link from "next/link";
 import { ScanBarcode, Undo2, Loader2, Package, SearchX, Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { useOffline } from "@/components/OfflineContext";
 import { CediDestino } from "@/components/CediDestino";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EscanerQR } from "@/components/EscanerQR";
 import { MARCA } from "@/lib/marca";
+import { esFalloDeRed } from "@/lib/offline/queue";
+import * as cache from "@/lib/offline/cache";
 import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
 
@@ -33,6 +36,7 @@ function tokenDeRecogida(texto: string): string | null {
 
 export default function CediPage() {
   const profile = useProfile();
+  const offline = useOffline();
   const [incoming, setIncoming] = useState<Guide[] | null>(null);
   const [returns, setReturns] = useState<Guide[] | null>(null);
   const [scan, setScan] = useState("");
@@ -42,21 +46,35 @@ export default function CediPage() {
 
   const load = useCallback(async () => {
     if (!ROLES_CEDI.includes(profile.role)) return;
-    const supabase = createClient();
-    const [{ data: inc }, { data: ret }] = await Promise.all([
-      supabase
-        .from("at_guides")
-        .select("*, at_clients(business_name)")
-        .eq("status", "recogida")
-        .order("picked_up_at"),
-      supabase
-        .from("at_guides")
-        .select("*, at_clients(business_name)")
-        .eq("status", "novedad")
-        .order("updated_at"),
-    ]);
-    setIncoming((inc as Guide[]) ?? []);
-    setReturns((ret as Guide[]) ?? []);
+    try {
+      const supabase = createClient();
+      const [{ data: inc, error: e1 }, { data: ret, error: e2 }] = await Promise.all([
+        supabase
+          .from("at_guides")
+          .select("*, at_clients(business_name)")
+          .eq("status", "recogida")
+          .order("picked_up_at"),
+        supabase
+          .from("at_guides")
+          .select("*, at_clients(business_name)")
+          .eq("status", "novedad")
+          .order("updated_at"),
+      ]);
+      if (e1 || e2) throw e1 ?? e2;
+      const inLista = (inc as Guide[]) ?? [];
+      const retLista = (ret as Guide[]) ?? [];
+      setIncoming(inLista);
+      setReturns(retLista);
+      cache.guardar("cedi-incoming", inLista);
+      cache.guardar("cedi-returns", retLista);
+    } catch (err) {
+      if (esFalloDeRed(err)) {
+        const inGuardada = cache.leer<Guide[]>("cedi-incoming");
+        const retGuardada = cache.leer<Guide[]>("cedi-returns");
+        if (inGuardada) setIncoming(inGuardada);
+        if (retGuardada) setReturns(retGuardada);
+      }
+    }
   }, [profile.role]);
 
   useEffect(() => {
@@ -73,6 +91,19 @@ export default function CediPage() {
       p_note: "Escaneo de recepción en bodega",
     });
     setBusy(false);
+
+    if (error && esFalloDeRed(error)) {
+      await offline.encolar("recibir_guia", { guideId, guideNumber });
+      // Sale de "pendientes de ingreso" en pantalla: el operario sigue
+      // escaneando la fila sin que la misma guía le vuelva a aparecer.
+      setIncoming((prev) => (prev ?? []).filter((g) => g.id !== guideId));
+      setMsg({
+        ok: true,
+        text: `${guideNumber} en cola, sin señal — se recibe sola al volver la conexión`,
+      });
+      return;
+    }
+
     setMsg(
       error
         ? { ok: false, text: error.message }
@@ -99,6 +130,18 @@ export default function CediPage() {
       setBusy(false);
 
       if (error) {
+        if (esFalloDeRed(error)) {
+          // Aquí no se puede aplicar el mismo truco optimista que con una
+          // guía suelta: cuántas trae el lote y cuáles ya estaban solo lo
+          // sabe el servidor. Se encola tal cual y el operario se entera del
+          // detalle real cuando vuelva la señal y la cola procese sola.
+          await offline.encolar("recibir_lote", { token });
+          setMsg({
+            ok: true,
+            text: "Lote en cola, sin señal — se recibe solo al volver la conexión",
+          });
+          return;
+        }
         setMsg({ ok: false, text: error.message });
         return;
       }
@@ -133,7 +176,7 @@ export default function CediPage() {
       }
       load();
     },
-    [load]
+    [load, offline]
   );
 
   /**

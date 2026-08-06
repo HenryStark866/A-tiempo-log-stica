@@ -27,8 +27,10 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
+import { useOffline } from "@/components/OfflineContext";
 import { PriceList } from "@/components/PriceList";
 import { PACKAGE_SIZES, PACKAGE_TYPES } from "@/lib/constants";
+import { esFalloDeRed } from "@/lib/offline/queue";
 import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
 import type {
@@ -60,6 +62,7 @@ export default function NewGuidePage() {
   const esCliente = profile.role === "cliente";
   // Autoaprovisiona el comercio: una cuenta cliente nunca queda bloqueada.
   const { client: miComercio, clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
+  const offline = useOffline();
 
   const [clients, setClients] = useState<Client[] | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
@@ -280,34 +283,41 @@ export default function NewGuidePage() {
 
     setSaving(true);
     const supabase = createClient();
-    const { data, error } = await supabase
-      .from("at_guides")
-      .insert({
-        client_id: form.client_id,
-        recipient_name: form.recipient_name,
-        recipient_phone: form.recipient_phone || null,
-        recipient_address: form.recipient_address,
-        recipient_city: form.recipient_city,
-        zone_id: form.zone_id || null,
-        is_cod: form.is_cod,
-        cod_amount: form.is_cod ? Number(form.cod_amount) || 0 : 0,
-        // Lo que vale la mercancía, se cobre o no contraentrega: es el dato
-        // que importa en un reclamo por pérdida o avería.
-        declared_value: totalContenido,
-        items,
-        content_description: form.content_description.trim() || null,
-        package_type: form.package_type || null,
-        package_size: form.package_size || null,
-        // Un "0" escrito en el campo es una cadena con valor, pero la base
-        // exige peso > 0: se guarda como «no lo sé», que es lo que significa.
-        package_weight_kg:
-          Number(form.package_weight_kg) > 0 ? Number(form.package_weight_kg) : null,
-        is_fragile: form.is_fragile,
-        notes: form.notes || null,
-        created_by: profile.id,
-      })
-      .select("id")
-      .single();
+    const fila = {
+      client_id: form.client_id,
+      recipient_name: form.recipient_name,
+      recipient_phone: form.recipient_phone || null,
+      recipient_address: form.recipient_address,
+      recipient_city: form.recipient_city,
+      zone_id: form.zone_id || null,
+      is_cod: form.is_cod,
+      cod_amount: form.is_cod ? Number(form.cod_amount) || 0 : 0,
+      // Lo que vale la mercancía, se cobre o no contraentrega: es el dato
+      // que importa en un reclamo por pérdida o avería.
+      declared_value: totalContenido,
+      items,
+      content_description: form.content_description.trim() || null,
+      package_type: form.package_type || null,
+      package_size: form.package_size || null,
+      // Un "0" escrito en el campo es una cadena con valor, pero la base
+      // exige peso > 0: se guarda como «no lo sé», que es lo que significa.
+      package_weight_kg:
+        Number(form.package_weight_kg) > 0 ? Number(form.package_weight_kg) : null,
+      is_fragile: form.is_fragile,
+      notes: form.notes || null,
+      created_by: profile.id,
+    };
+    const { data, error } = await supabase.from("at_guides").insert(fila).select("id").single();
+
+    if (error && esFalloDeRed(error)) {
+      // Sin señal: la guía queda en cola y sube sola. No hay `id` que dar
+      // hasta que el servidor la cree, así que no hay detalle al que ir —
+      // se vuelve al listado, que es donde aparecerá cuando se sincronice.
+      await offline.encolar("crear_guia", { fila });
+      setSaving(false);
+      router.push("/guias?creada=en-cola");
+      return;
+    }
 
     if (error || !data) {
       setError(error?.message ?? "No se pudo crear la guía");

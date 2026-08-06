@@ -60,6 +60,9 @@ function Guides() {
   const creadasHoy = params.get("creadas") === "hoy";
   const entregadasHoy = params.get("entregadas") === "hoy";
   const codPendiente = params.get("cod") === "pendiente";
+  // La guía se creó sin señal: todavía no existe en el servidor, así que no
+  // va a aparecer en esta lista hasta que la cola la suba sola.
+  const creadaEnCola = params.get("creada") === "en-cola";
 
   const [guides, setGuides] = useState<Guide[] | null>(null);
   const [query, setQuery] = useState("");
@@ -130,6 +133,14 @@ function Guides() {
 
   return (
     <div className="pb-10 space-y-6 font-sans">
+      {creadaEnCola && (
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+          <p className="text-[14px] font-medium text-amber-800 dark:text-amber-400">
+            Guardamos tu guía sin conexión. En cuanto vuelva la señal se crea sola y aparece aquí.
+          </p>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex flex-col">

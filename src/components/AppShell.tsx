@@ -78,9 +78,7 @@ const NAV: NavItem[] = [
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
   // El operario coordina el CEDI: necesita ver dónde va cada mensajero para
   // saber a quién le cabe el siguiente lote y a quién llamar si se atrasa.
-  // admin_cedi no entra aquí todavía: /seguimiento usa at_my_shipments, que
-  // aún no distingue CEDIs — ofrecerlo hoy le mostraría envíos ajenos.
-  { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario"] },
+  { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario", "admin_cedi"] },
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },

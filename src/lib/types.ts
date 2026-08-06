@@ -101,6 +101,11 @@ export interface Client {
   logo_url: string | null;
   /** El comercio autorizó que su marca salga en la portada. */
   show_in_landing: boolean;
+  /** Presencia en línea del comercio: todos opcionales, los edita él mismo. */
+  website_url: string | null;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  tiktok_url: string | null;
 }
 
 export interface Zone {

@@ -5,7 +5,11 @@ import {
   Building2,
   Check,
   CircleCheck,
+  Facebook,
+  Globe,
+  Instagram,
   Loader2,
+  Music2,
   Pencil,
   Plus,
   Sparkles,
@@ -37,6 +41,8 @@ const MEDIO_VACIO = {
   instructions: "",
 };
 
+const ENLACES_VACIO = { website_url: "", instagram_url: "", facebook_url: "", tiktok_url: "" };
+
 export default function MiComercioPage() {
   const { client, clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
 
@@ -59,6 +65,14 @@ export default function MiComercioPage() {
     show_in_landing: false,
   });
 
+  // Sitio web y redes: sección aparte del negocio, con su propio botón de
+  // guardar. No comparte formulario con "Datos del negocio" porque no tienen
+  // nada que ver — uno es facturación, esto es dónde te encuentran en internet.
+  const [enlaces, setEnlaces] = useState({ ...ENLACES_VACIO });
+  const [guardandoEnlaces, setGuardandoEnlaces] = useState(false);
+  const [enlacesOk, setEnlacesOk] = useState(false);
+  const [enlacesError, setEnlacesError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!client) return;
     setMarca({
@@ -71,6 +85,12 @@ export default function MiComercioPage() {
       address: client.address ?? "",
       phone: client.phone ?? "",
       contact_name: client.contact_name ?? "",
+    });
+    setEnlaces({
+      website_url: client.website_url ?? "",
+      instagram_url: client.instagram_url ?? "",
+      facebook_url: client.facebook_url ?? "",
+      tiktok_url: client.tiktok_url ?? "",
     });
   }, [client]);
 
@@ -112,6 +132,43 @@ export default function MiComercioPage() {
     }
     setNegocioOk(true);
     setTimeout(() => setNegocioOk(false), 2500);
+  }
+
+  /**
+   * Los cuatro campos son texto libre en la base: se valida el formato en el
+   * cliente para avisar rápido, pero la RPC lo vuelve a exigir del lado del
+   * servidor, que es el que de verdad protege el dato.
+   */
+  function linkInvalido(v: string) {
+    return v.trim() !== "" && !/^https?:\/\//i.test(v.trim());
+  }
+
+  async function guardarEnlaces(e: React.FormEvent) {
+    e.preventDefault();
+    setEnlacesError(null);
+    setEnlacesOk(false);
+
+    const invalido = Object.entries(enlaces).find(([, v]) => linkInvalido(v));
+    if (invalido) {
+      setEnlacesError("Los links deben empezar por http:// o https://");
+      return;
+    }
+
+    setGuardandoEnlaces(true);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_update_my_links", {
+      p_website_url: enlaces.website_url.trim() || null,
+      p_instagram_url: enlaces.instagram_url.trim() || null,
+      p_facebook_url: enlaces.facebook_url.trim() || null,
+      p_tiktok_url: enlaces.tiktok_url.trim() || null,
+    });
+    setGuardandoEnlaces(false);
+    if (error) {
+      setEnlacesError(error.message);
+      return;
+    }
+    setEnlacesOk(true);
+    setTimeout(() => setEnlacesOk(false), 2500);
   }
 
   function abrirNuevoMedio() {
@@ -335,12 +392,87 @@ export default function MiComercioPage() {
         />
       </section>
 
-      {/* ── Tienda conectada ── */}
+      {/* ── Tu tienda en línea: dónde te encuentran en internet ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-3 ml-1">
+          <Globe className="w-4 h-4 text-slate-400" />
+          <h2 className="text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Tu tienda en línea
+          </h2>
+        </div>
+        <p className="mb-3 ml-1 text-[14px] leading-relaxed text-slate-500 dark:text-slate-400">
+          El link de tu página web y de tus redes, para quien te busque desde el rastreo de su guía.
+        </p>
+
+        <form onSubmit={guardarEnlaces}>
+          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+            <div className={fieldRow}>
+              <Globe className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
+              <input
+                type="url"
+                value={enlaces.website_url}
+                onChange={(e) => setEnlaces((v) => ({ ...v, website_url: e.target.value }))}
+                placeholder="https://tu-pagina.com"
+                className={fieldInput}
+              />
+            </div>
+            <div className={fieldRow}>
+              <Instagram className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
+              <input
+                type="url"
+                value={enlaces.instagram_url}
+                onChange={(e) => setEnlaces((v) => ({ ...v, instagram_url: e.target.value }))}
+                placeholder="https://instagram.com/tu-comercio"
+                className={fieldInput}
+              />
+            </div>
+            <div className={fieldRow}>
+              <Facebook className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
+              <input
+                type="url"
+                value={enlaces.facebook_url}
+                onChange={(e) => setEnlaces((v) => ({ ...v, facebook_url: e.target.value }))}
+                placeholder="https://facebook.com/tu-comercio"
+                className={fieldInput}
+              />
+            </div>
+            <div className={`${fieldRow} border-b-0`}>
+              <Music2 className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
+              <input
+                type="url"
+                value={enlaces.tiktok_url}
+                onChange={(e) => setEnlaces((v) => ({ ...v, tiktok_url: e.target.value }))}
+                placeholder="https://tiktok.com/@tu-comercio"
+                className={fieldInput}
+              />
+            </div>
+          </div>
+
+          {enlacesError && (
+            <p className="mt-3 text-[14px] text-rose-600 dark:text-rose-400">{enlacesError}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={guardandoEnlaces}
+            className="mt-4 inline-flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl px-6 min-h-[48px] disabled:opacity-60"
+          >
+            {guardandoEnlaces ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : enlacesOk ? (
+              <CircleCheck className="w-5 h-5" />
+            ) : null}
+            <span>{enlacesOk ? "Guardado" : "Guardar enlaces"}</span>
+          </button>
+        </form>
+      </section>
+
+      {/* ── Trae tu tienda de Shopify: se sincroniza sola ── */}
       <section>
         <div className="flex items-center gap-2 mb-3 ml-1">
           <Store className="w-4 h-4 text-slate-400" />
           <h2 className="text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Tu tienda en línea
+            Trae tu tienda de Shopify
           </h2>
         </div>
         <ShopifyConnect />

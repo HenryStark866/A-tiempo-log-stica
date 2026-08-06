@@ -16,3 +16,16 @@ export { formatDate, formatDateTime, formatHora } from "./tiempo";
 export function cn(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+
+/**
+ * Minúsculas y sin tildes, para comparar como lo hace quien escribe rápido en
+ * un teléfono. Quien busca «aji» tiene que encontrar «Ají» igual que quien
+ * busca «ají»: nadie debería quedarse sin resultados por no haber mantenido
+ * presionada la tecla del acento.
+ */
+export function normalizarBusqueda(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}

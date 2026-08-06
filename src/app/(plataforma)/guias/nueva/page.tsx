@@ -20,7 +20,6 @@ import {
   Tag,
   Plus,
   Minus,
-  Trash2,
   Boxes,
   Scale,
   TriangleAlert,
@@ -30,7 +29,7 @@ import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { PriceList } from "@/components/PriceList";
 import { PACKAGE_SIZES, PACKAGE_TYPES } from "@/lib/constants";
-import { formatCOP, cn } from "@/lib/utils";
+import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
 import type {
   Client,
@@ -212,52 +211,39 @@ export default function NewGuidePage() {
   const unidades = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
 
   const catalogoFiltrado = useMemo(() => {
-    const s = buscadorProducto.trim().toLowerCase();
+    const s = normalizarBusqueda(buscadorProducto.trim());
     if (!s) return products;
     return products.filter(
       (p) =>
-        p.name.toLowerCase().includes(s) ||
-        (p.sku ?? "").toLowerCase().includes(s) ||
-        (p.description ?? "").toLowerCase().includes(s)
+        normalizarBusqueda(p.name).includes(s) ||
+        normalizarBusqueda(p.sku ?? "").includes(s) ||
+        normalizarBusqueda(p.description ?? "").includes(s)
     );
   }, [products, buscadorProducto]);
 
   /**
-   * Agregar el mismo producto dos veces no lo duplica en la lista: le sube la
-   * cantidad. Es lo que espera cualquiera que haya usado un carrito, y evita
-   * un rótulo con «Vestido flores» repetido cuatro veces.
+   * Sube o baja la cantidad de un producto del catálogo, lo agregue o lo
+   * quite de la lista según haga falta. El control de cantidad vive en la
+   * misma tarjeta donde se elige el producto, no en una lista aparte más
+   * abajo a la que había que bajar la vista cada vez: elegir y ajustar
+   * cantidad eran dos pasos en dos sitios, ahora es uno solo.
    */
-  function agregarProducto(p: Product) {
+  function cambiarCantidadProducto(p: Product, delta: number) {
     setItems((lista) => {
       const i = lista.findIndex((x) => x.product_id === p.id);
       if (i === -1) {
+        if (delta <= 0) return lista;
         return [
           ...lista,
-          {
-            product_id: p.id,
-            name: p.name,
-            sku: p.sku,
-            qty: 1,
-            unit_price: Number(p.price) || 0,
-          },
+          { product_id: p.id, name: p.name, sku: p.sku, qty: 1, unit_price: Number(p.price) || 0 },
         ];
       }
+      const nuevaQty = lista[i].qty + delta;
+      if (nuevaQty <= 0) return lista.filter((_, idx) => idx !== i);
       const copia = [...lista];
-      copia[i] = { ...copia[i], qty: copia[i].qty + 1 };
+      copia[i] = { ...copia[i], qty: nuevaQty };
       return copia;
     });
-  }
-
-  function cambiarCantidad(indice: number, delta: number) {
-    setItems((lista) =>
-      lista
-        .map((it, i) => (i === indice ? { ...it, qty: it.qty + delta } : it))
-        .filter((it) => it.qty > 0)
-    );
-  }
-
-  function quitarItem(indice: number) {
-    setItems((lista) => lista.filter((_, i) => i !== indice));
   }
 
   // El valor a recaudar sigue al contenido mientras nadie lo escriba a mano.
@@ -435,8 +421,18 @@ export default function NewGuidePage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Contenido del paquete: el catálogo arriba, y lo que se va
-              agregando baja a la lista de abajo. */}
+          {/*
+            Contenido del paquete.
+
+            Antes esto eran dos listas: arriba el catálogo con un botón
+            «Agregar», abajo una lista aparte donde recién se podía subir o
+            bajar la cantidad. Elegir y ajustar cantidad eran dos pasos en dos
+            sitios distintos de la pantalla. Ahora cada tarjeta del catálogo
+            ES el control de cantidad: sin nada elegido muestra «Agregar»: un
+            toque y ya, y en cuanto tiene una unidad se convierte en el
+            contador -/+ ahí mismo, sin bajar la vista a buscarlo en otra
+            lista.
+          */}
           <section>
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2 flex items-center gap-1.5">
               <Boxes className="w-3.5 h-3.5 text-[#ff812c]" />
@@ -445,11 +441,11 @@ export default function NewGuidePage() {
             <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
 
               {products.length > 0 ? (
-                <div className="p-4 space-y-3 border-b border-gray-100 dark:border-gray-800">
+                <div className="p-4 space-y-3">
                   <div className="flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
                     <Tag className="w-3.5 h-3.5 text-[#ff812c] shrink-0" />
                     <span>
-                      Tu catálogo ({products.length}). Toca <strong className="text-slate-700 dark:text-slate-300">Agregar</strong> y baja a la lista.
+                      Tu catálogo ({products.length}). Ajusta la cantidad directo en cada producto.
                     </span>
                   </div>
 
@@ -482,15 +478,16 @@ export default function NewGuidePage() {
                       Ningún producto coincide con «{buscadorProducto}».
                     </p>
                   ) : (
-                    <div className="grid gap-2 sm:grid-cols-2 max-h-64 overflow-y-auto pr-1">
+                    <div className="grid gap-2 sm:grid-cols-2 max-h-80 overflow-y-auto pr-1">
                       {catalogoFiltrado.map((p) => {
-                        const yaVan = items.find((i) => i.product_id === p.id)?.qty ?? 0;
+                        const it = items.find((i) => i.product_id === p.id);
+                        const qty = it?.qty ?? 0;
                         return (
                           <div
                             key={p.id}
                             className={cn(
                               "flex flex-col rounded-xl border p-3 transition-colors",
-                              yaVan > 0
+                              qty > 0
                                 ? "border-[#ff812c] bg-[#ff812c]/5"
                                 : "border-slate-200 dark:border-slate-700 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50"
                             )}
@@ -513,14 +510,39 @@ export default function NewGuidePage() {
                                 {p.description}
                               </p>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => agregarProducto(p)}
-                              className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#ff812c] min-h-[38px] text-[13px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
-                            >
-                              <Plus className="w-4 h-4" />
-                              {yaVan > 0 ? `Agregar otro (van ${yaVan})` : "Agregar"}
-                            </button>
+
+                            {qty === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => cambiarCantidadProducto(p, 1)}
+                                className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#ff812c] min-h-[38px] text-[13px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Agregar
+                              </button>
+                            ) : (
+                              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1">
+                                <button
+                                  type="button"
+                                  onClick={() => cambiarCantidadProducto(p, -1)}
+                                  aria-label={`Una ${p.name} menos`}
+                                  className="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                                <span className="flex-1 text-center text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
+                                  {qty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => cambiarCantidadProducto(p, 1)}
+                                  aria-label={`Una ${p.name} más`}
+                                  className="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -528,7 +550,7 @@ export default function NewGuidePage() {
                   )}
                 </div>
               ) : (
-                <div className="px-4 py-4 space-y-3 border-b border-gray-100 dark:border-gray-800">
+                <div className="px-4 py-4 space-y-3">
                   <p className="text-[14px] text-slate-500 dark:text-slate-400">
                     Todavía no tienes catálogo. Puedes describir el contenido a mano más
                     abajo, o cargarlo una vez y elegirlo con un toque en cada guía.
@@ -542,75 +564,18 @@ export default function NewGuidePage() {
                 </div>
               )}
 
-              {/* La lista. Aquí es donde «bajan» los productos agregados. */}
-              {items.length === 0 ? (
-                <p className="px-4 py-5 text-center text-[14px] text-slate-400 dark:text-slate-500">
-                  Nada agregado todavía. Este paquete puede ir sin detalle.
-                </p>
-              ) : (
-                <>
-                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {items.map((it, i) => (
-                      <li key={`${it.product_id ?? "libre"}-${i}`} className="px-4 py-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                              {it.name}
-                            </p>
-                            <p className="mt-0.5 text-[12px] text-slate-500 dark:text-slate-400">
-                              {it.sku && <span className="font-mono">SKU {it.sku} · </span>}
-                              {formatCOP(it.unit_price)} c/u
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => quitarItem(i)}
-                            aria-label={`Quitar ${it.name}`}
-                            className="w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="mt-2 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-1 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1">
-                            <button
-                              type="button"
-                              onClick={() => cambiarCantidad(i, -1)}
-                              aria-label="Una menos"
-                              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <span className="w-8 text-center text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
-                              {it.qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => cambiarCantidad(i, 1)}
-                              aria-label="Una más"
-                              className="w-9 h-9 inline-flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 active:scale-95 transition-transform"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <p className="text-[16px] font-bold text-slate-900 dark:text-white tabular-nums">
-                            {formatCOP(it.unit_price * it.qty)}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="flex items-center justify-between gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3">
-                    <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400">
-                      {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
-                    </p>
-                    <p className="text-[18px] font-bold text-slate-900 dark:text-white tabular-nums">
-                      {formatCOP(totalContenido)}
-                    </p>
-                  </div>
-                </>
+              {/* Resumen del pedido. Ya no hay una segunda lista que repita lo
+                  que la cuadrícula de arriba muestra: solo el total, que es lo
+                  único que no se ve de un vistazo ahí arriba. */}
+              {items.length > 0 && (
+                <div className="flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-800 bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3">
+                  <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400">
+                    {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
+                  </p>
+                  <p className="text-[18px] font-bold text-slate-900 dark:text-white tabular-nums">
+                    {formatCOP(totalContenido)}
+                  </p>
+                </div>
               )}
             </div>
           </section>

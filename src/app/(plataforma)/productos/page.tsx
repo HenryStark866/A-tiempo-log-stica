@@ -27,7 +27,7 @@ import {
   type CsvRow,
   type ProductField,
 } from "@/lib/csv";
-import { formatCOP, cn } from "@/lib/utils";
+import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
 import type { Product, SyncRecipientsResult } from "@/lib/types";
 
 const CHUNK = 400;
@@ -248,13 +248,13 @@ export default function ProductsPage() {
   }
 
   const filtrados = useMemo(() => {
-    const s = query.trim().toLowerCase();
+    const s = normalizarBusqueda(query.trim());
     const base = (products ?? []).filter((p) => {
       if (!s) return true;
       return (
-        p.name.toLowerCase().includes(s) ||
-        (p.sku ?? "").toLowerCase().includes(s) ||
-        (p.description ?? "").toLowerCase().includes(s)
+        normalizarBusqueda(p.name).includes(s) ||
+        normalizarBusqueda(p.sku ?? "").includes(s) ||
+        normalizarBusqueda(p.description ?? "").includes(s)
       );
     });
     if (recienAgregados.length === 0) return base;

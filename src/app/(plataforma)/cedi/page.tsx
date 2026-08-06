@@ -15,7 +15,7 @@ import * as cache from "@/lib/offline/cache";
 import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
 
-const ROLES_CEDI = ["admin", "coordinador", "operario"];
+const ROLES_CEDI = ["admin", "coordinador", "operario", "admin_cedi"];
 
 /**
  * Saca el código del lote de lo que sea que haya entrado por el campo.

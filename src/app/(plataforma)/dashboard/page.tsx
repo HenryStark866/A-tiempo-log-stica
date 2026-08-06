@@ -62,10 +62,10 @@ const BAR_COLORS: Record<GuideStatus, string> = {
  * tarjeta se pinta igual pero sin enlace.
  */
 const ALCANCE: Record<string, Role[]> = {
-  guias: ["admin", "coordinador", "operario", "cliente"],
-  recogidas: ["admin", "coordinador", "operario", "cliente"],
-  mapa: ["admin", "coordinador", "operario"],
-  recaudo: ["admin", "coordinador", "mensajero"],
+  guias: ["admin", "coordinador", "operario", "cliente", "admin_cedi"],
+  recogidas: ["admin", "coordinador", "operario", "cliente", "admin_cedi"],
+  mapa: ["admin", "coordinador", "operario", "admin_cedi"],
+  recaudo: ["admin", "coordinador", "mensajero", "admin_cedi"],
 };
 
 /**

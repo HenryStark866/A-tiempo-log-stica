@@ -130,7 +130,7 @@ export default function DeliveryCodesPage() {
     else load();
   }
 
-  if (!["admin", "coordinador", "operario"].includes(profile.role)) {
+  if (!["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role)) {
     return (
       <>
         <PageHeader title="Códigos de entrega" />

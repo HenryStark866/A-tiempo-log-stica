@@ -66,18 +66,20 @@ interface NavItem {
  * cuenta, y la base valida otra vez en RLS y en los RPC.
  */
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Mi panel", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente"] },
-  { href: "/guias", label: "Guías", icon: Package, roles: ["admin", "coordinador", "operario", "cliente"] },
-  { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente"] },
-  { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario"] },
-  { href: "/mapa", label: "Mapa", icon: Map, roles: ["admin", "coordinador", "operario"] },
-  { href: "/codigos", label: "Códigos", icon: KeyRound, roles: ["admin", "coordinador", "operario"] },
+  { href: "/dashboard", label: "Mi panel", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi"] },
+  { href: "/guias", label: "Guías", icon: Package, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi"] },
+  { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi"] },
+  { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
+  { href: "/mapa", label: "Mapa", icon: Map, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
+  { href: "/codigos", label: "Códigos", icon: KeyRound, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
   // El mensajero ya no entra aquí: Ruteo pasó a ser el tablero de despacho del
   // CEDI. Su ruta del día la ve en /entregas.
-  { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario"] },
-  { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario"] },
+  { href: "/rutas", label: "Ruteo", icon: Route, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
+  { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
   // El operario coordina el CEDI: necesita ver dónde va cada mensajero para
   // saber a quién le cabe el siguiente lote y a quién llamar si se atrasa.
+  // admin_cedi no entra aquí todavía: /seguimiento usa at_my_shipments, que
+  // aún no distingue CEDIs — ofrecerlo hoy le mostraría envíos ajenos.
   { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario"] },
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
@@ -85,12 +87,16 @@ const NAV: NavItem[] = [
   { href: "/conductor/recogida", label: "Mis recogidas", icon: PackageOpen, roles: ["mensajero"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["mensajero"] },
-  { href: "/mensajeros", label: "Mensajeros", icon: BadgeCheck, roles: ["admin", "coordinador"] },
-  { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero"] },
+  { href: "/mensajeros", label: "Mensajeros", icon: BadgeCheck, roles: ["admin", "coordinador", "admin_cedi"] },
+  { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero", "admin_cedi"] },
+  // El comercio lo capta y factura A Tiempo a nivel nacional (decisión de
+  // negocio): admin_cedi no entra aquí ni a /clientes, esos siguen siendo
+  // del personal nacional.
   { href: "/facturacion", label: "Facturación", icon: Receipt, roles: ["admin", "coordinador", "cliente"] },
   // Consulta, no edición: el operario llama al comercio cuando una recogida
   // llega incompleta. Modificar sus datos sigue siendo de coordinación.
   { href: "/clientes", label: "Clientes", icon: Building2, roles: ["admin", "coordinador", "operario", "mensajero"] },
+  { href: "/sedes", label: "Sedes", icon: Building2, roles: ["admin"] },
   { href: "/usuarios", label: "Usuarios", icon: Users, roles: ["admin"] },
   { href: "/seguridad", label: "Seguridad", icon: ShieldAlert, roles: ["admin", "coordinador"] },
 ];

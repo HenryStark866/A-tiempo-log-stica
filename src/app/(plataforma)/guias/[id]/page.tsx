@@ -32,7 +32,9 @@ import type { Guide, GuideEvent, GuideStatus, Profile, Zone } from "@/lib/types"
 // Acciones disponibles según estado y rol (la BD valida de nuevo en el RPC)
 function actionsFor(guide: Guide, role: string, userId: string) {
   const acts: { to: GuideStatus; label: string; needsNote?: boolean; needsEvidence?: boolean }[] = [];
-  const isOps = OPS_ROLES.includes(role as never);
+  // OPS_ROLES es nacional a propósito (lo comparte /seguridad, que admin_cedi
+  // no debe ver): aquí se ensancha solo localmente, no en la constante.
+  const isOps = OPS_ROLES.includes(role as never) || role === "admin_cedi";
   const isOp = role === "operario" || isOps;
   const isMyCourier = role === "mensajero" && guide.courier_id === userId;
 
@@ -217,10 +219,10 @@ export default function GuideDetailPage() {
   const acts = actionsFor(guide, profile.role, profile.id);
   const canAssign =
     ["en_cedi", "reprogramada"].includes(guide.status) &&
-    ["admin", "coordinador", "operario"].includes(profile.role);
+    ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
   const canProcessReturn =
     guide.status === "novedad" &&
-    ["admin", "coordinador", "operario"].includes(profile.role);
+    ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
   return (
     <>

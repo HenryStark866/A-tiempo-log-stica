@@ -78,7 +78,7 @@ export default function CouriersPage() {
     else setError("No se pudo abrir el documento");
   }
 
-  if (!["admin", "coordinador"].includes(profile.role)) {
+  if (!["admin", "coordinador", "admin_cedi"].includes(profile.role)) {
     return (
       <>
         <PageHeader title="Mensajeros" />

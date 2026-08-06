@@ -401,7 +401,7 @@ const FILTER_STATUSES: { value: GuideStatus | "all"; label: string }[] = [
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function NovedadesPage() {
   const profile = useProfile();
-  const canAct = ["admin", "coordinador", "operario"].includes(profile.role);
+  const canAct = ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
   const [guides, setGuides] = useState<(Guide & { events?: GuideEvent[] })[]>([]);
   const [loading, setLoading] = useState(true);

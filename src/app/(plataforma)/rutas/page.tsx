@@ -109,7 +109,7 @@ export default function RoutingPage() {
     load();
   }
 
-  if (!["admin", "coordinador", "operario"].includes(profile.role)) {
+  if (!["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role)) {
     return (
       <div className="pb-10 font-sans">
         <h1 className="text-[28px] font-bold text-slate-900 dark:text-white">Ruteo</h1>

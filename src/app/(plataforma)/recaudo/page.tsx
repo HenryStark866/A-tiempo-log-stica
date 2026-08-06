@@ -36,7 +36,7 @@ type Vista = keyof typeof VISTAS;
 
 function Collections() {
   const profile = useProfile();
-  const isOps = ["admin", "coordinador"].includes(profile.role);
+  const isOps = ["admin", "coordinador", "admin_cedi"].includes(profile.role);
   const params = useSearchParams();
   const router = useRouter();
 

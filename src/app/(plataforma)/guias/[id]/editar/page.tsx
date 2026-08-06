@@ -183,7 +183,7 @@ export default function EditGuidePage() {
 
   // Solo el cliente dueño puede editar (o staff)
   const esCliente = profile.role === "cliente";
-  const esStaff = ["admin", "coordinador", "operario"].includes(profile.role);
+  const esStaff = ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
   if (!esCliente && !esStaff) {
     return (
       <div className="pb-10 max-w-2xl mx-auto w-full font-sans px-4">

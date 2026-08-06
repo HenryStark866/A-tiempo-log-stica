@@ -87,7 +87,7 @@ function Fleet() {
   // está viendo posiciones al instante o solo lo que trajo el último sondeo.
   const [enVivo, setEnVivo] = useState(false);
 
-  const autorizado = ["admin", "coordinador", "operario"].includes(profile.role);
+  const autorizado = ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
   const load = useCallback(async () => {
     if (!autorizado) return;

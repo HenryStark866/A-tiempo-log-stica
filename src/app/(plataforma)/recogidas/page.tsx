@@ -133,7 +133,7 @@ function Pickups() {
     notes: "",
   });
 
-  const isStaff = ["admin", "coordinador", "operario"].includes(profile.role);
+  const isStaff = ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
   const load = useCallback(async () => {
     setPickups(null);

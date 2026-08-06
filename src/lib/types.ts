@@ -4,7 +4,11 @@ export type Role =
   | "operario"
   | "mensajero"
   | "cliente"
-  | "pendiente";
+  | "pendiente"
+  // El administrador de UN CEDI afiliado: ve y gestiona solo su propia
+  // operación (su `facility_id`), nunca la del CEDI Principal ni la de otro
+  // afiliado. Ver src/lib/types.ts:Client.facility_id y la migración 0046.
+  | "admin_cedi";
 
 export type GuideStatus =
   | "creada"
@@ -39,6 +43,8 @@ export interface Profile {
   role: Role;
   client_id: string | null;
   zone_id: string | null;
+  /** Del rol admin_cedi (y del personal futuro afiliado a un CEDI). Null = personal nacional. */
+  facility_id: string | null;
   max_capacity: number;
   active: boolean;
   created_at: string;
@@ -106,6 +112,8 @@ export interface Client {
   instagram_url: string | null;
   facebook_url: string | null;
   tiktok_url: string | null;
+  /** El CEDI que ejecuta la logística de este comercio. Null = CEDI Principal. */
+  facility_id: string | null;
 }
 
 export interface Zone {

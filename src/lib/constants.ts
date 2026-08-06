@@ -106,6 +106,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   mensajero: "Mensajero",
   cliente: "Cliente e-commerce",
   pendiente: "Pendiente de activación",
+  admin_cedi: "Administrador de CEDI",
 };
 
 export const STAFF_ROLES: Role[] = ["admin", "coordinador", "operario", "mensajero"];

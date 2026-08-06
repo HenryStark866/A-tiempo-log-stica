@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Loader2, MapPinOff, Phone, RefreshCw, Store } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { escucharTabla } from "@/lib/realtime";
 import { useProfile } from "@/components/ProfileContext";
 import { FleetMap, type MapPoint } from "@/components/FleetMap";
+import { FiltroActivo, Loading } from "@/components/ui";
 import { COURIER_TYPE_LABELS } from "@/lib/constants";
 import type { CourierType } from "@/lib/types";
 
@@ -60,7 +62,23 @@ function haceCuanto(min: number | null): string {
 }
 
 export default function FleetPage() {
+  return (
+    <Suspense fallback={<Loading label="Cargando el mapa…" />}>
+      <Fleet />
+    </Suspense>
+  );
+}
+
+function Fleet() {
   const profile = useProfile();
+  const params = useSearchParams();
+  const router = useRouter();
+  /**
+   * La tarjeta «Mensajeros con carga activa» abre el mapa mostrando solo a esos
+   * mensajeros: los que tienen guías por salir o en ruta ahora mismo. Es el
+   * mismo criterio con el que el panel arma el número.
+   */
+  const soloActivos = params.get("flota") === "activa";
   const [couriers, setCouriers] = useState<LiveCourier[] | null>(null);
   const [sede, setSede] = useState<Facility | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -149,10 +167,13 @@ export default function FleetPage() {
     );
   }
 
-  const conPosicion = (couriers ?? []).filter(
+  const conCarga = (c: LiveCourier) => c.por_salir + c.en_ruta > 0 || c.recogida_en_curso !== null;
+  const flota = soloActivos ? (couriers ?? []).filter(conCarga) : couriers ?? [];
+
+  const conPosicion = flota.filter(
     (c) => typeof c.last_lat === "number" && typeof c.last_lng === "number"
   );
-  const sinPosicion = (couriers ?? []).filter(
+  const sinPosicion = flota.filter(
     (c) => typeof c.last_lat !== "number" || typeof c.last_lng !== "number"
   );
 
@@ -191,7 +212,7 @@ export default function FleetPage() {
             )}
           </div>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-            {conPosicion.length} mensajero(s) reportando
+            {conPosicion.length} mensajero(s) {soloActivos ? "con carga " : ""}reportando
             {enVivo
               ? " · las posiciones llegan al instante"
               : actualizado &&
@@ -212,6 +233,18 @@ export default function FleetPage() {
       {error && (
         <div className="rounded-2xl bg-rose-50 p-4 dark:bg-rose-500/10">
           <p className="text-[14px] font-medium text-rose-700 dark:text-rose-400">{error}</p>
+        </div>
+      )}
+
+      {soloActivos && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+            Filtrado desde Mi panel:
+          </span>
+          <FiltroActivo
+            label="Solo con carga activa"
+            onClear={() => router.replace("/mapa", { scroll: false })}
+          />
         </div>
       )}
 

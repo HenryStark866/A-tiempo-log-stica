@@ -116,6 +116,36 @@ export function hoyEnColombia(referencia: Date = new Date()): string {
 }
 
 /**
+ * El desfase de Medellín contra UTC, en el formato "-05:00" que entienden tanto
+ * `new Date()` como Postgres.
+ *
+ * Se pregunta en vez de escribirse a mano por lo mismo que `ZONA` es un nombre
+ * IANA y no un número: si vuelve el horario de verano, esto lo absorbe solo.
+ */
+function desfaseDeColombia(referencia: Date): string {
+  const nombre = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZONA,
+    timeZoneName: "longOffset",
+  })
+    .formatToParts(referencia)
+    .find((p) => p.type === "timeZoneName")?.value;
+  const desfase = nombre?.replace("GMT", "") ?? "";
+  return /^[+-]\d{2}:\d{2}$/.test(desfase) ? desfase : "-05:00";
+}
+
+/**
+ * El instante exacto en que arrancó el día de hoy en Medellín.
+ *
+ * Es lo que necesita cualquier filtro de «hoy» sobre una columna `timestamptz`:
+ * comparar contra `new Date().toISOString().slice(0,10)` traería el día en UTC,
+ * que entre las 7 p. m. y la medianoche ya es el de mañana y deja por fuera
+ * cinco horas de operación.
+ */
+export function inicioDeHoyEnColombia(referencia: Date = new Date()): string {
+  return `${hoyEnColombia(referencia)}T00:00:00${desfaseDeColombia(referencia)}`;
+}
+
+/**
  * El primer día del mes en curso, en Medellín. Es el arranque por defecto del
  * período de facturación.
  *

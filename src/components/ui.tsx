@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, SearchX } from "lucide-react";
+import { LoaderCircle, SearchX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -59,6 +59,35 @@ export function Empty({ label }: { label: string }) {
       <SearchX className="mx-auto mb-3 size-9" />
       <p className="text-sm">{label}</p>
     </div>
+  );
+}
+
+/**
+ * «Esta pantalla llegó filtrada desde otra».
+ *
+ * Las tarjetas de Mi panel abren cada sección con el filtro puesto en la URL.
+ * Sin este aviso la tabla parece incompleta y no hay manera de saber por qué
+ * faltan filas: la ✕ devuelve la vista entera y limpia la dirección.
+ */
+export function FiltroActivo({
+  label,
+  onClear,
+}: {
+  label: string;
+  onClear: () => void;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#ff812c]/10 py-1.5 pl-3.5 pr-1.5 text-[13px] font-semibold text-[#ff812c]">
+      {label}
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={`Quitar el filtro «${label}»`}
+        className="grid size-6 place-items-center rounded-full transition-colors hover:bg-[#ff812c]/20 active:scale-95"
+      >
+        <X className="size-3.5" />
+      </button>
+    </span>
   );
 }
 

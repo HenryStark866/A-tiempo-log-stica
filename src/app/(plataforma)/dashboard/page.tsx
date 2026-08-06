@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Banknote,
   Bike,
+  ChevronRight,
   Clock,
   PackageCheck,
   PackagePlus,
@@ -12,8 +14,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
-import { formatCOP } from "@/lib/utils";
-import type { DashboardKpis, GuideStatus } from "@/lib/types";
+import { cn, formatCOP } from "@/lib/utils";
+import type { DashboardKpis, GuideStatus, Role } from "@/lib/types";
 
 const ORDER: GuideStatus[] = [
   "creada",
@@ -52,19 +54,44 @@ const BAR_COLORS: Record<GuideStatus, string> = {
   cancelada: "bg-red-500 dark:bg-red-600",
 };
 
+/**
+ * Qué roles alcanzan cada destino. Es el mismo reparto del menú lateral
+ * (`AppShell`), repetido aquí a propósito: una tarjeta que lleve a una pantalla
+ * que el rol no puede abrir es peor que una tarjeta quieta, porque promete algo
+ * y aterriza en «no tienes acceso». Cuando no hay destino alcanzable, la
+ * tarjeta se pinta igual pero sin enlace.
+ */
+const ALCANCE: Record<string, Role[]> = {
+  guias: ["admin", "coordinador", "operario", "cliente"],
+  recogidas: ["admin", "coordinador", "operario", "cliente"],
+  mapa: ["admin", "coordinador", "operario"],
+  recaudo: ["admin", "coordinador", "mensajero"],
+};
+
+/**
+ * Una métrica del panel. Con `href` deja de ser un dato y pasa a ser un botón:
+ * lleva a su sección con el filtro ya puesto en la URL, se levanta al pasar el
+ * cursor y muestra a dónde va.
+ */
 function Kpi({
   icon: Icon,
   label,
   value,
   hint,
+  href,
+  accion,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   hint?: string;
+  /** Destino con sus parámetros de filtro. Sin él la tarjeta no es clicable. */
+  href?: string;
+  /** Qué se va a ver al otro lado: «Ver guías», «Ver recaudo»… */
+  accion?: string;
 }) {
-  return (
-    <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300 flex flex-col justify-between h-full">
+  const cuerpo = (
+    <>
       <div className="flex items-start justify-between gap-3 sm:gap-4">
         {/* `min-w-0` + tamaño menor en teléfono: un recaudo como $12.345.678 a
             32 px no cabe al lado del icono y se salía de la tarjeta. */}
@@ -74,12 +101,52 @@ function Kpi({
             {value}
           </p>
         </div>
-        <div className="w-12 h-12 rounded-2xl bg-[#ff812c]/10 dark:bg-[#ff812c]/20 flex items-center justify-center shrink-0">
+        <div className="w-12 h-12 rounded-2xl bg-[#ff812c]/10 dark:bg-[#ff812c]/20 flex items-center justify-center shrink-0 transition-colors group-hover:bg-[#ff812c]/20 dark:group-hover:bg-[#ff812c]/30">
           <Icon className="w-6 h-6 text-[#ff812c]" />
         </div>
       </div>
-      {hint && <p className="mt-4 text-[13px] text-slate-500 dark:text-slate-500 font-medium leading-snug">{hint}</p>}
-    </div>
+
+      {(hint || href) && (
+        <div className="mt-4 flex items-end justify-between gap-3">
+          {hint ? (
+            <p className="text-[13px] text-slate-500 dark:text-slate-500 font-medium leading-snug">{hint}</p>
+          ) : (
+            <span />
+          )}
+          {href && (
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[13px] font-semibold text-slate-400 dark:text-slate-500 transition-colors group-hover:text-[#ff812c]">
+              {accion ?? "Ver"}
+              <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          )}
+        </div>
+      )}
+    </>
+  );
+
+  /* El borde transparente va también en la tarjeta quieta: si apareciera solo
+     al pasar el cursor, la tarjeta crecería un píxel y el tablero entero
+     temblaría. Del mismo modo, el efecto se hace con color de fondo, color de
+     borde y sombra —tres propiedades de toda la vida— y no con `ring` ni
+     `translate`: en Tailwind 4 esos dos se apoyan en propiedades registradas
+     (@property) que aquí no llegan a computarse. */
+  const base =
+    "bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-transparent rounded-3xl p-5 sm:p-6 shadow-sm transition-all duration-200 flex flex-col justify-between h-full";
+
+  if (!href) return <div className={base}>{cuerpo}</div>;
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        base,
+        "group cursor-pointer",
+        "hover:bg-[#ff812c]/10 dark:hover:bg-[#ff812c]/15 hover:border-[#ff812c]/50 hover:shadow-lg",
+        "active:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff812c]"
+      )}
+    >
+      {cuerpo}
+    </Link>
   );
 }
 
@@ -87,6 +154,7 @@ export default function DashboardPage() {
   const profile = useProfile();
   // El cliente ve solo lo suyo: sin métricas internas de tesorería ni de flota.
   const esCliente = profile.role === "cliente";
+  const puede = (destino: keyof typeof ALCANCE) => ALCANCE[destino].includes(profile.role);
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
 
   useEffect(() => {
@@ -96,18 +164,16 @@ export default function DashboardPage() {
     });
   }, []);
 
+  const subtitulo = esCliente
+    ? "Métricas de tus envíos: recogida, última milla y recaudo"
+    : "Métricas clave del flujograma: recogida, CEDI, última milla y recaudo";
+
   if (!kpis) {
     return (
       <div className="pb-10 space-y-6 font-sans">
         <div className="flex flex-col">
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
-            {esCliente ? "Mi operación" : "Dashboard operativo"}
-          </h1>
-          <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-            {esCliente
-              ? "Métricas de tus envíos: recogida, última milla y recaudo"
-              : "Métricas clave del flujograma: recogida, CEDI, última milla y recaudo"}
-          </p>
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Mi panel</h1>
+          <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">{subtitulo}</p>
         </div>
         <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
           <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -119,14 +185,13 @@ export default function DashboardPage() {
 
   const total = ORDER.reduce((acc, s) => acc + (kpis.by_status[s] ?? 0), 0);
   const max = Math.max(1, ...ORDER.map((s) => kpis.by_status[s] ?? 0));
+  const verGuias = puede("guias");
 
   return (
     <div className="pb-10 space-y-8 font-sans">
       <div className="flex flex-col">
-        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Dashboard operativo</h1>
-        <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-          Métricas clave del flujograma: recogida, CEDI, última milla y recaudo
-        </p>
+        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Mi panel</h1>
+        <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">{subtitulo}</p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -134,64 +199,108 @@ export default function DashboardPage() {
           icon={PackagePlus}
           label="Guías creadas hoy"
           value={String(kpis.guides_today)}
+          href={verGuias ? "/guias?creadas=hoy" : undefined}
+          accion="Ver guías"
         />
         <Kpi
           icon={PackageCheck}
           label="Entregadas hoy"
           value={String(kpis.delivered_today)}
+          href={verGuias ? "/guias?estado=entregada&entregadas=hoy" : undefined}
+          accion="Ver guías"
         />
         <Kpi
           icon={Clock}
           label="Lead Time de Recogida (LTR)"
           value={kpis.ltr_hours != null ? `${kpis.ltr_hours} h` : "—"}
           hint="Promedio solicitud → digitalización (30 días)"
+          href={puede("recogidas") ? "/recogidas?estado=completada" : undefined}
+          accion="Ver recogidas"
         />
         <Kpi
           icon={RotateCcw}
           label="Tasa de Logística Inversa (TLI)"
           value={kpis.tli_pct != null ? `${kpis.tli_pct}%` : "—"}
           hint="% de guías finalizadas en devolución (30 días)"
+          href={verGuias ? "/guias?estado=devuelta" : undefined}
+          accion="Ver devueltas"
         />
         <Kpi
           icon={Banknote}
           label={esCliente ? "Recaudo contraentrega pendiente" : "Recaudo por consignar"}
           value={formatCOP(kpis.cod_pending)}
           hint={esCliente ? "De tus guías entregadas, aún sin liquidar" : `${kpis.settlements_pending} cierre(s) de caja en proceso`}
+          /* El comercio no entra a tesorería: su plata pendiente son sus propias
+             guías entregadas sin liquidar, y eso lo ve en su listado de guías. */
+          href={
+            esCliente
+              ? "/guias?estado=entregada&cod=pendiente"
+              : puede("recaudo")
+                ? "/recaudo?filtro=sin-consignar"
+                : undefined
+          }
+          accion={esCliente ? "Ver guías" : "Ver recaudo"}
         />
         {!esCliente && (
           <Kpi
             icon={Bike}
             label="Mensajeros con carga activa"
             value={String(kpis.active_couriers)}
+            href={puede("mapa") ? "/mapa?flota=activa" : undefined}
+            accion="Ver flota"
           />
         )}
       </div>
 
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">
         <h2 className="text-[20px] font-bold text-slate-900 dark:text-white">Guías por estado</h2>
-        <p className="mt-1 mb-8 text-[15px] text-slate-500 dark:text-slate-400 font-medium">{total} guías en total</p>
+        <p className="mt-1 mb-8 text-[15px] text-slate-500 dark:text-slate-400 font-medium">
+          {total} guías en total
+          {verGuias && " · toca un estado para ver esas guías"}
+        </p>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {ORDER.map((s) => {
             const n = kpis.by_status[s] ?? 0;
             if (n === 0) return null;
-            return (
-              /* La etiqueta se estrecha en teléfono: con 128 px fijos la barra
-                 se quedaba en un muñón de 40 px y el gráfico no decía nada. */
-              <div key={s} className="flex items-center gap-3 sm:gap-4">
-                <span className="w-20 sm:w-32 shrink-0 truncate text-[13px] sm:text-[14px] font-semibold text-slate-600 dark:text-slate-400">
+
+            /* La etiqueta se estrecha en teléfono: con 128 px fijos la barra
+               se quedaba en un muñón de 40 px y el gráfico no decía nada. */
+            const fila = (
+              <>
+                <span className="w-20 sm:w-32 shrink-0 truncate text-[13px] sm:text-[14px] font-semibold text-slate-600 dark:text-slate-400 transition-colors group-hover:text-[#ff812c]">
                   {GUIDE_STATUS_LABELS[s]}
                 </span>
-                <div className="h-7 min-w-0 flex-1 overflow-hidden rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E]">
+                <div className="h-7 min-w-0 flex-1 overflow-hidden rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] transition-colors group-hover:bg-[#ff812c]/10">
                   <div
-                    className={`h-full rounded-xl transition-all duration-500 ease-out ${BAR_COLORS[s]}`}
+                    className={`h-full rounded-xl transition-all duration-500 ease-out group-hover:brightness-110 ${BAR_COLORS[s]}`}
                     style={{ width: `${(n / max) * 100}%` }}
                   />
                 </div>
-                <span className="w-8 sm:w-10 shrink-0 text-right text-[15px] font-bold tabular-nums text-slate-900 dark:text-white">
+                <span className="w-8 sm:w-10 shrink-0 text-right text-[15px] font-bold tabular-nums text-slate-900 dark:text-white transition-colors group-hover:text-[#ff812c]">
                   {n}
                 </span>
-              </div>
+              </>
+            );
+
+            if (!verGuias) {
+              return (
+                <div key={s} className="flex items-center gap-3 sm:gap-4 px-2 py-1.5">
+                  {fila}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={s}
+                href={`/guias?estado=${s}`}
+                title={`Ver las guías en estado ${GUIDE_STATUS_LABELS[s]}`}
+                className="group -mx-2 flex items-center gap-3 sm:gap-4 rounded-2xl px-2 py-1.5 cursor-pointer transition-colors hover:bg-[#ff812c]/10 dark:hover:bg-[#ff812c]/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff812c]"
+              >
+                {fila}
+                <ChevronRight className="hidden sm:block w-4 h-4 shrink-0 text-[#ff812c] opacity-0 transition-opacity group-hover:opacity-100" />
+              </Link>
             );
           })}
         </div>

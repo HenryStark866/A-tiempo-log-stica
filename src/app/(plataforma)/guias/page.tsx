@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Printer, Search, Map, Trash2, Edit2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { FiltroActivo, Loading } from "@/components/ui";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
+import { inicioDeHoyEnColombia } from "@/lib/tiempo";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import type { Guide, GuideStatus } from "@/lib/types";
 
@@ -30,16 +33,55 @@ function GuideBadge({ status }: { status: GuideStatus }) {
 }
 
 export default function GuidesPage() {
+  // `useSearchParams` obliga a una frontera de Suspense para que el build no
+  // trate de prerenderizar la pantalla sin conocer los filtros.
+  return (
+    <Suspense fallback={<Loading label="Cargando guías…" />}>
+      <Guides />
+    </Suspense>
+  );
+}
+
+function Guides() {
   const profile = useProfile();
   const esCliente = profile.role === "cliente";
+  const params = useSearchParams();
+  const router = useRouter();
+
+  /**
+   * Los filtros viven en la URL, no en el estado.
+   *
+   * Así una tarjeta de Mi panel puede abrir esta pantalla ya filtrada
+   * (`/guias?estado=en_ruta`), el enlace se puede compartir con el CEDI y
+   * volver atrás en el navegador deshace el filtro solo. Lo único local es la
+   * caja de búsqueda, que es escritura, no navegación.
+   */
+  const status = (params.get("estado") ?? "todas") as GuideStatus | "todas";
+  const creadasHoy = params.get("creadas") === "hoy";
+  const entregadasHoy = params.get("entregadas") === "hoy";
+  const codPendiente = params.get("cod") === "pendiente";
+
   const [guides, setGuides] = useState<Guide[] | null>(null);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<GuideStatus | "todas">("todas");
   const [deleteTarget, setDeleteTarget] = useState<Guide | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const filtrar = useCallback(
+    (cambios: Record<string, string | null>) => {
+      const p = new URLSearchParams(params.toString());
+      for (const [clave, valor] of Object.entries(cambios)) {
+        if (valor) p.set(clave, valor);
+        else p.delete(clave);
+      }
+      const qs = p.toString();
+      router.replace(qs ? `/guias?${qs}` : "/guias", { scroll: false });
+    },
+    [params, router]
+  );
+
   const load = useCallback(async () => {
+    setGuides(null);
     const supabase = createClient();
     let q = supabase
       .from("at_guides")
@@ -49,9 +91,14 @@ export default function GuidesPage() {
       .order("created_at", { ascending: false })
       .limit(200);
     if (status !== "todas") q = q.eq("status", status);
+    // «Hoy» es el de Medellín, el mismo que cuenta el panel: en UTC el día
+    // cambia a las 7 p. m. y la tabla saldría con menos guías que la tarjeta.
+    if (creadasHoy) q = q.gte("created_at", inicioDeHoyEnColombia());
+    if (entregadasHoy) q = q.gte("delivered_at", inicioDeHoyEnColombia());
+    if (codPendiente) q = q.eq("is_cod", true).is("settlement_id", null);
     const { data } = await q;
     setGuides((data as Guide[]) ?? []);
-  }, [status]);
+  }, [status, creadasHoy, entregadasHoy, codPendiente]);
 
   useEffect(() => {
     load();
@@ -138,7 +185,7 @@ export default function GuidesPage() {
         </div>
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value as GuideStatus | "todas")}
+          onChange={(e) => filtrar({ estado: e.target.value === "todas" ? null : e.target.value })}
           className="min-h-[48px] px-4 bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white focus:outline-none focus:border-[#ff812c] dark:focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] transition-all md:min-w-[200px]"
         >
           <option value="todas">Todos los estados</option>
@@ -149,6 +196,28 @@ export default function GuidesPage() {
           ))}
         </select>
       </div>
+
+      {/* Filtros que llegaron desde Mi panel y no caben en el desplegable de
+          estados: se anuncian para que nadie crea que la tabla está incompleta. */}
+      {(creadasHoy || entregadasHoy || codPendiente) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+            Filtrado desde Mi panel:
+          </span>
+          {creadasHoy && (
+            <FiltroActivo label="Creadas hoy" onClear={() => filtrar({ creadas: null })} />
+          )}
+          {entregadasHoy && (
+            <FiltroActivo label="Entregadas hoy" onClear={() => filtrar({ entregadas: null })} />
+          )}
+          {codPendiente && (
+            <FiltroActivo
+              label="Contraentrega sin liquidar"
+              onClear={() => filtrar({ cod: null })}
+            />
+          )}
+        </div>
+      )}
 
       {/* Table Card */}
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">

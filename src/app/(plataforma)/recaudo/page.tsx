@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Banknote, Landmark, Loader2, X, Wallet, FileText } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
+import { FiltroActivo, Loading } from "@/components/ui";
 import { SETTLEMENT_STATUS_LABELS } from "@/lib/constants";
 import { formatCOP, formatDate } from "@/lib/utils";
 import type { Guide, Settlement, SettlementStatus } from "@/lib/types";
@@ -17,8 +19,37 @@ const TONES: Record<SettlementStatus, "slate" | "blue" | "green" | "red"> = {
 };
 
 export default function CollectionsPage() {
+  return (
+    <Suspense fallback={<Loading label="Cargando recaudo…" />}>
+      <Collections />
+    </Suspense>
+  );
+}
+
+/** Las dos mitades de la pantalla, y cuál pide cada tarjeta de Mi panel. */
+const VISTAS = {
+  "sin-consignar": "Recaudos sin consignar",
+  cierres: "Cierres de caja",
+} as const;
+
+type Vista = keyof typeof VISTAS;
+
+function Collections() {
   const profile = useProfile();
   const isOps = ["admin", "coordinador"].includes(profile.role);
+  const params = useSearchParams();
+  const router = useRouter();
+
+  /**
+   * La tarjeta «Recaudo por consignar» abre esta pantalla mostrando solo esa
+   * mitad: el número de la tarjeta es exactamente el de los recaudos sin
+   * consignar, y aterrizar en las dos listas obliga a buscar cuál era.
+   */
+  const pedido = params.get("filtro");
+  // Un valor que no reconozcamos no puede dejar la pantalla en blanco.
+  const vista: Vista | null = pedido === "sin-consignar" || pedido === "cierres" ? pedido : null;
+  const verSinConsignar = vista === null || vista === "sin-consignar";
+  const verCierres = vista === null || vista === "cierres";
   const [settlements, setSettlements] = useState<Settlement[] | null>(null);
   const [pendingCod, setPendingCod] = useState<Guide[] | null>(null);
   const [deposit, setDeposit] = useState<Settlement | null>(null);
@@ -130,8 +161,21 @@ export default function CollectionsPage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      {vista && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+            Filtrado desde Mi panel:
+          </span>
+          <FiltroActivo
+            label={VISTAS[vista]}
+            onClear={() => router.replace("/recaudo", { scroll: false })}
+          />
+        </div>
+      )}
+
+      <div className={`grid gap-6 ${vista ? "" : "xl:grid-cols-2"}`}>
         {/* Pending Collections Card */}
+        {verSinConsignar && (
         <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 text-[19px] font-bold text-slate-900 dark:text-white">Recaudos sin consignar</h2>
           <p className="mb-5 text-[14px] text-slate-500 dark:text-slate-400">
@@ -166,8 +210,10 @@ export default function CollectionsPage() {
             </ul>
           )}
         </section>
+        )}
 
         {/* Settlements Card */}
+        {verCierres && (
         <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-[#ff812c]/10 dark:bg-[#ff812c]/20 p-2 rounded-xl text-[#ff812c]">
@@ -241,6 +287,7 @@ export default function CollectionsPage() {
             </ul>
           )}
         </section>
+        )}
       </div>
 
       {/* Action Modal (Apple HIG Style Bottom Sheet/Alert) */}

@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass, QrCode } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { RecogidaQR, ImprimirQR } from "@/components/RecogidaQR";
+import { FiltroActivo, Loading } from "@/components/ui";
 import { PICKUP_STATUS_LABELS } from "@/lib/constants";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { hoyEnColombia } from "@/lib/tiempo";
@@ -60,8 +62,23 @@ function PickupBadge({ status }: { status: PickupStatus }) {
 }
 
 export default function PickupsPage() {
+  // El filtro llega por la URL desde Mi panel, y `useSearchParams` pide su
+  // frontera de Suspense para no romper el build.
+  return (
+    <Suspense fallback={<Loading label="Cargando recogidas…" />}>
+      <Pickups />
+    </Suspense>
+  );
+}
+
+function Pickups() {
   const profile = useProfile();
   const esCliente = profile.role === "cliente";
+  const params = useSearchParams();
+  const router = useRouter();
+  // La tarjeta del LTR abre aquí las recogidas ya completadas, que son las que
+  // entran en el promedio de esa métrica.
+  const estadoFiltro = params.get("estado") as PickupStatus | null;
   // La recogida siempre la solicita un comercio: si es un cliente, se autoaprovisiona.
   const { client: miComercio, clientId, loading: cargandoComercio } = useMyClient();
 
@@ -113,8 +130,9 @@ export default function PickupsPage() {
   const isStaff = ["admin", "coordinador", "operario"].includes(profile.role);
 
   const load = useCallback(async () => {
+    setPickups(null);
     const supabase = createClient();
-    const { data } = await supabase
+    let q = supabase
       .from("at_pickups")
       // at_guides(id) en vez de at_guides(count): el agregado embebido depende de
       // que PostgREST tenga habilitados los agregados, y si no lo está la consulta
@@ -122,8 +140,10 @@ export default function PickupsPage() {
       .select("*, at_clients(business_name), operator:at_profiles!at_pickups_operator_id_fkey(full_name), at_guides(id)")
       .order("requested_at", { ascending: false })
       .limit(100);
+    if (estadoFiltro) q = q.eq("status", estadoFiltro);
+    const { data } = await q;
     setPickups((data as Pickup[]) ?? []);
-  }, []);
+  }, [estadoFiltro]);
 
   useEffect(() => {
     load();
@@ -440,6 +460,18 @@ export default function PickupsPage() {
         )}
       </div>
 
+      {estadoFiltro && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
+            Filtrado desde Mi panel:
+          </span>
+          <FiltroActivo
+            label={PICKUP_STATUS_LABELS[estadoFiltro] ?? estadoFiltro}
+            onClear={() => router.replace("/recogidas", { scroll: false })}
+          />
+        </div>
+      )}
+
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
         {pickups === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
@@ -449,7 +481,11 @@ export default function PickupsPage() {
         ) : pickups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <PackageOpen className="w-12 h-12 text-slate-300 dark:text-slate-600" />
-            <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay recogidas registradas</p>
+            <p className="text-[16px] text-slate-500 dark:text-slate-400">
+              {estadoFiltro
+                ? `No hay recogidas en estado «${PICKUP_STATUS_LABELS[estadoFiltro] ?? estadoFiltro}»`
+                : "No hay recogidas registradas"}
+            </p>
           </div>
         ) : (
           <>

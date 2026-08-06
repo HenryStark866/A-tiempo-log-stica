@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ScanBarcode, Undo2, Loader2, Package, SearchX } from "lucide-react";
+import { ScanBarcode, Undo2, Loader2, Package, SearchX, Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { CediDestino } from "@/components/CediDestino";
 import { StatusBadge } from "@/components/StatusBadge";
+import { EscanerQR } from "@/components/EscanerQR";
 import { MARCA } from "@/lib/marca";
 import { formatDateTime } from "@/lib/utils";
 import type { Guide } from "@/lib/types";
@@ -37,6 +38,7 @@ export default function CediPage() {
   const [scan, setScan] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [escaneando, setEscaneando] = useState(false);
 
   const load = useCallback(async () => {
     if (!ROLES_CEDI.includes(profile.role)) return;
@@ -156,33 +158,46 @@ export default function CediPage() {
   }, [profile.role, recibirLote]);
 
   /**
-   * Un solo campo para las dos cosas.
-   *
-   * El operario tiene una pistola en la mano y no va a elegir modo antes de
-   * cada disparo: se dispara y la pantalla decide. El QR del lote lleva una URL
-   * con `?recogida=<token>` y el token es hexadecimal de 24; un número de guía
-   * es ATL-100008. No se pisan, así que distinguirlos es seguro.
+   * Un solo camino para las tres formas de meter el código: la pistola de
+   * código de barras, tecleado a mano y ahora la cámara. El operario no va a
+   * elegir modo antes de cada disparo: entra el texto y la pantalla decide.
+   * El QR del lote lleva una URL con `?recogida=<token>` y el token es
+   * hexadecimal de 24; un número de guía es ATL-100008. No se pisan, así que
+   * distinguirlos es seguro.
    */
+  const procesarTexto = useCallback(
+    async (texto: string) => {
+      const t = texto.trim();
+      if (!t) return;
+
+      const token = tokenDeRecogida(t);
+      if (token) {
+        await recibirLote(token);
+        return;
+      }
+
+      const num = t.toUpperCase();
+      const g = (incoming ?? []).find((x) => x.guide_number.toUpperCase() === num);
+      if (!g) {
+        setMsg({ ok: false, text: `La guía ${num} no está en estado "recogida"` });
+        return;
+      }
+      await receive(g.id, g.guide_number);
+    },
+    [incoming, recibirLote, receive]
+  );
+
   async function receiveByScan(e: React.FormEvent) {
     e.preventDefault();
-    const texto = scan.trim();
-    if (!texto) return;
-
-    const token = tokenDeRecogida(texto);
-    if (token) {
-      setScan("");
-      await recibirLote(token);
-      return;
-    }
-
-    const num = texto.toUpperCase();
-    const g = (incoming ?? []).find((x) => x.guide_number.toUpperCase() === num);
-    if (!g) {
-      setMsg({ ok: false, text: `La guía ${num} no está en estado "recogida"` });
-      return;
-    }
+    if (!scan.trim()) return;
+    const texto = scan;
     setScan("");
-    await receive(g.id, g.guide_number);
+    await procesarTexto(texto);
+  }
+
+  function alLeerCamara(texto: string) {
+    setEscaneando(false);
+    procesarTexto(texto);
   }
 
   async function processReturn(guideId: string) {
@@ -258,15 +273,29 @@ export default function CediPage() {
           </p>
 
           <form onSubmit={receiveByScan} className="mb-5 flex flex-col sm:flex-row gap-3">
-            <input
-              value={scan}
-              onChange={(e) => setScan(e.target.value)}
-              autoFocus
-              placeholder={`QR del lote o guía (${MARCA.prefijoGuia}-…)`}
-              className="flex-1 min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
-            />
-            <button 
-              type="submit" 
+            <div className="flex flex-1 gap-2">
+              <input
+                value={scan}
+                onChange={(e) => setScan(e.target.value)}
+                autoFocus
+                placeholder={`QR del lote o guía (${MARCA.prefijoGuia}-…)`}
+                className="flex-1 min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
+              />
+              {/* Antes solo se podía teclear o disparar con pistola de código
+                  de barras; esto abre la cámara del teléfono y decodifica el
+                  QR ahí mismo, sin salir de la pantalla. */}
+              <button
+                type="button"
+                onClick={() => setEscaneando(true)}
+                aria-label="Escanear con la cámara"
+                title="Escanear con la cámara"
+                className="min-h-[48px] min-w-[48px] shrink-0 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center"
+              >
+                <Camera className="w-5 h-5" />
+              </button>
+            </div>
+            <button
+              type="submit"
               disabled={busy}
               className="min-h-[48px] px-6 rounded-xl font-bold bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center shrink-0"
             >
@@ -274,6 +303,10 @@ export default function CediPage() {
               Recibir
             </button>
           </form>
+
+          {escaneando && (
+            <EscanerQR onScan={alLeerCamara} onClose={() => setEscaneando(false)} />
+          )}
 
           {incoming === null ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3 text-slate-500 dark:text-slate-400">

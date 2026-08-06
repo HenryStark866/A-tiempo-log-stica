@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { PageHeader, Card, Loading, Button, Modal, Field, inputCls } from "@/components/ui";
 import { Pill } from "@/components/StatusBadge";
+import { TarifarioMatriz } from "@/components/TarifarioMatriz";
 import { FACILITY_DOCS, FACILITY_DOC_LABELS } from "@/lib/constants";
 import { signedFacilityDocUrl } from "@/lib/facilityDocs";
 import { formatCOP, formatDate, formatDateTime } from "@/lib/utils";
@@ -336,6 +337,14 @@ export default function SedesPage() {
           </div>
         </div>
       )}
+
+      {/* ── Tarifario ── */}
+      <div className="mb-6">
+        <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <Banknote className="size-4" /> Precios del domicilio por par de zonas
+        </h2>
+        <TarifarioMatriz />
+      </div>
 
       <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Sedes activas

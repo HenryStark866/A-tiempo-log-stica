@@ -148,6 +148,38 @@ export interface Client {
   tiktok_url: string | null;
   /** El CEDI que ejecuta la logística de este comercio. Null = CEDI Principal. */
   facility_id: string | null;
+  /** Zona desde la que SALEN sus envíos: es el origen del par de tarifa. */
+  zone_id: string | null;
+}
+
+/** Una fila del tarifario personalizado que ve un comercio (at_mi_tarifario). */
+export interface TarifaDestino {
+  id: string;
+  name: string;
+  coverage: string | null;
+  sort_order: number;
+  delivery_rate: number;
+  es_mi_zona: boolean;
+}
+
+export interface InvoicePayment {
+  id: string;
+  invoice_id: string;
+  amount: number;
+  method: string | null;
+  reference: string | null;
+  receipt_path: string | null;
+  reported_at: string;
+  status: "pendiente" | "verificado" | "rechazado";
+  review_notes: string | null;
+  verified_at: string | null;
+}
+
+/** Lo que responde at_estado_cartera: si puede seguir despachando y cuánto debe. */
+export interface EstadoCartera {
+  al_dia: boolean;
+  saldo: number;
+  vence_en: string | null;
 }
 
 export interface Zone {

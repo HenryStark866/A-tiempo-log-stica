@@ -24,7 +24,8 @@ import { useMyClient } from "@/components/useMyClient";
 import { ShopifyConnect } from "@/components/ShopifyConnect";
 import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { PAYMENT_KINDS, PAYMENT_KIND_LABELS } from "@/lib/constants";
-import type { PaymentKind, PaymentMethod } from "@/lib/types";
+import { formatCOP } from "@/lib/utils";
+import type { PaymentKind, PaymentMethod, TarifaDestino, Zone } from "@/lib/types";
 
 const NEGOCIO_VACIO = {
   business_name: "",
@@ -32,6 +33,7 @@ const NEGOCIO_VACIO = {
   address: "",
   phone: "",
   contact_name: "",
+  zone_id: "",
 };
 
 const MEDIO_VACIO = {
@@ -73,6 +75,10 @@ export default function MiComercioPage() {
   const [enlacesOk, setEnlacesOk] = useState(false);
   const [enlacesError, setEnlacesError] = useState<string | null>(null);
 
+  // La zona desde la que salen sus envíos y, a partir de ella, su tarifario.
+  const [zonas, setZonas] = useState<Zone[]>([]);
+  const [tarifario, setTarifario] = useState<TarifaDestino[] | null>(null);
+
   useEffect(() => {
     if (!client) return;
     setMarca({
@@ -85,6 +91,7 @@ export default function MiComercioPage() {
       address: client.address ?? "",
       phone: client.phone ?? "",
       contact_name: client.contact_name ?? "",
+      zone_id: client.zone_id ?? "",
     });
     setEnlaces({
       website_url: client.website_url ?? "",
@@ -110,6 +117,22 @@ export default function MiComercioPage() {
     cargarMedios();
   }, [cargarMedios]);
 
+  // El tarifario se recarga cada vez que cambia la zona guardada: es lo que
+  // hace visible el efecto de haberla elegido.
+  useEffect(() => {
+    if (!clientId) return;
+    const supabase = createClient();
+    supabase
+      .from("at_zones")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order")
+      .then(({ data }) => setZonas((data as Zone[]) ?? []));
+    supabase
+      .rpc("at_mi_tarifario")
+      .then(({ data }) => setTarifario((data as TarifaDestino[]) ?? []));
+  }, [clientId, client?.zone_id]);
+
   async function guardarNegocio(e: React.FormEvent) {
     e.preventDefault();
     setNegocioError(null);
@@ -123,6 +146,7 @@ export default function MiComercioPage() {
       p_address: negocio.address.trim() || null,
       p_phone: negocio.phone.trim() || null,
       p_contact_name: negocio.contact_name.trim() || null,
+      p_zone_id: negocio.zone_id || null,
     });
 
     setGuardandoNegocio(false);
@@ -132,6 +156,8 @@ export default function MiComercioPage() {
     }
     setNegocioOk(true);
     setTimeout(() => setNegocioOk(false), 2500);
+    // El tarifario depende de la zona: si acaba de cambiarla, hay que releerlo.
+    supabase.rpc("at_mi_tarifario").then(({ data }) => setTarifario((data as TarifaDestino[]) ?? []));
   }
 
   /**
@@ -345,7 +371,7 @@ export default function MiComercioPage() {
                 placeholder="3001234567"
               />
             </div>
-            <div className={`${fieldRow} border-b-0`}>
+            <div className={fieldRow}>
               <label className={fieldLabel}>Contacto</label>
               <input
                 value={negocio.contact_name}
@@ -354,7 +380,31 @@ export default function MiComercioPage() {
                 placeholder="Quién responde por el comercio"
               />
             </div>
+            {/* De aquí sale el precio de cada domicilio: el tarifario se calcula
+                entre TU zona y la del destinatario, no desde nuestro CEDI. */}
+            <div className={`${fieldRow} border-b-0`}>
+              <label className={fieldLabel}>Tu zona</label>
+              <select
+                value={negocio.zone_id}
+                onChange={(e) => setNegocio((n) => ({ ...n, zone_id: e.target.value }))}
+                className={`${fieldInput} appearance-none cursor-pointer`}
+              >
+                <option value="">Selecciona dónde despachas…</option>
+                {zonas.map((z) => (
+                  <option key={z.id} value={z.id} className="text-slate-900">
+                    {z.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {!negocio.zone_id && (
+            <p className="mt-3 ml-1 text-[13px] leading-relaxed text-amber-700 dark:text-amber-400">
+              Mientras no elijas tu zona te cobramos la tarifa completa desde nuestro CEDI. Al
+              elegirla, un envío dentro de tu misma zona te sale mucho más barato.
+            </p>
+          )}
 
           {negocioError && (
             <p className="mt-3 text-[14px] text-rose-600 dark:text-rose-400">{negocioError}</p>
@@ -374,6 +424,48 @@ export default function MiComercioPage() {
           </button>
         </form>
       </section>
+
+      {/* ── Tu tarifario ── */}
+      {tarifario && tarifario.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3 ml-1">
+            <Wallet className="w-4 h-4 text-slate-400" />
+            <h2 className="text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Tus precios de domicilio
+            </h2>
+          </div>
+          <p className="mb-3 ml-1 text-[14px] leading-relaxed text-slate-500 dark:text-slate-400">
+            {negocio.zone_id
+              ? "Calculado desde tu zona hasta cada destino. Es lo que te cobramos por entrega."
+              : "Elige tu zona arriba y guarda para ver tus precios reales."}
+          </p>
+
+          <ul className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+            {tarifario.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                <div className="min-w-0">
+                  <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                    {t.name}
+                    {t.es_mi_zona && (
+                      <span className="ml-2 rounded-full bg-[#ff812c]/10 px-2 py-0.5 text-[11px] font-bold text-[#ff812c]">
+                        Tu zona
+                      </span>
+                    )}
+                  </p>
+                  {t.coverage && (
+                    <p className="mt-0.5 line-clamp-1 text-[13px] text-slate-500 dark:text-slate-400">
+                      {t.coverage}
+                    </p>
+                  )}
+                </div>
+                <p className="shrink-0 text-[16px] font-bold tabular-nums text-slate-900 dark:text-white">
+                  {formatCOP(t.delivery_rate)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* ── Marca ── */}
       <section>

@@ -1,14 +1,32 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FilePlus2, Receipt } from "lucide-react";
+import {
+  Banknote,
+  Check,
+  Eye,
+  FilePlus2,
+  Loader2,
+  Receipt,
+  TriangleAlert,
+  Upload,
+  X,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
 import { INVOICE_STATUS_LABELS } from "@/lib/constants";
-import { formatCOP, formatDate } from "@/lib/utils";
+import { reportarPago, urlComprobante } from "@/lib/paymentReceipts";
+import { formatCOP, formatDate, formatDateTime } from "@/lib/utils";
 import { hoyEnColombia, primerDiaDelMes } from "@/lib/tiempo";
-import type { Client, Invoice, InvoiceItem, InvoiceStatus } from "@/lib/types";
+import type {
+  Client,
+  EstadoCartera,
+  Invoice,
+  InvoiceItem,
+  InvoicePayment,
+  InvoiceStatus,
+} from "@/lib/types";
 
 const TONES: Record<InvoiceStatus, "slate" | "blue" | "green" | "red"> = {
   borrador: "slate",
@@ -19,19 +37,30 @@ const TONES: Record<InvoiceStatus, "slate" | "blue" | "green" | "red"> = {
 
 export default function BillingPage() {
   const profile = useProfile();
-  const isOps = ["admin", "coordinador"].includes(profile.role);
+  const isOps = ["admin", "coordinador", "admin_cedi"].includes(profile.role);
+  const esCliente = profile.role === "cliente";
+
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [cartera, setCartera] = useState<EstadoCartera | null>(null);
   const [showNew, setShowNew] = useState(false);
-  const [detail, setDetail] = useState<{ invoice: Invoice; items: InvoiceItem[] } | null>(null);
+  const [detail, setDetail] = useState<{
+    invoice: Invoice;
+    items: InvoiceItem[];
+    pagos: InvoicePayment[];
+  } | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Reportar un pago (comercio) y revisarlo (administración).
+  const [pagando, setPagando] = useState<Invoice | null>(null);
+  const [formPago, setFormPago] = useState({ monto: "", referencia: "", metodo: "Transferencia" });
+  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [rechazando, setRechazando] = useState<InvoicePayment | null>(null);
+  const [motivo, setMotivo] = useState("");
+
   const [form, setForm] = useState({
     client_id: "",
-    // Las dos, en fecha de Medellín. La de arranque venía saliendo un día
-    // antes de tiempo: `new Date(a, m, 1).toISOString()` construye la
-    // medianoche local y la pasa a UTC, o sea las 7 p. m. del último día del
-    // mes anterior — y ese día se colaba en la factura.
     period_start: primerDiaDelMes(),
     period_end: hoyEnColombia(),
   });
@@ -44,10 +73,18 @@ export default function BillingPage() {
       .order("created_at", { ascending: false })
       .limit(100);
     setInvoices((data as Invoice[]) ?? []);
-  }, []);
+
+    if (esCliente && profile.client_id) {
+      const { data: c } = await supabase.rpc("at_estado_cartera", {
+        p_client_id: profile.client_id,
+      });
+      setCartera(c as EstadoCartera);
+    }
+  }, [esCliente, profile.client_id]);
 
   useEffect(() => {
     load();
+    if (!isOps) return;
     const supabase = createClient();
     supabase
       .from("at_clients")
@@ -59,7 +96,7 @@ export default function BillingPage() {
         setClients(list);
         setForm((f) => ({ ...f, client_id: list[0]?.id ?? "" }));
       });
-  }, [load]);
+  }, [load, isOps]);
 
   async function generate(e: React.FormEvent) {
     e.preventDefault();
@@ -84,12 +121,19 @@ export default function BillingPage() {
 
   async function openDetail(inv: Invoice) {
     const supabase = createClient();
-    const { data } = await supabase
-      .from("at_invoice_items")
-      .select("*")
-      .eq("invoice_id", inv.id)
-      .order("description");
-    setDetail({ invoice: inv, items: (data as InvoiceItem[]) ?? [] });
+    const [{ data: items }, { data: pagos }] = await Promise.all([
+      supabase.from("at_invoice_items").select("*").eq("invoice_id", inv.id).order("description"),
+      supabase
+        .from("at_invoice_payments")
+        .select("*")
+        .eq("invoice_id", inv.id)
+        .order("reported_at", { ascending: false }),
+    ]);
+    setDetail({
+      invoice: inv,
+      items: (items as InvoiceItem[]) ?? [],
+      pagos: (pagos as InvoicePayment[]) ?? [],
+    });
   }
 
   async function setStatus(inv: Invoice, status: InvoiceStatus) {
@@ -105,14 +149,80 @@ export default function BillingPage() {
     load();
   }
 
+  async function enviarPago(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pagando) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await reportarPago({
+        usuarioId: profile.id,
+        invoiceId: pagando.id,
+        monto: Number(formPago.monto),
+        referencia: formPago.referencia,
+        metodo: formPago.metodo,
+        comprobante,
+      });
+      setMsg({
+        ok: true,
+        text: "Pago reportado. Apenas administración verifique el comprobante, la factura queda saldada.",
+      });
+      setPagando(null);
+      setComprobante(null);
+      setFormPago({ monto: "", referencia: "", metodo: "Transferencia" });
+      load();
+    } catch (err) {
+      setMsg({ ok: false, text: err instanceof Error ? err.message : "No se pudo reportar el pago" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verificarPago(pagoId: string, aprobado: boolean, notas?: string) {
+    setBusy(true);
+    setMsg(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_verify_invoice_payment", {
+      p_payment_id: pagoId,
+      p_approved: aprobado,
+      p_notes: notas ?? null,
+    });
+    setBusy(false);
+    if (error) {
+      setMsg({ ok: false, text: error.message });
+      return;
+    }
+    setRechazando(null);
+    setMotivo("");
+    setMsg({
+      ok: true,
+      text: aprobado ? "Pago verificado." : "Pago rechazado; le avisamos al comercio.",
+    });
+    if (detail) {
+      const actualizada = (invoices ?? []).find((i) => i.id === detail.invoice.id);
+      openDetail(actualizada ?? detail.invoice);
+    }
+    load();
+  }
+
+  async function verComprobante(path: string) {
+    const url = await urlComprobante(path);
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+    else setMsg({ ok: false, text: "No se pudo abrir el comprobante" });
+  }
+
   return (
     <div className="pb-10 space-y-6 font-sans">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Facturación</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+            Facturación
+          </h1>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-            Cierre operativo: cortes quincenales o mensuales por cliente e-commerce
+            {esCliente
+              ? "Tu cuenta con A Tiempo: cada entrega entra sola apenas se completa"
+              : "Cierre operativo por cliente e-commerce"}
           </p>
         </div>
         {isOps && (
@@ -126,7 +236,45 @@ export default function BillingPage() {
         )}
       </div>
 
-      {/* Status Message Banner */}
+      {/* Estado de cartera del comercio: es lo que decide si puede seguir
+          despachando, así que va arriba de todo y no escondido en un detalle. */}
+      {esCliente && cartera && (
+        <div
+          className={`rounded-2xl p-4 ${
+            cartera.al_dia
+              ? "bg-emerald-50 dark:bg-emerald-500/10"
+              : "bg-rose-50 dark:bg-rose-500/10"
+          }`}
+        >
+          <p
+            className={`text-[15px] font-bold ${
+              cartera.al_dia
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-rose-700 dark:text-rose-400"
+            }`}
+          >
+            {cartera.al_dia
+              ? Number(cartera.saldo) > 0
+                ? `Debes ${formatCOP(cartera.saldo)} — puedes seguir solicitando recogidas`
+                : "Estás al día"
+              : `Tienes ${formatCOP(cartera.saldo)} vencidos: no puedes solicitar más recogidas`}
+          </p>
+          <p
+            className={`mt-1 text-[13px] leading-snug ${
+              cartera.al_dia
+                ? "text-emerald-700/80 dark:text-emerald-400/80"
+                : "text-rose-700/80 dark:text-rose-400/80"
+            }`}
+          >
+            {cartera.al_dia
+              ? cartera.vence_en
+                ? `Tienes plazo hasta el ${formatDateTime(cartera.vence_en)} para pagar.`
+                : "No tienes facturas pendientes."
+              : "Reporta el pago con su comprobante y, apenas lo verifiquemos, se desbloquea."}
+          </p>
+        </div>
+      )}
+
       {msg && (
         <div
           className={`rounded-2xl px-4 py-3 text-[14px] font-medium transition-all ${
@@ -151,7 +299,11 @@ export default function BillingPage() {
         ) : invoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
             <Receipt className="w-10 h-10 text-slate-300 dark:text-slate-600" />
-            <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay facturas generadas</p>
+            <p className="text-[16px] text-slate-500 dark:text-slate-400">
+              {esCliente
+                ? "Todavía no tienes entregas facturadas"
+                : "No hay facturas generadas"}
+            </p>
           </div>
         ) : (
           <>
@@ -161,11 +313,13 @@ export default function BillingPage() {
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-800 text-left">
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Factura</th>
-                    <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
+                    {!esCliente && (
+                      <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
+                    )}
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Periodo</th>
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Total</th>
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
-                    {isOps && <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Acciones</th>}
+                    <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,9 +336,11 @@ export default function BillingPage() {
                           {inv.invoice_number}
                         </button>
                       </td>
-                      <td className="px-5 py-3.5 text-[15px] text-slate-600 dark:text-slate-400">
-                        {inv.at_clients?.business_name}
-                      </td>
+                      {!esCliente && (
+                        <td className="px-5 py-3.5 text-[15px] text-slate-600 dark:text-slate-400">
+                          {inv.at_clients?.business_name}
+                        </td>
+                      )}
                       <td className="px-5 py-3.5 text-[14px] text-slate-500 dark:text-slate-400">
                         {formatDate(inv.period_start)} — {formatDate(inv.period_end)}
                       </td>
@@ -194,9 +350,21 @@ export default function BillingPage() {
                       <td className="px-5 py-3.5">
                         <Pill label={INVOICE_STATUS_LABELS[inv.status]} tone={TONES[inv.status]} />
                       </td>
-                      {isOps && (
-                        <td className="px-5 py-3.5 text-right">
-                          {inv.status === "borrador" && (
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {esCliente && inv.status !== "pagada" && inv.status !== "anulada" && Number(inv.total) > 0 && (
+                            <button
+                              onClick={() => {
+                                setPagando(inv);
+                                setFormPago({ monto: String(inv.total), referencia: "", metodo: "Transferencia" });
+                                setComprobante(null);
+                              }}
+                              className="text-[14px] font-semibold text-[#1C1C1E] bg-[#ff812c] hover:bg-[#ff812c]/90 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                            >
+                              Reportar pago
+                            </button>
+                          )}
+                          {isOps && inv.status === "borrador" && (
                             <button
                               onClick={() => setStatus(inv, "emitida")}
                               className="text-[14px] font-semibold text-slate-700 dark:text-slate-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
@@ -204,16 +372,8 @@ export default function BillingPage() {
                               Emitir
                             </button>
                           )}
-                          {inv.status === "emitida" && (
-                            <button
-                              onClick={() => setStatus(inv, "pagada")}
-                              className="text-[14px] font-semibold text-[#1C1C1E] bg-[#ff812c] hover:bg-[#ff812c]/90 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
-                            >
-                              Marcar pagada
-                            </button>
-                          )}
-                        </td>
-                      )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -233,33 +393,41 @@ export default function BillingPage() {
                     </button>
                     <Pill label={INVOICE_STATUS_LABELS[inv.status]} tone={TONES[inv.status]} />
                   </div>
-                  <p className="text-[14px] text-slate-600 dark:text-slate-400">{inv.at_clients?.business_name}</p>
+                  {!esCliente && (
+                    <p className="text-[14px] text-slate-600 dark:text-slate-400">
+                      {inv.at_clients?.business_name}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between">
                     <p className="text-[13px] text-slate-400 dark:text-slate-500">
                       {formatDate(inv.period_start)} — {formatDate(inv.period_end)}
                     </p>
-                    <p className="text-[15px] font-bold text-slate-900 dark:text-white">{formatCOP(inv.total)}</p>
+                    <p className="text-[15px] font-bold text-slate-900 dark:text-white">
+                      {formatCOP(inv.total)}
+                    </p>
                   </div>
-                  {isOps && (
-                    <div className="flex gap-2 pt-1">
-                      {inv.status === "borrador" && (
-                        <button
-                          onClick={() => setStatus(inv, "emitida")}
-                          className="flex-1 text-[14px] font-semibold text-slate-700 dark:text-slate-300 bg-gray-100 dark:bg-gray-700 min-h-[40px] rounded-xl active:scale-95 transition-transform"
-                        >
-                          Emitir
-                        </button>
-                      )}
-                      {inv.status === "emitida" && (
-                        <button
-                          onClick={() => setStatus(inv, "pagada")}
-                          className="flex-1 text-[14px] font-semibold text-[#1C1C1E] bg-[#ff812c] min-h-[40px] rounded-xl active:scale-95 transition-transform"
-                        >
-                          Marcar pagada
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex gap-2 pt-1">
+                    {esCliente && inv.status !== "pagada" && inv.status !== "anulada" && Number(inv.total) > 0 && (
+                      <button
+                        onClick={() => {
+                          setPagando(inv);
+                          setFormPago({ monto: String(inv.total), referencia: "", metodo: "Transferencia" });
+                          setComprobante(null);
+                        }}
+                        className="flex-1 text-[14px] font-semibold text-[#1C1C1E] bg-[#ff812c] min-h-[40px] rounded-xl active:scale-95 transition-transform"
+                      >
+                        Reportar pago
+                      </button>
+                    )}
+                    {isOps && inv.status === "borrador" && (
+                      <button
+                        onClick={() => setStatus(inv, "emitida")}
+                        className="flex-1 text-[14px] font-semibold text-slate-700 dark:text-slate-300 bg-gray-100 dark:bg-gray-700 min-h-[40px] rounded-xl active:scale-95 transition-transform"
+                      >
+                        Emitir
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -267,29 +435,125 @@ export default function BillingPage() {
         )}
       </div>
 
-      {/* Generate Invoice Modal */}
+      {/* ── Reportar pago (comercio) ── */}
+      {pagando && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setPagando(null)}>
+          <div
+            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+              <div>
+                <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">Reportar pago</h2>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                  {pagando.invoice_number} · {formatCOP(pagando.total)}
+                </p>
+              </div>
+              <button
+                onClick={() => setPagando(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500 dark:text-slate-400"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={enviarPago} className="min-h-0 overflow-y-auto p-5 space-y-4">
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Valor pagado</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={formPago.monto}
+                  onChange={(e) => setFormPago((f) => ({ ...f, monto: e.target.value }))}
+                  className="w-full min-h-[52px] rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Medio de pago</label>
+                <select
+                  value={formPago.metodo}
+                  onChange={(e) => setFormPago((f) => ({ ...f, metodo: e.target.value }))}
+                  className="w-full min-h-[52px] rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
+                >
+                  {["Transferencia", "Nequi", "Daviplata", "Consignación", "Efectivo"].map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  Referencia o número de comprobante
+                </label>
+                <input
+                  value={formPago.referencia}
+                  onChange={(e) => setFormPago((f) => ({ ...f, referencia: e.target.value }))}
+                  placeholder="Ej: 45789021"
+                  className="w-full min-h-[52px] rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  Comprobante
+                </label>
+                <label className="flex items-center gap-3 min-h-[52px] px-4 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] cursor-pointer active:opacity-80">
+                  <Upload className="w-5 h-5 text-[#ff812c] shrink-0" />
+                  <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">
+                    {comprobante ? comprobante.name : "Adjuntar foto o PDF del pago"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => setComprobante(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                  Sin comprobante también se puede reportar, pero la verificación se demora más.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full flex items-center justify-center gap-2 bg-[#ff812c] text-[#1C1C1E] font-bold rounded-xl min-h-[52px] active:scale-[0.98] transition-transform disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Banknote className="w-5 h-5" />}
+                Reportar pago
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Generar factura (ops) ── */}
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowNew(false)}>
           <div
-            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl transition-colors duration-300"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">Generar factura del periodo</h2>
               <button
                 onClick={() => setShowNew(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500 dark:text-slate-400 active:opacity-70 transition-opacity text-lg leading-none"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500 dark:text-slate-400 text-lg leading-none"
               >
                 ×
               </button>
             </div>
-            {/* Desplaza: en un teléfono bajo, o con el teclado abierto sobre el
-                selector de fechas, «Generar» se salía por debajo. */}
             <form onSubmit={generate} className="min-h-0 overflow-y-auto p-5 space-y-5">
+              <p className="rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-3 text-[13px] text-slate-500 dark:text-slate-400">
+                Cada entrega ya entra sola a la cuenta del comercio apenas se completa. Esto es para
+                cerrar a mano un periodo con lo que haya quedado suelto.
+              </p>
               <section>
                 <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Cliente</h3>
                 <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
-                  <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center px-4 min-h-[52px]">
                     <select
                       required
                       value={form.client_id}
@@ -309,7 +573,7 @@ export default function BillingPage() {
               <section>
                 <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Periodo</h3>
                 <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
-                  <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
                     <label className="w-[60px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Desde</label>
                     <input
                       type="date"
@@ -319,7 +583,7 @@ export default function BillingPage() {
                       className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white"
                     />
                   </div>
-                  <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <div className="flex items-center px-4 min-h-[52px]">
                     <label className="w-[60px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Hasta</label>
                     <input
                       type="date"
@@ -332,10 +596,6 @@ export default function BillingPage() {
                 </div>
               </section>
 
-              <p className="text-[13px] text-slate-500 dark:text-slate-400 bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-xl px-4 py-3">
-                Se facturan las entregas exitosas (tarifa de entrega) y las devoluciones (tarifa de logística inversa) del periodo que aún no estén facturadas.
-              </p>
-
               <div className="flex gap-3 pt-1">
                 <button
                   type="button"
@@ -347,13 +607,9 @@ export default function BillingPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="flex-[2] flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px] shadow-sm disabled:opacity-60"
+                  className="flex-[2] flex items-center justify-center space-x-2 bg-[#ff812c] text-[#1C1C1E] font-bold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-60"
                 >
-                  {busy ? (
-                    <div className="w-5 h-5 border-2 border-[#1C1C1E] border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <FilePlus2 className="w-5 h-5 text-[#1C1C1E]" />
-                  )}
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <FilePlus2 className="w-5 h-5" />}
                   <span>Generar</span>
                 </button>
               </div>
@@ -362,25 +618,23 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Invoice Detail Modal */}
+      {/* ── Detalle de factura ── */}
       {detail && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setDetail(null)}>
-          {/* El detalle crece con las entregas del periodo: una factura de un
-              comercio activo trae decenas de renglones. Sin tope de alto el
-              modal se estiraba más que la pantalla y, como no desplazaba, el
-              total y la propia ✕ quedaban fuera y no había cómo cerrarlo. */}
           <div
-            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl transition-colors duration-300"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
               <div>
                 <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">{detail.invoice.invoice_number}</h2>
-                <p className="text-[14px] text-slate-500 dark:text-slate-400">{detail.invoice.at_clients?.business_name ?? ""}</p>
+                <p className="text-[14px] text-slate-500 dark:text-slate-400">
+                  {detail.invoice.at_clients?.business_name ?? ""}
+                </p>
               </div>
               <button
                 onClick={() => setDetail(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500 dark:text-slate-400 active:opacity-70 transition-opacity text-lg leading-none"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-slate-500 dark:text-slate-400 text-lg leading-none"
               >
                 ×
               </button>
@@ -390,8 +644,16 @@ export default function BillingPage() {
               <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
                 {detail.items.map((it) => (
                   <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="text-[15px] text-slate-600 dark:text-slate-400">{it.description}</span>
-                    <span className="text-[15px] font-semibold text-slate-900 dark:text-white shrink-0">{formatCOP(it.amount)}</span>
+                    <span className="text-[14px] text-slate-600 dark:text-slate-400">{it.description}</span>
+                    <span
+                      className={`text-[15px] font-semibold shrink-0 ${
+                        Number(it.amount) === 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-slate-900 dark:text-white"
+                      }`}
+                    >
+                      {Number(it.amount) === 0 ? "Sin cobro" : formatCOP(it.amount)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -405,6 +667,125 @@ export default function BillingPage() {
                   {formatCOP(detail.invoice.total)}
                 </span>
               </div>
+
+              {/* Pagos reportados */}
+              {detail.pagos.length > 0 && (
+                <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+                  <p className="px-4 pt-4 pb-2 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    Pagos reportados
+                  </p>
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {detail.pagos.map((p) => (
+                      <li key={p.id} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[15px] font-bold text-slate-900 dark:text-white">
+                              {formatCOP(p.amount)}
+                              <span className="ml-2 text-[13px] font-normal text-slate-500 dark:text-slate-400">
+                                {p.method}
+                              </span>
+                            </p>
+                            <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                              {p.reference ? `Ref: ${p.reference} · ` : ""}
+                              {formatDateTime(p.reported_at)}
+                            </p>
+                            {p.status === "rechazado" && p.review_notes && (
+                              <p className="mt-1 flex items-start gap-1.5 text-[13px] text-rose-600 dark:text-rose-400">
+                                <TriangleAlert className="mt-0.5 w-3.5 h-3.5 shrink-0" />
+                                {p.review_notes}
+                              </p>
+                            )}
+                          </div>
+                          <Pill
+                            label={
+                              p.status === "verificado"
+                                ? "Verificado"
+                                : p.status === "rechazado"
+                                  ? "Rechazado"
+                                  : "Por verificar"
+                            }
+                            tone={
+                              p.status === "verificado"
+                                ? "green"
+                                : p.status === "rechazado"
+                                  ? "red"
+                                  : "amber"
+                            }
+                          />
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {p.receipt_path && (
+                            <button
+                              onClick={() => verComprobante(p.receipt_path!)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 px-3 text-xs font-semibold text-slate-700 dark:text-slate-200"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Ver comprobante
+                            </button>
+                          )}
+                          {isOps && p.status === "pendiente" && (
+                            <>
+                              <button
+                                disabled={busy}
+                                onClick={() => verificarPago(p.id, true)}
+                                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white disabled:opacity-60"
+                              >
+                                <Check className="w-3.5 h-3.5" /> Verificar
+                              </button>
+                              <button
+                                disabled={busy}
+                                onClick={() => { setRechazando(p); setMotivo(""); }}
+                                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-600 disabled:opacity-60"
+                              >
+                                <X className="w-3.5 h-3.5" /> Rechazar
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Rechazar un pago ── */}
+      {rechazando && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setRechazando(null)}>
+          <div
+            className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">
+              Rechazar el pago de {formatCOP(rechazando.amount)}
+            </h3>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              rows={3}
+              placeholder="Ej: el comprobante no corresponde al valor reportado."
+              className="mt-3 w-full rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-4 text-[15px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c] resize-none"
+            />
+            <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
+              El comercio recibe este mensaje y puede volver a reportarlo corregido.
+            </p>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => setRechazando(null)}
+                className="flex-1 min-h-[46px] rounded-xl bg-gray-100 dark:bg-gray-700 font-semibold text-slate-700 dark:text-slate-300"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={busy || !motivo.trim()}
+                onClick={() => verificarPago(rechazando.id, false, motivo.trim())}
+                className="flex-1 min-h-[46px] rounded-xl bg-rose-600 font-bold text-white disabled:opacity-60"
+              >
+                Rechazar
+              </button>
             </div>
           </div>
         </div>

@@ -69,6 +69,8 @@ export default function NewGuidePage() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientId, setRecipientId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  // zona → lo que le cuesta a este comercio llegar allá (at_mi_tarifario).
+  const [tarifaPorZona, setTarifaPorZona] = useState<Record<string, number>>({});
   const [buscador, setBuscador] = useState("");
   // Lo que va dentro de la caja. Antes esto era un único producto seleccionado
   // que se escribía como texto dentro de las notas: no se podían mandar dos
@@ -97,6 +99,7 @@ export default function NewGuidePage() {
     zone_id: "",
     is_cod: false,
     cod_amount: "",
+    cod_includes_shipping: false,
     notes: "",
     content_description: "",
     package_type: "" as PackageType | "",
@@ -115,6 +118,16 @@ export default function NewGuidePage() {
       .order("sort_order")
       .then(({ data }) => setZones((data as Zone[]) ?? []));
   }, []);
+
+  // Su tarifario personalizado: cuánto le cuesta a ÉL llegar a cada zona.
+  useEffect(() => {
+    if (!esCliente) return;
+    const supabase = createClient();
+    supabase.rpc("at_mi_tarifario").then(({ data }) => {
+      const filas = (data as { id: string; delivery_rate: number }[]) ?? [];
+      setTarifaPorZona(Object.fromEntries(filas.map((f) => [f.id, Number(f.delivery_rate)])));
+    });
+  }, [esCliente, clientId]);
 
   // Comercios: el cliente no elige, se le carga el suyo automáticamente.
   useEffect(() => {
@@ -173,6 +186,15 @@ export default function NewGuidePage() {
   }, [form.recipient_city, form.recipient_address, zones, zonaManual]);
 
   const zonaElegida = zones.find((z) => z.id === form.zone_id) ?? null;
+
+  /**
+   * El precio real de ESTE comercio hacia esa zona, que no es el mismo que la
+   * tarifa de la zona: esa describe el viaje saliendo del CEDI, y este sale de
+   * donde está el comercio. Si todavía no ha elegido su zona de origen, el
+   * tarifario devuelve la tarifa completa y coinciden.
+   */
+  const precioDomicilio =
+    tarifaPorZona[form.zone_id] ?? zonaElegida?.delivery_rate ?? null;
 
   const nombreComercio = esCliente
     ? miComercio?.business_name ?? ""
@@ -292,6 +314,7 @@ export default function NewGuidePage() {
       zone_id: form.zone_id || null,
       is_cod: form.is_cod,
       cod_amount: form.is_cod ? Number(form.cod_amount) || 0 : 0,
+      cod_includes_shipping: form.is_cod && form.cod_includes_shipping,
       // Lo que vale la mercancía, se cobre o no contraentrega: es el dato
       // que importa en un reclamo por pérdida o avería.
       declared_value: totalContenido,
@@ -935,7 +958,7 @@ export default function NewGuidePage() {
                   )}
                 </div>
                 <p className="text-[17px] font-bold text-slate-900 dark:text-white shrink-0">
-                  {formatCOP(zonaElegida.delivery_rate)}
+                  {formatCOP(precioDomicilio)}
                 </p>
               </div>
             ) : (
@@ -1004,6 +1027,36 @@ export default function NewGuidePage() {
                       </button>
                     </div>
                   )}
+
+                  {/* Quién paga el domicilio. Es la diferencia entre que la
+                      entrega te llegue a la factura o que ya venga saldada. */}
+                  <div
+                    className="flex items-start justify-between gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 cursor-pointer"
+                    onClick={() =>
+                      setForm((f) => ({ ...f, cod_includes_shipping: !f.cod_includes_shipping }))
+                    }
+                  >
+                    <div className="min-w-0 flex-1">
+                      <label className="text-[16px] font-medium text-slate-900 dark:text-white cursor-pointer">
+                        Ese valor ya incluye el domicilio
+                      </label>
+                      <p className="mt-0.5 text-[13px] leading-snug text-slate-500 dark:text-slate-400">
+                        {form.cod_includes_shipping
+                          ? precioDomicilio != null
+                            ? `Nos quedamos con ${formatCOP(precioDomicilio)} del recaudo y esta entrega no te llega a la factura.`
+                            : "Nos quedamos con el domicilio del recaudo y esta entrega no te llega a la factura."
+                          : "El comprador paga solo el producto y el domicilio te lo facturamos a ti."}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={form.cod_includes_shipping}
+                      readOnly
+                      aria-label="El valor a recaudar ya incluye el domicilio"
+                      className="mt-1 w-14 h-8 shrink-0 rounded-full appearance-none bg-gray-300 dark:bg-gray-600 checked:bg-[#ff812c] transition-colors relative cursor-pointer
+                        after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:w-7 after:h-7 after:bg-white after:rounded-full after:shadow-sm after:transition-transform checked:after:translate-x-6"
+                    />
+                  </div>
                 </>
               )}
 

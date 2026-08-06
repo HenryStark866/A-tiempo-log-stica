@@ -7,7 +7,7 @@ import { Pill } from "@/components/StatusBadge";
 import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { useProfile } from "@/components/ProfileContext";
 import { formatCOP } from "@/lib/utils";
-import type { Client } from "@/lib/types";
+import type { Client, Zone } from "@/lib/types";
 
 const EMPTY_FORM = {
   business_name: "",
@@ -19,6 +19,7 @@ const EMPTY_FORM = {
   billing_cycle: "quincenal",
   delivery_rate: "6000",
   return_rate: "3000",
+  zone_id: "",
   active: true,
 };
 
@@ -37,6 +38,8 @@ export default function ClientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [zonas, setZonas] = useState<Zone[]>([]);
+
   const load = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase
@@ -48,6 +51,13 @@ export default function ClientsPage() {
 
   useEffect(() => {
     load();
+    const supabase = createClient();
+    supabase
+      .from("at_zones")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order")
+      .then(({ data }) => setZonas((data as Zone[]) ?? []));
   }, [load]);
 
   function openEdit(c: Client) {
@@ -63,6 +73,7 @@ export default function ClientsPage() {
       billing_cycle: c.billing_cycle,
       delivery_rate: String(c.delivery_rate),
       return_rate: String(c.return_rate),
+      zone_id: c.zone_id ?? "",
       active: c.active,
     });
   }
@@ -83,6 +94,7 @@ export default function ClientsPage() {
       billing_cycle: form.billing_cycle,
       delivery_rate: Number(form.delivery_rate) || 0,
       return_rate: Number(form.return_rate) || 0,
+      zone_id: form.zone_id || null,
       active: form.active,
     };
     const { error } = await supabase.from("at_clients").update(payload).eq("id", editing.id);
@@ -348,6 +360,22 @@ export default function ClientsPage() {
                 <section>
                   <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Tarifas y Facturación</h3>
                   <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+                    {/* De aquí sale el precio real de cada domicilio: la tarifa
+                        se calcula entre esta zona y la del destinatario. Sin
+                        ella se le cobra la tarifa completa desde el CEDI. */}
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                      <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Zona origen</label>
+                      <select
+                        value={form.zone_id}
+                        onChange={set("zone_id")}
+                        className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
+                      >
+                        <option value="">Sin definir (cobra tarifa completa)</option>
+                        {zonas.map((z) => (
+                          <option key={z.id} value={z.id}>{z.name}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Ciclo</label>
                       <select

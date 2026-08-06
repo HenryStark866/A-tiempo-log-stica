@@ -37,6 +37,17 @@ interface PickupGuide {
   cod_amount: number;
 }
 
+/** Guía que va a la misma zona donde se está recogiendo (at_guias_entrega_directa). */
+interface GuiaCerca {
+  id: string;
+  guide_number: string;
+  recipient_name: string;
+  recipient_address: string;
+  zone_name: string | null;
+  is_cod: boolean;
+  cod_amount: number;
+}
+
 interface Pickup {
   pickup_id: string;
   /** El código que el operario escanea en el muelle para ingresar el lote. */
@@ -62,6 +73,10 @@ export default function CourierPickupPage() {
   const [nota, setNota] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Guías que acaba de recoger y van a esta misma zona: puede entregarlas
+  // directo en vez de devolverse al CEDI.
+  const [directa, setDirecta] = useState<{ comercio: string; guias: GuiaCerca[] } | null>(null);
+  const [elegidas, setElegidas] = useState<Set<string>>(new Set());
   const [navProvider, setNavProvider] = useState<NavProvider | null>(null);
   // Cuando aún no eligió app de navegación, se pregunta antes de abrir nada.
   const [eligiendo, setEligiendo] = useState<{ direccion: string; ciudad?: string } | null>(null);
@@ -170,7 +185,44 @@ export default function CourierPickupPage() {
             ? ` ${r.faltantes} quedaron sin recoger y el comercio puede volver a pedirlos.`
             : ""),
       });
+
+      // ¿Alguno de los que acaba de recoger va a esta misma zona? Llevarlo al
+      // CEDI sería cruzar la ciudad para volver al mismo barrio.
+      const { data: cerca } = await supabase.rpc("at_guias_entrega_directa", {
+        p_pickup_id: p.pickup_id,
+      });
+      const lista = (cerca as GuiaCerca[]) ?? [];
+      if (lista.length > 0) {
+        setDirecta({ comercio: r.comercio, guias: lista });
+        setElegidas(new Set(lista.map((g) => g.id)));
+      }
     }
+    load();
+  }
+
+  /** Se queda las guías y sale a entregarlas sin pasar por el CEDI. */
+  async function entregarDirecto() {
+    if (!directa) return;
+    const ids = Array.from(elegidas);
+    if (ids.length === 0) {
+      setDirecta(null);
+      return;
+    }
+    setBusy("directa");
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("at_entrega_directa", { p_guide_ids: ids });
+    setBusy(null);
+    if (error) {
+      setMsg({ ok: false, text: error.message });
+    } else {
+      const r = data as { en_ruta: number };
+      setMsg({
+        ok: true,
+        text: `${r.en_ruta} paquete(s) quedaron en tu ruta. Ábrelos en «Mi ruta» para entregarlos.`,
+      });
+    }
+    setDirecta(null);
+    setElegidas(new Set());
     load();
   }
 
@@ -473,6 +525,92 @@ export default function CourierPickupPage() {
                 className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
               >
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Entrega directa ──
+          Aparece solo cuando de verdad hay algo cerca. La decisión es del
+          mensajero: la app sugiere, no obliga — él conoce el tráfico y sabe
+          si le cabe en la moto. */}
+      {directa && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
+          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
+            <div className="shrink-0 border-b border-gray-100 px-6 pt-6 pb-4 dark:border-gray-800">
+              <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff812c]/10">
+                <Navigation2 className="h-5 w-5 text-[#ff812c]" />
+              </div>
+              <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
+                {directa.guias.length === 1
+                  ? "Este paquete es aquí mismo"
+                  : `${directa.guias.length} de estos paquetes son aquí mismo`}
+              </h3>
+              <p className="mt-1 text-[14px] leading-snug text-slate-500 dark:text-slate-400">
+                Van a la misma zona de {directa.comercio}. Puedes entregarlos ya y ahorrarte el
+                viaje al CEDI, o llevarlos como siempre.
+              </p>
+            </div>
+
+            <ul className="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-800">
+              {directa.guias.map((g) => {
+                const marcada = elegidas.has(g.id);
+                return (
+                  <li key={g.id}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setElegidas((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(g.id)) next.delete(g.id);
+                          else next.add(g.id);
+                          return next;
+                        })
+                      }
+                      className="flex w-full items-start gap-3 px-6 py-4 text-left active:bg-[#F2F2F7] dark:active:bg-[#1C1C1E]"
+                    >
+                      {marcada ? (
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#ff812c]" />
+                      ) : (
+                        <Circle className="mt-0.5 h-5 w-5 shrink-0 text-slate-300 dark:text-slate-600" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[15px] font-bold text-slate-900 dark:text-white">
+                          {g.recipient_name}
+                        </p>
+                        <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                          {g.recipient_address}
+                        </p>
+                        <p className="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">
+                          {g.guide_number}
+                          {g.is_cod ? ` · recaudar ${formatCOP(g.cod_amount)}` : ""}
+                        </p>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="shrink-0 space-y-2 border-t border-gray-100 p-5 dark:border-gray-800">
+              <button
+                onClick={entregarDirecto}
+                disabled={busy === "directa" || elegidas.size === 0}
+                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff812c] font-bold text-[#1C1C1E] transition-transform active:scale-[0.98] disabled:opacity-50"
+              >
+                {busy === "directa" ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Navigation2 className="h-5 w-5" />
+                )}
+                Entregar {elegidas.size > 0 ? `${elegidas.size} ` : ""}sin pasar por el CEDI
+              </button>
+              <button
+                onClick={() => { setDirecta(null); setElegidas(new Set()); }}
+                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+              >
+                Los llevo al CEDI
               </button>
             </div>
           </div>

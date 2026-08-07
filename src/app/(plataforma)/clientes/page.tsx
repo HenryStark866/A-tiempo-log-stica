@@ -173,6 +173,14 @@ export default function ClientsPage() {
                       <td className="px-5 py-3.5">
                         <p className="text-[15px] font-semibold text-slate-900 dark:text-white">{c.business_name}</p>
                         <p className="text-[12px] text-slate-400 dark:text-slate-500">NIT {c.nit ?? "—"}</p>
+                        {/* Sin zona de origen no se le puede aplicar su
+                            tarifa real: se le cobra la completa desde el CEDI.
+                            Se avisa aquí, que es donde se corrige. */}
+                        {!c.zone_id && (
+                          <span className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                            Sin zona · cobra tarifa completa
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="text-[14px] text-slate-600 dark:text-slate-400">{c.contact_name ?? "—"}</p>
@@ -208,6 +216,11 @@ export default function ClientsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[16px] font-semibold text-slate-900 dark:text-white truncate">{c.business_name}</p>
                       <p className="text-[13px] text-slate-400 dark:text-slate-500">NIT {c.nit ?? "—"}</p>
+                      {!c.zone_id && (
+                        <span className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                          Sin zona · cobra tarifa completa
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Pill label={c.active ? "Activo" : "Inactivo"} tone={c.active ? "green" : "red"} />

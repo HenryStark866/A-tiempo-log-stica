@@ -7,12 +7,11 @@ import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
-import type { Client, Profile, Role, Zone } from "@/lib/types";
+import type { Profile, Role, Zone } from "@/lib/types";
 
 export default function UsersPage() {
   const yo = useProfile();
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
-  const [clients, setClients] = useState<Client[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [editing, setEditing] = useState<Profile | null>(null);
   const [form, setForm] = useState({ role: "pendiente", client_id: "", zone_id: "", active: true, max_capacity: 30 });
@@ -33,24 +32,21 @@ export default function UsersPage() {
     setProfiles((data as Profile[]) ?? []);
   }, [esAdmin]);
 
-  const loadClients = useCallback(async () => {
-    if (!esAdmin) return;
-    const supabase = createClient();
-    const { data } = await supabase.from("at_clients").select("*").order("business_name");
-    setClients((data as Client[]) ?? []);
-  }, [esAdmin]);
+  // Ya no se cargan los comercios: el admin no elige a cuál pertenece un
+  // usuario. Cuando el rol pasa a 'cliente', el trigger at_profiles_autoclient
+  // lo enlaza solo (ver el comentario en `save`). La lista quedó cargándose
+  // sin que nadie la mirara.
 
   useEffect(() => {
     if (!esAdmin) return;
     load();
-    loadClients();
     const supabase = createClient();
     supabase
       .from("at_zones")
       .select("*")
       .order("name")
       .then(({ data }) => setZones((data as Zone[]) ?? []));
-  }, [esAdmin, load, loadClients]);
+  }, [esAdmin, load]);
 
   const pending = (profiles ?? []).filter((p) => p.role === "pendiente" && p.requested_role);
 
@@ -86,7 +82,7 @@ export default function UsersPage() {
       setReqError(error.message);
       return;
     }
-    await Promise.all([load(), loadClients()]);
+    await load();
   }
 
   // ── Rechazar solicitud: deja la cuenta inactiva y la saca de la cola ──

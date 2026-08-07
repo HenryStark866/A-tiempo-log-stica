@@ -21,7 +21,6 @@ import {
   Radio,
   Receipt,
   Route,
-  Clock,
   ShieldAlert,
   Store,
   Tag,

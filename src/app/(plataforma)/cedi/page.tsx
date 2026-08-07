@@ -81,7 +81,14 @@ export default function CediPage() {
     load();
   }, [load]);
 
-  async function receive(guideId: string, guideNumber: string) {
+  /**
+   * `useCallback` y no una función suelta: `procesarTexto` la lleva en sus
+   * dependencias, y al recrearse en cada render obligaba a recrear también el
+   * lector del escáner. Con la pistola disparando seguido, eso deja la cámara
+   * reenganchándose y arriesga que un escaneo corra con una lista de guías ya
+   * vieja.
+   */
+  const receive = useCallback(async (guideId: string, guideNumber: string) => {
     setBusy(true);
     setMsg(null);
     const supabase = createClient();
@@ -110,7 +117,7 @@ export default function CediPage() {
         : { ok: true, text: `${guideNumber} recibida en CEDI ✓` }
     );
     load();
-  }
+  }, [load, offline]);
 
   /**
    * Ingresa de una todas las guías de un lote.

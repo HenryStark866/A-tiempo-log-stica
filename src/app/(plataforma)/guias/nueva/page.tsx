@@ -28,7 +28,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { useOffline } from "@/components/OfflineContext";
-import { CIUDADES_OPERADAS, resolveZone } from "@/lib/zones";
+import { CIUDADES_OPERADAS } from "@/lib/zones";
 import { PriceList } from "@/components/PriceList";
 import { PACKAGE_SIZES, PACKAGE_TYPES } from "@/lib/constants";
 import { esFalloDeRed } from "@/lib/offline/queue";

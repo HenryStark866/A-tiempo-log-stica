@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Clock,
   MapPin,
   Package,
   Phone,

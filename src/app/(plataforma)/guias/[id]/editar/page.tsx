@@ -24,7 +24,10 @@ export default function EditGuidePage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const profile = useProfile();
-  const { clientId } = useMyClient();
+  // Se llama por el efecto, no por el valor: autoaprovisiona el comercio del
+  // cliente si todavía no lo tiene. Sin esta línea, un comercio recién
+  // registrado que entra directo a editar una guía se queda sin cuenta.
+  useMyClient();
 
   const [guide, setGuide] = useState<Guide | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);

@@ -23,6 +23,7 @@ import { FACILITY_DOCS, FACILITY_DOC_LABELS } from "@/lib/constants";
 import { signedFacilityDocUrl } from "@/lib/facilityDocs";
 import { formatCOP, formatDate, formatDateTime } from "@/lib/utils";
 import { hoyEnColombia, primerDiaDelMes } from "@/lib/tiempo";
+import { CIUDADES_OPERADAS } from "@/lib/zones";
 import type { Profile, SolicitudCedi } from "@/lib/types";
 
 /** Lo que devuelve at_list_facilities: una sede con sus números ya contados. */
@@ -409,8 +410,35 @@ export default function SedesPage() {
             <Field label="Nombre">
               <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="CEDI Cali" className={inputCls} />
             </Field>
-            <Field label="Ciudad">
-              <input required value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} placeholder="Cali" className={inputCls} />
+            <Field label="Ciudad / Municipio">
+              <div className="flex gap-2">
+                <select
+                  value={CIUDADES_OPERADAS.includes(form.city) ? form.city : "Otra ciudad"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val !== "Otra ciudad") {
+                      setForm((f) => ({ ...f, city: val }));
+                    } else {
+                      setForm((f) => ({ ...f, city: "" }));
+                    }
+                  }}
+                  className={inputCls}
+                >
+                  <option value="" disabled>Seleccionar municipio...</option>
+                  {CIUDADES_OPERADAS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {!CIUDADES_OPERADAS.includes(form.city) && (
+                  <input
+                    required
+                    value={form.city}
+                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                    placeholder="Nombre del municipio"
+                    className={inputCls}
+                  />
+                )}
+              </div>
             </Field>
             <Field label="Dirección">
               <input required value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="Dirección de la bodega" className={inputCls} />

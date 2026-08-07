@@ -18,17 +18,23 @@ export function normalizeText(s: string | null | undefined): string {
  * alarmante: Medellín es el corazón de la operación. Lo correcto es decir que la
  * zona está por confirmar.
  */
-const CIUDADES_CUBIERTAS = [
-  "medellin",
-  "bello",
-  "itagui",
-  "envigado",
-  "sabaneta",
-  "la estrella",
-  "caldas",
-  "copacabana",
-  "girardota",
+export const CIUDADES_OPERADAS = [
+  "Medellín",
+  "Bello",
+  "Itagüí",
+  "Envigado",
+  "Sabaneta",
+  "La Estrella",
+  "Caldas",
+  "Copacabana",
+  "Girardota",
+  "Barbosa",
+  "Rionegro",
+  "Oriente Cercano",
+  "Otra ciudad",
 ];
+
+const CIUDADES_CUBIERTAS = CIUDADES_OPERADAS.map((c) => normalizeText(c));
 
 export type ZoneStatus = "asignada" | "por_confirmar" | "fuera";
 

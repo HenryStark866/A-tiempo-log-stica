@@ -7,6 +7,7 @@ import { Pill } from "@/components/StatusBadge";
 import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { useProfile } from "@/components/ProfileContext";
 import { formatCOP } from "@/lib/utils";
+import { CIUDADES_OPERADAS } from "@/lib/zones";
 import type { Client, Zone } from "@/lib/types";
 
 const EMPTY_FORM = {
@@ -345,7 +346,7 @@ export default function ClientsPage() {
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
                     </div>
-                    <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Dirección</label>
                       <input
                         value={form.address}
@@ -353,6 +354,21 @@ export default function ClientsPage() {
                         placeholder="Cl 10 #43E-31"
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
+                    </div>
+                    <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                      <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Municipio</label>
+                      <select
+                        value={CIUDADES_OPERADAS.includes(form.address.split(" · ")[1] || "") ? form.address.split(" · ")[1] : "Medellín"}
+                        onChange={(e) => {
+                          const dirLimpia = form.address.split(" · ")[0];
+                          setForm((f) => ({ ...f, address: `${dirLimpia} · ${e.target.value}` }));
+                        }}
+                        className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none cursor-pointer"
+                      >
+                        {CIUDADES_OPERADAS.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </section>

@@ -28,6 +28,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { useOffline } from "@/components/OfflineContext";
+import { CIUDADES_OPERADAS, resolveZone } from "@/lib/zones";
 import { PriceList } from "@/components/PriceList";
 import { PACKAGE_SIZES, PACKAGE_TYPES } from "@/lib/constants";
 import { esFalloDeRed } from "@/lib/offline/queue";
@@ -899,12 +900,34 @@ export default function NewGuidePage() {
 
               <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Ciudad</label>
-                <input
-                  required
-                  value={form.recipient_city}
-                  onChange={set("recipient_city")}
-                  className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
-                />
+                <div className="flex-1 flex items-center gap-2">
+                  <select
+                    value={CIUDADES_OPERADAS.includes(form.recipient_city) ? form.recipient_city : "Otra ciudad"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val !== "Otra ciudad") {
+                        setForm((f) => ({ ...f, recipient_city: val }));
+                      } else {
+                        setForm((f) => ({ ...f, recipient_city: "" }));
+                      }
+                    }}
+                    className="bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Seleccionar municipio...</option>
+                    {CIUDADES_OPERADAS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  {!CIUDADES_OPERADAS.includes(form.recipient_city) && (
+                    <input
+                      required
+                      value={form.recipient_city}
+                      onChange={set("recipient_city")}
+                      placeholder="Escribe el municipio..."
+                      className="flex-1 bg-transparent text-[16px] py-2 border-b border-[#ff812c] focus:outline-none text-slate-900 dark:text-white"
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">

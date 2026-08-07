@@ -25,12 +25,14 @@ import { ShopifyConnect } from "@/components/ShopifyConnect";
 import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { PAYMENT_KINDS, PAYMENT_KIND_LABELS } from "@/lib/constants";
 import { formatCOP } from "@/lib/utils";
+import { CIUDADES_OPERADAS } from "@/lib/zones";
 import type { PaymentKind, PaymentMethod, TarifaDestino, Zone } from "@/lib/types";
 
 const NEGOCIO_VACIO = {
   business_name: "",
   nit: "",
   address: "",
+  city: "",
   phone: "",
   contact_name: "",
   zone_id: "",
@@ -89,6 +91,7 @@ export default function MiComercioPage() {
       business_name: client.business_name ?? "",
       nit: client.nit ?? "",
       address: client.address ?? "",
+      city: client.city ?? "",
       phone: client.phone ?? "",
       contact_name: client.contact_name ?? "",
       zone_id: client.zone_id ?? "",
@@ -144,6 +147,7 @@ export default function MiComercioPage() {
       p_business_name: negocio.business_name.trim(),
       p_nit: negocio.nit.trim() || null,
       p_address: negocio.address.trim() || null,
+      p_city: negocio.city.trim() || null,
       p_phone: negocio.phone.trim() || null,
       p_contact_name: negocio.contact_name.trim() || null,
       p_zone_id: negocio.zone_id || null,
@@ -361,6 +365,22 @@ export default function MiComercioPage() {
                 className={fieldInput}
                 placeholder="Dirección del comercio"
               />
+            </div>
+            {/* Va pegado a la dirección porque juntos deciden la zona, y la zona
+                decide el precio. Con el municipio puesto, la de abajo se llena
+                sola y el comercio no tiene que saber cómo dividimos la ciudad. */}
+            <div className={fieldRow}>
+              <label className={fieldLabel}>Municipio</label>
+              <select
+                value={negocio.city}
+                onChange={(e) => setNegocio((n) => ({ ...n, city: e.target.value }))}
+                className={`${fieldInput} appearance-none cursor-pointer`}
+              >
+                <option value="">Elige tu municipio</option>
+                {CIUDADES_OPERADAS.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             <div className={fieldRow}>
               <label className={fieldLabel}>Teléfono</label>

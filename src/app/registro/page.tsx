@@ -6,6 +6,7 @@ import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse } f
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
+import { CIUDADES_OPERADAS } from "@/lib/zones";
 
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
 type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi";
@@ -22,6 +23,7 @@ export default function RegisterPage() {
   const [businessName, setBusinessName] = useState("");
   const [businessNit, setBusinessNit] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
+  const [businessCity, setBusinessCity] = useState("");
   // Datos del local (solo CEDI afiliado): reutiliza businessName/businessAddress
   // con otro rótulo — es el mismo dato, "nombre y dirección de la operación".
   const [proposedCity, setProposedCity] = useState("");
@@ -39,6 +41,10 @@ export default function RegisterPage() {
 
     if (isClient && !businessType) {
       setError("Selecciona el tipo de negocio.");
+      return;
+    }
+    if (isClient && !businessCity) {
+      setError("Dinos desde qué municipio despachas: de ahí sale el precio de tus domicilios.");
       return;
     }
     if (isCedi && (!businessName.trim() || !proposedCity.trim() || !businessAddress.trim())) {
@@ -65,6 +71,7 @@ export default function RegisterPage() {
                 business_name: businessName,
                 business_nit: businessNit || null,
                 business_address: businessAddress || null,
+                business_city: businessCity,
               }
             : {}),
           ...(isCedi
@@ -297,7 +304,7 @@ export default function RegisterPage() {
                         placeholder="123456789-0 (opcional)"
                       />
                     </div>
-                    <div className={`${fieldRow} border-b-0`}>
+                    <div className={fieldRow}>
                       <label className={fieldLabel}>Dirección</label>
                       <input
                         value={businessAddress}
@@ -305,6 +312,24 @@ export default function RegisterPage() {
                         className={fieldInput}
                         placeholder="Dirección del comercio (opcional)"
                       />
+                    </div>
+                    {/* Obligatorio aunque la dirección no lo sea: de aquí sale la
+                        zona del comercio, y de la zona el precio de sus domicilios.
+                        Preguntarlo ahora evita tener que perseguirlo después, con
+                        guías ya cobradas a la tarifa que no era. */}
+                    <div className={`${fieldRow} border-b-0`}>
+                      <label className={fieldLabel}>Municipio</label>
+                      <select
+                        required
+                        value={businessCity}
+                        onChange={(e) => setBusinessCity(e.target.value)}
+                        className={`${fieldInput} appearance-none cursor-pointer`}
+                      >
+                        <option value="">¿Desde dónde despachas?</option>
+                        {CIUDADES_OPERADAS.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>

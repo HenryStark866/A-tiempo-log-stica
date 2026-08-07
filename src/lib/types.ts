@@ -132,6 +132,8 @@ export interface Client {
   email: string | null;
   phone: string | null;
   address: string | null;
+  /** Municipio donde está el comercio: de aquí se deduce su zona de origen. */
+  city: string | null;
   billing_cycle: BillingCycle;
   delivery_rate: number;
   return_rate: number;

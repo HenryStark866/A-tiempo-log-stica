@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   email: "",
   phone: "",
   address: "",
+  city: "",
   billing_cycle: "quincenal",
   delivery_rate: "6000",
   return_rate: "3000",
@@ -71,6 +72,7 @@ export default function ClientsPage() {
       email: c.email ?? "",
       phone: c.phone ?? "",
       address: c.address ?? "",
+      city: c.city ?? "",
       billing_cycle: c.billing_cycle,
       delivery_rate: String(c.delivery_rate),
       return_rate: String(c.return_rate),
@@ -92,6 +94,7 @@ export default function ClientsPage() {
       email: form.email || null,
       phone: form.phone || null,
       address: form.address || null,
+      city: form.city || null,
       billing_cycle: form.billing_cycle,
       delivery_rate: Number(form.delivery_rate) || 0,
       return_rate: Number(form.return_rate) || 0,
@@ -371,13 +374,11 @@ export default function ClientsPage() {
                     <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Municipio</label>
                       <select
-                        value={CIUDADES_OPERADAS.includes(form.address.split(" · ")[1] || "") ? form.address.split(" · ")[1] : "Medellín"}
-                        onChange={(e) => {
-                          const dirLimpia = form.address.split(" · ")[0];
-                          setForm((f) => ({ ...f, address: `${dirLimpia} · ${e.target.value}` }));
-                        }}
+                        value={form.city}
+                        onChange={set("city")}
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none cursor-pointer"
                       >
+                        <option value="">Sin definir</option>
                         {CIUDADES_OPERADAS.map((c) => (
                           <option key={c} value={c}>{c}</option>
                         ))}
@@ -399,7 +400,7 @@ export default function ClientsPage() {
                         onChange={set("zone_id")}
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
                       >
-                        <option value="">Sin definir (cobra tarifa completa)</option>
+                        <option value="">Deducir del municipio</option>
                         {zonas.map((z) => (
                           <option key={z.id} value={z.id}>{z.name}</option>
                         ))}

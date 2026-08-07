@@ -7,10 +7,11 @@ import { CheckCircle2, Circle, LoaderCircle, PackageX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BuscadorGuia } from "@/components/BuscadorGuia";
+import { DemasiadasSolicitudes } from "@/components/DemasiadasSolicitudes";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
 import { GUIA_EJEMPLO } from "@/lib/marca";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, esDemasiadasSolicitudes } from "@/lib/utils";
 import type { TrackingResult } from "@/lib/types";
 
 import { FondoRastreo } from "@/components/fondos/FondoRastreo";
@@ -18,6 +19,7 @@ export default function TrackingPage() {
   const { numero } = useParams<{ numero: string }>();
   const [result, setResult] = useState<TrackingResult | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [frenado, setFrenado] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +28,12 @@ export default function TrackingPage() {
       .rpc("at_track_guide", { p_guide_number: decodeURIComponent(numero) })
       .then(({ data, error }) => {
         setLoading(false);
+        // Frenado no es lo mismo que inexistente: decirle a alguien que su
+        // guía no existe cuando solo iba muy rápido es una alarma falsa.
+        if (esDemasiadasSolicitudes(error)) {
+          setFrenado(true);
+          return;
+        }
         if (error || !data) {
           setNotFound(true);
           return;
@@ -59,6 +67,8 @@ export default function TrackingPage() {
               <LoaderCircle className="w-8 h-8 animate-spin text-[#ff812c]" />
               <p className="text-[16px] font-medium">Consultando guía…</p>
             </div>
+          ) : frenado ? (
+            <DemasiadasSolicitudes onReintentar={() => window.location.reload()} />
           ) : notFound || !result ? (
             /* Quien se equivoca de número lo corrige aquí mismo. Antes solo
                había un botón «volver al inicio», que obligaba a empezar de

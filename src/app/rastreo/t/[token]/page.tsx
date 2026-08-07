@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { CheckCircle2, Circle, ExternalLink, LoaderCircle, PackageX, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { DemasiadasSolicitudes } from "@/components/DemasiadasSolicitudes";
 import { Logo } from "@/components/Logo";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GUIDE_STATUS_LABELS } from "@/lib/constants";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, esDemasiadasSolicitudes } from "@/lib/utils";
 import type { TrackingByToken } from "@/lib/types";
 
 import { FondoRastreo } from "@/components/fondos/FondoRastreo";
@@ -28,6 +29,7 @@ export default function TrackingByTokenPage() {
   const { token } = useParams<{ token: string }>();
   const [result, setResult] = useState<TrackingByToken | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [frenado, setFrenado] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -36,6 +38,16 @@ export default function TrackingByTokenPage() {
       p_token: decodeURIComponent(token),
     });
     setLoading(false);
+    // Esta pantalla se refresca sola cada 30 segundos mientras el pedido va en
+    // camino. Si un refresco choca con el freno, se deja lo que ya está en
+    // pantalla y se espera al siguiente: al destinatario no se le puede borrar
+    // el mapa del mensajero por un contador. Solo se avisa si todavía no
+    // habíamos logrado cargar nada.
+    if (esDemasiadasSolicitudes(error)) {
+      setFrenado((f) => f || !data);
+      return;
+    }
+    setFrenado(false);
     if (error || !data) {
       setNotFound(true);
       return;
@@ -78,6 +90,10 @@ export default function TrackingByTokenPage() {
               <LoaderCircle className="w-8 h-8 animate-spin text-[#ff812c]" />
               <p className="text-[16px] font-medium">Consultando tu pedido…</p>
             </div>
+          </div>
+        ) : frenado && !result ? (
+          <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm">
+            <DemasiadasSolicitudes onReintentar={load} />
           </div>
         ) : notFound || !result ? (
           <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm py-12 text-center">

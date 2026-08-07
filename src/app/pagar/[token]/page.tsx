@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Banknote, Check, Copy, ExternalLink, LoaderCircle, PackageX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { DemasiadasSolicitudes } from "@/components/DemasiadasSolicitudes";
 import { Logo } from "@/components/Logo";
 import { PAYMENT_KIND_LABELS } from "@/lib/constants";
-import { formatCOP } from "@/lib/utils";
+import { formatCOP, esDemasiadasSolicitudes } from "@/lib/utils";
 import type { PaymentInfo } from "@/lib/types";
 
 import { FondoPago } from "@/components/fondos/FondoPago";
@@ -20,6 +21,7 @@ export default function PagarPage() {
   const { token } = useParams<{ token: string }>();
   const [info, setInfo] = useState<PaymentInfo | null>(null);
   const [noExiste, setNoExiste] = useState(false);
+  const [frenado, setFrenado] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,12 @@ export default function PagarPage() {
       .rpc("at_payment_info", { p_token: decodeURIComponent(token) })
       .then(({ data, error }) => {
         setLoading(false);
+        // Ir muy rápido no es que el enlace de pago sea inválido: decírselo
+        // a alguien que está por pagar lo hace desconfiar del cobro entero.
+        if (esDemasiadasSolicitudes(error)) {
+          setFrenado(true);
+          return;
+        }
         if (error || !data) {
           setNoExiste(true);
           return;
@@ -52,6 +60,8 @@ export default function PagarPage() {
           <div className="flex justify-center py-20">
             <LoaderCircle className="w-7 h-7 animate-spin text-[#ff812c]" />
           </div>
+        ) : frenado ? (
+          <DemasiadasSolicitudes onReintentar={() => window.location.reload()} />
         ) : noExiste || !info ? (
           <div className="text-center py-16">
             <PackageX className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />

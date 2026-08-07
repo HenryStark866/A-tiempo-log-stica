@@ -76,6 +76,27 @@ export async function middleware(request: NextRequest) {
 
   function conCsp(res: NextResponse): NextResponse {
     if (csp) res.headers.set("Content-Security-Policy", csp);
+
+    // Estas no dependen del entorno: valen igual en desarrollo, y así no se
+    // descubre en producción que faltaba una.
+    //
+    // nosniff: sin ella, un archivo subido por un usuario —un comprobante de
+    //   pago, la foto de una cédula— puede servirse como HTML si el navegador
+    //   "adivina" el tipo, y ejecutarse en nuestro dominio.
+    // Referrer-Policy: los enlaces de rastreo y pago llevan el token EN LA URL.
+    //   Sin esto, al tocar un enlace externo el token viaja entero en el
+    //   Referer hasta un sitio ajeno.
+    // Permissions-Policy: solo el mensajero necesita ubicación, y la pide desde
+    //   la app; nada más debería poder pedir cámara, micrófono ni GPS.
+    res.headers.set("X-Content-Type-Options", "nosniff");
+    res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.headers.set("Permissions-Policy", "camera=(), microphone=(), payment=(), geolocation=(self)");
+    if (process.env.NODE_ENV === "production") {
+      res.headers.set(
+        "Strict-Transport-Security",
+        "max-age=63072000; includeSubDomains; preload"
+      );
+    }
     return res;
   }
 

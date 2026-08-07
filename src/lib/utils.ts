@@ -29,3 +29,15 @@ export function normalizarBusqueda(s: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "");
 }
+
+/**
+ * El freno contra solicitudes masivas responde con PT429, que PostgREST
+ * entrega como un HTTP 429.
+ *
+ * Hace falta distinguirlo porque las pantallas públicas trataban cualquier
+ * error como «no encontramos esa guía»: a alguien frenado le habríamos dicho
+ * que su pedido no existe, que es la peor noticia posible y además falsa.
+ */
+export function esDemasiadasSolicitudes(error: { code?: string } | null): boolean {
+  return error?.code === "PT429";
+}

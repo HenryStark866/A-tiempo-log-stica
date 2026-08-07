@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Banknote,
   Check,
+  CreditCard,
   Eye,
+  ExternalLink,
   FilePlus2,
   Loader2,
   Receipt,
@@ -51,6 +53,7 @@ export default function BillingPage() {
   } | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [polarBusy, setPolarBusy] = useState<string | null>(null); // invoice id en proceso
 
   // Reportar un pago (comercio) y revisarlo (administración).
   const [pagando, setPagando] = useState<Invoice | null>(null);
@@ -175,6 +178,28 @@ export default function BillingPage() {
       setMsg({ ok: false, text: err instanceof Error ? err.message : "No se pudo reportar el pago" });
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function pagarConPolar(inv: Invoice) {
+    setPolarBusy(inv.id);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/polar/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoice_id: inv.id, amount: inv.total }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.url) {
+        setMsg({ ok: false, text: json.error ?? "No se pudo iniciar el pago con Polar" });
+        return;
+      }
+      window.open(json.url, "_blank", "noopener,noreferrer");
+    } catch {
+      setMsg({ ok: false, text: "Error de conexión al iniciar pago con Polar" });
+    } finally {
+      setPolarBusy(null);
     }
   }
 
@@ -353,16 +378,31 @@ export default function BillingPage() {
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           {esCliente && inv.status !== "pagada" && inv.status !== "anulada" && Number(inv.total) > 0 && (
-                            <button
-                              onClick={() => {
-                                setPagando(inv);
-                                setFormPago({ monto: String(inv.total), referencia: "", metodo: "Transferencia" });
-                                setComprobante(null);
-                              }}
-                              className="text-[14px] font-semibold text-[#1C1C1E] bg-[#ff812c] hover:bg-[#ff812c]/90 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
-                            >
-                              Reportar pago
-                            </button>
+                            <>
+                              <button
+                                onClick={() => pagarConPolar(inv)}
+                                disabled={polarBusy === inv.id}
+                                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 px-3 py-1.5 rounded-lg active:scale-95 transition-transform disabled:opacity-60"
+                              >
+                                {polarBusy === inv.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-3.5 h-3.5" />
+                                )}
+                                Pagar con Polar
+                                {polarBusy !== inv.id && <ExternalLink className="w-3 h-3 opacity-60" />}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setPagando(inv);
+                                  setFormPago({ monto: String(inv.total), referencia: "", metodo: "Transferencia" });
+                                  setComprobante(null);
+                                }}
+                                className="text-[13px] font-semibold text-[#1C1C1E] bg-[#ff812c] hover:bg-[#ff812c]/90 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                              >
+                                Reportar pago
+                              </button>
+                            </>
                           )}
                           {isOps && inv.status === "borrador" && (
                             <button
@@ -408,16 +448,30 @@ export default function BillingPage() {
                   </div>
                   <div className="flex gap-2 pt-1">
                     {esCliente && inv.status !== "pagada" && inv.status !== "anulada" && Number(inv.total) > 0 && (
-                      <button
-                        onClick={() => {
-                          setPagando(inv);
-                          setFormPago({ monto: String(inv.total), referencia: "", metodo: "Transferencia" });
-                          setComprobante(null);
-                        }}
-                        className="flex-1 text-[14px] font-semibold text-[#1C1C1E] bg-[#ff812c] min-h-[40px] rounded-xl active:scale-95 transition-transform"
-                      >
-                        Reportar pago
-                      </button>
+                      <>
+                        <button
+                          onClick={() => pagarConPolar(inv)}
+                          disabled={polarBusy === inv.id}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-white bg-slate-800 dark:bg-slate-700 min-h-[40px] rounded-xl active:scale-95 transition-transform disabled:opacity-60"
+                        >
+                          {polarBusy === inv.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-4 h-4" />
+                          )}
+                          Pagar con Polar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPagando(inv);
+                            setFormPago({ monto: String(inv.total), referencia: "", metodo: "Transferencia" });
+                            setComprobante(null);
+                          }}
+                          className="flex-1 text-[13px] font-semibold text-[#1C1C1E] bg-[#ff812c] min-h-[40px] rounded-xl active:scale-95 transition-transform"
+                        >
+                          Reportar pago
+                        </button>
+                      </>
                     )}
                     {isOps && inv.status === "borrador" && (
                       <button

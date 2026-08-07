@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
+import { RemesasRecaudo } from "@/components/RemesasRecaudo";
 import { FiltroActivo, Loading } from "@/components/ui";
 import { SETTLEMENT_STATUS_LABELS } from "@/lib/constants";
 import { formatCOP, formatDate } from "@/lib/utils";
@@ -172,6 +173,11 @@ function Collections() {
           />
         </div>
       )}
+
+      {/* El tercer tramo de la plata: lo que le devolvemos al comercio. Va
+          arriba de los cierres porque es lo que alguien está esperando que le
+          giren, no un archivo histórico. */}
+      {isOps && !vista && <RemesasRecaudo />}
 
       <div className={`grid gap-6 ${vista ? "" : "xl:grid-cols-2"}`}>
         {/* Pending Collections Card */}

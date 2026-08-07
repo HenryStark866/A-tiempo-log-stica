@@ -5,11 +5,14 @@ import {
   Banknote,
   Check,
   CreditCard,
+  Edit,
   Eye,
   ExternalLink,
   FilePlus2,
   Loader2,
+  Plus,
   Receipt,
+  Trash2,
   TriangleAlert,
   Upload,
   X,
@@ -23,6 +26,7 @@ import { formatCOP, formatDate, formatDateTime } from "@/lib/utils";
 import { hoyEnColombia, primerDiaDelMes } from "@/lib/tiempo";
 import type {
   Client,
+  CodRemittance,
   EstadoCartera,
   Invoice,
   InvoiceItem,
@@ -45,6 +49,8 @@ export default function BillingPage() {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [cartera, setCartera] = useState<EstadoCartera | null>(null);
+  // Lo que le hemos girado (o le vamos a girar) del contraentrega recaudado.
+  const [remesas, setRemesas] = useState<CodRemittance[]>([]);
   const [showNew, setShowNew] = useState(false);
   const [detail, setDetail] = useState<{
     invoice: Invoice;
@@ -54,6 +60,8 @@ export default function BillingPage() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [polarBusy, setPolarBusy] = useState<string | null>(null); // invoice id en proceso
+  const [editingInvoice, setEditingInvoice] = useState(false);
+  const [editableItems, setEditableItems] = useState<InvoiceItem[]>([]);
 
   // Reportar un pago (comercio) y revisarlo (administración).
   const [pagando, setPagando] = useState<Invoice | null>(null);
@@ -78,10 +86,16 @@ export default function BillingPage() {
     setInvoices((data as Invoice[]) ?? []);
 
     if (esCliente && profile.client_id) {
-      const { data: c } = await supabase.rpc("at_estado_cartera", {
-        p_client_id: profile.client_id,
-      });
+      const [{ data: c }, { data: rs }] = await Promise.all([
+        supabase.rpc("at_estado_cartera", { p_client_id: profile.client_id }),
+        supabase
+          .from("at_cod_remittances")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
       setCartera(c as EstadoCartera);
+      setRemesas((rs as CodRemittance[]) ?? []);
     }
   }, [esCliente, profile.client_id]);
 
@@ -123,6 +137,7 @@ export default function BillingPage() {
   }
 
   async function openDetail(inv: Invoice) {
+    setEditingInvoice(false);
     const supabase = createClient();
     const [{ data: items }, { data: pagos }] = await Promise.all([
       supabase.from("at_invoice_items").select("*").eq("invoice_id", inv.id).order("description"),
@@ -132,11 +147,65 @@ export default function BillingPage() {
         .eq("invoice_id", inv.id)
         .order("reported_at", { ascending: false }),
     ]);
+    const itemList = (items as InvoiceItem[]) ?? [];
     setDetail({
       invoice: inv,
-      items: (items as InvoiceItem[]) ?? [],
+      items: itemList,
       pagos: (pagos as InvoicePayment[]) ?? [],
     });
+    setEditableItems(itemList);
+  }
+
+  async function guardarCambiosFactura() {
+    if (!detail) return;
+    setBusy(true);
+    setMsg(null);
+    const supabase = createClient();
+    try {
+      // 1. Identificar ítems eliminados
+      const itemsAEliminar = detail.items.filter(
+        (original) => !editableItems.some((edited) => edited.id === original.id)
+      );
+
+      // 2. Eliminar ítems
+      for (const item of itemsAEliminar) {
+        const { error } = await supabase.rpc("at_delete_invoice_item", {
+          p_item_id: item.id,
+        });
+        if (error) throw error;
+      }
+
+      // 3. Upsert ítems creados o modificados
+      for (const item of editableItems) {
+        const isNew = item.id.startsWith("temp-");
+        const { error } = await supabase.rpc("at_upsert_invoice_item", {
+          p_invoice_id: detail.invoice.id,
+          p_item_id: isNew ? null : item.id,
+          p_description: item.description,
+          p_amount: Number(item.amount),
+        });
+        if (error) throw error;
+      }
+
+      setMsg({ ok: true, text: "Factura actualizada correctamente." });
+      setEditingInvoice(false);
+
+      // Recargar
+      const { data: updatedInv } = await supabase
+        .from("at_invoices")
+        .select("*, at_clients(business_name)")
+        .eq("id", detail.invoice.id)
+        .single();
+
+      if (updatedInv) {
+        await openDetail(updatedInv as Invoice);
+      }
+      load();
+    } catch (err) {
+      setMsg({ ok: false, text: err instanceof Error ? err.message : "Error al guardar cambios" });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function setStatus(inv: Invoice, status: InvoiceStatus) {
@@ -298,6 +367,83 @@ export default function BillingPage() {
               : "Reporta el pago con su comprobante y, apenas lo verifiquemos, se desbloquea."}
           </p>
         </div>
+      )}
+
+      {/* ── Tu recaudo ──
+          La otra mitad de la cuenta: lo que nosotros te debemos a ti del
+          contraentrega. Va desglosado porque el neto solo se entiende viendo
+          qué se descontó y por qué. */}
+      {esCliente && remesas.length > 0 && (
+        <section>
+          <h2 className="mb-3 ml-1 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Tu recaudo contraentrega
+          </h2>
+          <ul className="overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E] divide-y divide-gray-100 dark:divide-gray-800">
+            {remesas.map((r) => (
+              <li key={r.id} className="px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold text-slate-900 dark:text-white">
+                      {r.remittance_number}
+                    </p>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      {r.guide_count} entrega(s) · {formatDate(r.period_start)} —{" "}
+                      {formatDate(r.period_end)}
+                    </p>
+                  </div>
+                  <Pill
+                    label={r.status === "pagada" ? "Girado" : "Por girar"}
+                    tone={r.status === "pagada" ? "green" : "amber"}
+                  />
+                </div>
+
+                <dl className="mt-3 space-y-1 border-t border-gray-100 pt-3 text-[13px] dark:border-gray-800">
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500 dark:text-slate-400">Recaudamos de tus compradores</dt>
+                    <dd className="tabular-nums font-semibold text-slate-700 dark:text-slate-300">
+                      {formatCOP(r.gross_amount)}
+                    </dd>
+                  </div>
+                  {Number(r.shipping_kept) > 0 && (
+                    <div className="flex justify-between">
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        − Domicilios que ya cobramos al comprador
+                      </dt>
+                      <dd className="tabular-nums font-semibold text-slate-700 dark:text-slate-300">
+                        {formatCOP(r.shipping_kept)}
+                      </dd>
+                    </div>
+                  )}
+                  {Number(r.invoice_offset) > 0 && (
+                    <div className="flex justify-between">
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        − Abonado a tus fletes pendientes
+                      </dt>
+                      <dd className="tabular-nums font-semibold text-slate-700 dark:text-slate-300">
+                        {formatCOP(r.invoice_offset)}
+                      </dd>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-gray-100 pt-1 dark:border-gray-800">
+                    <dt className="font-bold text-slate-900 dark:text-white">
+                      {r.status === "pagada" ? "Te giramos" : "Te giramos"}
+                    </dt>
+                    <dd className="text-[15px] font-bold tabular-nums text-[#ff812c]">
+                      {formatCOP(r.net_amount)}
+                    </dd>
+                  </div>
+                </dl>
+
+                {r.paid_at && (
+                  <p className="mt-2 text-[12px] text-emerald-600 dark:text-emerald-400">
+                    Girado el {formatDateTime(r.paid_at)}
+                    {r.reference ? ` · Ref: ${r.reference}` : ""}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {msg && (
@@ -695,32 +841,138 @@ export default function BillingPage() {
             </div>
 
             <div className="min-h-0 overflow-y-auto p-5 space-y-3">
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
-                {detail.items.map((it) => (
-                  <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
-                    <span className="text-[14px] text-slate-600 dark:text-slate-400">{it.description}</span>
-                    <span
-                      className={`text-[15px] font-semibold shrink-0 ${
-                        Number(it.amount) === 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-slate-900 dark:text-white"
-                      }`}
+              {editingInvoice ? (
+                <div className="space-y-3">
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl p-4 shadow-sm space-y-3">
+                    {editableItems.map((it, idx) => (
+                      <div key={it.id} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          required
+                          value={it.description}
+                          onChange={(e) => {
+                            const next = [...editableItems];
+                            next[idx] = { ...next[idx], description: e.target.value };
+                            setEditableItems(next);
+                          }}
+                          placeholder="Descripción"
+                          className="flex-[2] text-[14px] bg-[#F2F2F7] dark:bg-[#1C1C1E] p-2.5 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
+                        />
+                        <input
+                          type="number"
+                          required
+                          value={it.amount === 0 ? "" : it.amount}
+                          onChange={(e) => {
+                            const next = [...editableItems];
+                            next[idx] = { ...next[idx], amount: Number(e.target.value) };
+                            setEditableItems(next);
+                          }}
+                          placeholder="Valor"
+                          className="flex-1 text-[14px] bg-[#F2F2F7] dark:bg-[#1C1C1E] p-2.5 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditableItems(editableItems.filter((_, i) => i !== idx));
+                          }}
+                          className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditableItems([
+                          ...editableItems,
+                          {
+                            id: `temp-${Date.now()}`,
+                            invoice_id: detail.invoice.id,
+                            guide_id: null,
+                            description: "",
+                            amount: 0,
+                          },
+                        ]);
+                      }}
+                      className="w-full inline-flex items-center justify-center gap-1 py-2 text-[13px] font-semibold text-[#ff812c] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700"
                     >
-                      {Number(it.amount) === 0 ? "Sin cobro" : formatCOP(it.amount)}
+                      <Plus className="w-4 h-4" /> Agregar concepto
+                    </button>
+                  </div>
+
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
+                    <span className="flex items-center gap-2 text-[16px] font-bold text-slate-900 dark:text-white">
+                      <Receipt className="w-5 h-5 text-[#ff812c]" />
+                      Nuevo Total
+                    </span>
+                    <span className="text-[22px] font-extrabold text-slate-900 dark:text-white">
+                      {formatCOP(editableItems.reduce((acc, it) => acc + Number(it.amount), 0))}
                     </span>
                   </div>
-                ))}
-              </div>
 
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
-                <span className="flex items-center gap-2 text-[16px] font-bold text-slate-900 dark:text-white">
-                  <Receipt className="w-5 h-5 text-[#ff812c]" />
-                  Total
-                </span>
-                <span className="text-[22px] font-extrabold text-slate-900 dark:text-white">
-                  {formatCOP(detail.invoice.total)}
-                </span>
-              </div>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingInvoice(false);
+                        setEditableItems(detail.items);
+                      }}
+                      className="flex-1 min-h-[46px] rounded-xl bg-gray-100 dark:bg-gray-700 font-semibold text-slate-700 dark:text-slate-300 text-[14px]"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={guardarCambiosFactura}
+                      className="flex-1 min-h-[46px] rounded-xl bg-[#ff812c] font-bold text-[#1C1C1E] disabled:opacity-60 text-[14px]"
+                    >
+                      {busy ? <Loader2 className="w-4 h-4 animate-spin inline-block mr-1" /> : null}
+                      Guardar cambios
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
+                    {detail.items.map((it) => (
+                      <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                        <span className="text-[14px] text-slate-600 dark:text-slate-400">{it.description}</span>
+                        <span
+                          className={`text-[15px] font-semibold shrink-0 ${
+                            Number(it.amount) === 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-slate-900 dark:text-white"
+                          }`}
+                        >
+                          {Number(it.amount) === 0 ? "Sin cobro" : formatCOP(it.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
+                    <span className="flex items-center gap-2 text-[16px] font-bold text-slate-900 dark:text-white">
+                      <Receipt className="w-5 h-5 text-[#ff812c]" />
+                      Total
+                    </span>
+                    <span className="text-[22px] font-extrabold text-slate-900 dark:text-white">
+                      {formatCOP(detail.invoice.total)}
+                    </span>
+                  </div>
+
+                  {isOps && detail.invoice.status === "borrador" && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingInvoice(true)}
+                      className="w-full min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[14px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    >
+                      <Edit className="w-4 h-4" /> Editar ítems de factura
+                    </button>
+                  )}
+                </>
+              )}
 
               {/* Pagos reportados */}
               {detail.pagos.length > 0 && (

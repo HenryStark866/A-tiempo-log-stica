@@ -182,6 +182,42 @@ export interface EstadoCartera {
   vence_en: string | null;
 }
 
+/**
+ * La devolución del contraentrega al comercio. Es el tercer tramo de la plata,
+ * distinto de at_settlements (mensajero → ATL) y de at_invoices (comercio → ATL).
+ */
+export interface CodRemittance {
+  id: string;
+  remittance_number: string;
+  client_id: string;
+  period_start: string;
+  period_end: string;
+  guide_count: number;
+  /** Todo lo que pagó el comprador. */
+  gross_amount: number;
+  /** La parte del recaudo que era nuestra: el domicilio dentro del COD. */
+  shipping_kept: number;
+  /** Lo que se le abonó a sus facturas con este mismo recaudo. */
+  invoice_offset: number;
+  /** Lo que efectivamente se le gira. */
+  net_amount: number;
+  status: "pendiente" | "pagada";
+  method: string | null;
+  reference: string | null;
+  paid_at: string | null;
+  created_at: string;
+  at_clients?: { business_name: string } | null;
+}
+
+/** Lo que hay listo para girarle a un comercio (at_recaudo_por_girar). */
+export interface RecaudoPorGirar {
+  guias: number;
+  bruto: number;
+  flete_nuestro: number;
+  disponible: number;
+  deuda_fletes: number;
+}
+
 export interface Zone {
   id: string;
   name: string;

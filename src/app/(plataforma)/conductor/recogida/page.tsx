@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  Warehouse,
   CheckCircle2,
   Circle,
   Loader2,
@@ -37,8 +38,15 @@ interface PickupGuide {
   cod_amount: number;
 }
 
-/** Guía que va a la misma zona donde se está recogiendo (at_guias_entrega_directa). */
-interface GuiaCerca {
+/**
+ * Una guía recién recogida, con la recomendación al lado
+ * (at_guias_entrega_directa).
+ *
+ * `misma_zona` es una sugerencia, no un filtro: viene marcada la que va a la
+ * zona del comercio, pero el mensajero puede llevarse cualquiera. Él es el que
+ * está ahí y sabe cómo está el tráfico y qué le cabe en la moto.
+ */
+interface GuiaRecogida {
   id: string;
   guide_number: string;
   recipient_name: string;
@@ -46,6 +54,7 @@ interface GuiaCerca {
   zone_name: string | null;
   is_cod: boolean;
   cod_amount: number;
+  misma_zona: boolean;
 }
 
 interface Pickup {
@@ -73,9 +82,12 @@ export default function CourierPickupPage() {
   const [nota, setNota] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  // Guías que acaba de recoger y van a esta misma zona: puede entregarlas
-  // directo en vez de devolverse al CEDI.
-  const [directa, setDirecta] = useState<{ comercio: string; guias: GuiaCerca[] } | null>(null);
+  // Lo que acaba de recoger, para que elija qué hace con ello: entregar algo
+  // directo o arrancar para el CEDI. Guarda el id de la recogida porque la
+  // segunda opción también es una acción de verdad, no un "cerrar ventana".
+  const [directa, setDirecta] = useState<
+    { pickupId: string; comercio: string; guias: GuiaRecogida[] } | null
+  >(null);
   const [elegidas, setElegidas] = useState<Set<string>>(new Set());
   const [navProvider, setNavProvider] = useState<NavProvider | null>(null);
   // Cuando aún no eligió app de navegación, se pregunta antes de abrir nada.
@@ -180,21 +192,24 @@ export default function CourierPickupPage() {
       setMsg({
         ok: true,
         text:
-          `${r.recogidas} paquete(s) recogidos en ${r.comercio}. El CEDI ya sabe que vas en camino.` +
+          `${r.recogidas} paquete(s) recogidos en ${r.comercio}.` +
           (r.faltantes > 0
             ? ` ${r.faltantes} quedaron sin recoger y el comercio puede volver a pedirlos.`
             : ""),
       });
 
-      // ¿Alguno de los que acaba de recoger va a esta misma zona? Llevarlo al
-      // CEDI sería cruzar la ciudad para volver al mismo barrio.
-      const { data: cerca } = await supabase.rpc("at_guias_entrega_directa", {
+      // Recogido el lote, la decisión es suya y se le pregunta SIEMPRE, haya o
+      // no algo cerca. Antes solo se le ofrecía cuando la app creía que valía
+      // la pena, y si pensaba distinto no tenía dónde decirlo.
+      const { data: recogidas } = await supabase.rpc("at_guias_entrega_directa", {
         p_pickup_id: p.pickup_id,
       });
-      const lista = (cerca as GuiaCerca[]) ?? [];
+      const lista = (recogidas as GuiaRecogida[]) ?? [];
       if (lista.length > 0) {
-        setDirecta({ comercio: r.comercio, guias: lista });
-        setElegidas(new Set(lista.map((g) => g.id)));
+        setDirecta({ pickupId: p.pickup_id, comercio: r.comercio, guias: lista });
+        // Vienen marcadas solo las que van a esta zona: es la recomendación.
+        // Las demás las marca él si quiere.
+        setElegidas(new Set(lista.filter((g) => g.misma_zona).map((g) => g.id)));
       }
     }
     load();
@@ -211,20 +226,64 @@ export default function CourierPickupPage() {
     setBusy("directa");
     const supabase = createClient();
     const { data, error } = await supabase.rpc("at_entrega_directa", { p_guide_ids: ids });
+
+    // Las que NO marcó siguen en «recogida», o sea que van al CEDI. Se registra
+    // aquí mismo para que no queden en el limbo esperando otro botón: con un
+    // solo toque resuelve el lote entero. at_iniciar_traslado solo toca las que
+    // siguen en «recogida», así que las que acaba de tomar no las alcanza.
+    const resto = directa.guias.length - ids.length;
+    if (!error && resto > 0) {
+      await supabase.rpc("at_iniciar_traslado", { p_pickup_id: directa.pickupId });
+    }
     setBusy(null);
     if (error) {
       setMsg({ ok: false, text: error.message });
     } else {
-      const r = data as { en_ruta: number };
+      const r = data as { en_ruta: number; fuera_de_zona: number };
       setMsg({
         ok: true,
-        text: `${r.en_ruta} paquete(s) quedaron en tu ruta. Ábrelos en «Mi ruta» para entregarlos.`,
+        text:
+          `${r.en_ruta} paquete(s) quedaron en tu ruta. Ábrelos en «Mi ruta» para entregarlos.` +
+          (resto > 0 ? ` Los otros ${resto} van al CEDI.` : "") +
+          // Se le dice, sin regañarlo: es su decisión y ya la tomó. Pero que
+          // sepa que quedó anotada, porque después alguien va a preguntar por
+          // qué ese paquete no pasó por el CEDI.
+          (r.fuera_de_zona > 0
+            ? ` ${r.fuera_de_zona} van fuera de la zona de la recogida y quedó anotado en su historial.`
+            : ""),
       });
     }
     setDirecta(null);
     setElegidas(new Set());
     load();
   }
+
+  /** La otra opción: arranca para el CEDI con todo lo que recogió. */
+  async function llevarAlCedi() {
+    if (!directa) return;
+    setBusy("traslado");
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("at_iniciar_traslado", {
+      p_pickup_id: directa.pickupId,
+    });
+    setBusy(null);
+    if (error) {
+      setMsg({ ok: false, text: error.message });
+    } else {
+      const r = data as { en_traslado: number };
+      setMsg({
+        ok: true,
+        text: `Vas al CEDI con ${r.en_traslado} paquete(s). Allá los reciben con tu código de lote.`,
+      });
+    }
+    setDirecta(null);
+    setElegidas(new Set());
+    load();
+  }
+
+  // Cuántas de las recién recogidas van a la zona del comercio: es lo que
+  // decide qué le decimos en la cabecera del diálogo.
+  const cercanas = directa?.guias.filter((g) => g.misma_zona).length ?? 0;
 
   if (!["mensajero", "admin", "coordinador", "operario"].includes(profile.role)) {
     return (
@@ -531,10 +590,12 @@ export default function CourierPickupPage() {
         </div>
       )}
 
-      {/* ── Entrega directa ──
-          Aparece solo cuando de verdad hay algo cerca. La decisión es del
-          mensajero: la app sugiere, no obliga — él conoce el tráfico y sabe
-          si le cabe en la moto. */}
+      {/* ── Qué hace con lo que acaba de recoger ──
+          Aparece SIEMPRE, con las dos salidas al mismo nivel: entregar algo
+          directo, o arrancar para el CEDI. La app marca lo que va a esta misma
+          zona como recomendación, pero no filtra ni obliga — el que está ahí
+          con los paquetes en la mano es él, y sabe cómo está el tráfico y qué
+          le cabe en la moto. */}
       {directa && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
           <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
@@ -543,13 +604,21 @@ export default function CourierPickupPage() {
                 <Navigation2 className="h-5 w-5 text-[#ff812c]" />
               </div>
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
-                {directa.guias.length === 1
-                  ? "Este paquete es aquí mismo"
-                  : `${directa.guias.length} de estos paquetes son aquí mismo`}
+                ¿Qué haces con {directa.guias.length === 1 ? "este paquete" : `estos ${directa.guias.length} paquetes`}?
               </h3>
               <p className="mt-1 text-[14px] leading-snug text-slate-500 dark:text-slate-400">
-                Van a la misma zona de {directa.comercio}. Puedes entregarlos ya y ahorrarte el
-                viaje al CEDI, o llevarlos como siempre.
+                {cercanas > 0 ? (
+                  <>
+                    Marcamos {cercanas === 1 ? "el que va" : `los ${cercanas} que van`} a la zona de{" "}
+                    {directa.comercio}: entregarlos ya te ahorra el viaje. Puedes marcar otros o
+                    quitar los que no te queden de camino.
+                  </>
+                ) : (
+                  <>
+                    Ninguno va a la zona de {directa.comercio}, así que lo normal es llevarlos al
+                    CEDI. Aun así, si alguno te queda de camino, márcalo.
+                  </>
+                )}
               </p>
             </div>
 
@@ -582,6 +651,18 @@ export default function CourierPickupPage() {
                         <p className="text-[13px] text-slate-500 dark:text-slate-400">
                           {g.recipient_address}
                         </p>
+                        {/* El aviso va con la zona, no solo con un color: en la
+                            calle, con sol y con prisa, un matiz de color no se
+                            ve. Tiene que poder leerse de un vistazo. */}
+                        {g.misma_zona ? (
+                          <span className="mt-1 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                            Aquí mismo
+                          </span>
+                        ) : (
+                          <span className="mt-1 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                            {g.zone_name ? `Lejos · ${g.zone_name}` : "Zona sin definir"}
+                          </span>
+                        )}
                         <p className="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">
                           {g.guide_number}
                           {g.is_cod ? ` · recaudar ${formatCOP(g.cod_amount)}` : ""}
@@ -596,7 +677,7 @@ export default function CourierPickupPage() {
             <div className="shrink-0 space-y-2 border-t border-gray-100 p-5 dark:border-gray-800">
               <button
                 onClick={entregarDirecto}
-                disabled={busy === "directa" || elegidas.size === 0}
+                disabled={busy !== null || elegidas.size === 0}
                 className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff812c] font-bold text-[#1C1C1E] transition-transform active:scale-[0.98] disabled:opacity-50"
               >
                 {busy === "directa" ? (
@@ -604,13 +685,23 @@ export default function CourierPickupPage() {
                 ) : (
                   <Navigation2 className="h-5 w-5" />
                 )}
-                Entregar {elegidas.size > 0 ? `${elegidas.size} ` : ""}sin pasar por el CEDI
+                {elegidas.size === 0
+                  ? "Entregar directo (marca cuáles)"
+                  : `Entregar ${elegidas.size} sin pasar por el CEDI`}
               </button>
+              {/* No es "cancelar": es la otra mitad de la decisión, y ahora
+                  queda registrada la hora a la que arrancó. */}
               <button
-                onClick={() => { setDirecta(null); setElegidas(new Set()); }}
-                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+                onClick={llevarAlCedi}
+                disabled={busy !== null}
+                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] font-bold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50 dark:bg-[#1C1C1E] dark:text-slate-300"
               >
-                Los llevo al CEDI
+                {busy === "traslado" ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Warehouse className="h-5 w-5" />
+                )}
+                Llevarlos todos al CEDI
               </button>
             </div>
           </div>

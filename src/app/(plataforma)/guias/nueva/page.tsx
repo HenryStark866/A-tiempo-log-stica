@@ -804,23 +804,31 @@ export default function NewGuidePage() {
                       />
                     </div>
                     {coincidencias.length > 0 && (
-                      <ul className="border-t border-gray-100 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
-                        {coincidencias.map((r) => (
-                          <li key={r.id}>
-                            <button
-                              type="button"
-                              onClick={() => usarDestinatario(r)}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                            >
-                              <p className="text-[15px] font-semibold text-slate-900 dark:text-white">{r.full_name}</p>
-                              <p className="text-[13px] text-slate-500 dark:text-slate-400">
-                                {r.address} · {r.city}
-                                {r.phone && ` · ${r.phone}`}
-                              </p>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="bg-[#FFF9F5] dark:bg-[#3A2E26] border-t-2 border-[#ff812c]/40 p-2">
+                        <p className="px-3 py-1.5 text-[11px] font-bold tracking-wider text-[#ff812c] uppercase">
+                          Sugerencias ({coincidencias.length}) — Haz clic para seleccionar:
+                        </p>
+                        <ul className="divide-y divide-[#ff812c]/15">
+                          {coincidencias.map((r) => (
+                            <li key={r.id}>
+                              <button
+                                type="button"
+                                onClick={() => usarDestinatario(r)}
+                                className="w-full text-left px-3.5 py-3 rounded-xl bg-orange-50/80 dark:bg-orange-950/40 hover:bg-[#ff812c]/20 dark:hover:bg-[#ff812c]/30 border border-[#ff812c]/20 active:scale-[0.99] transition-all shadow-sm"
+                              >
+                                <p className="text-[15px] font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                  <span>{r.full_name}</span>
+                                  <span className="ml-auto text-[11px] bg-[#ff812c] text-white px-2 py-0.5 rounded-md font-semibold">Seleccionar</span>
+                                </p>
+                                <p className="text-[13px] text-slate-600 dark:text-slate-300 mt-0.5">
+                                  📍 {r.address} · {r.city}
+                                  {r.phone && ` · 📞 ${r.phone}`}
+                                </p>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 )}

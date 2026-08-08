@@ -144,9 +144,13 @@ function Guides() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex flex-col">
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Guías</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
+            {esCliente ? "Mis envíos" : "Guías"}
+          </h1>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-            Trazabilidad completa de cada paquete
+            {esCliente
+              ? "Trazabilidad de tus envíos con A Tiempo Logística"
+              : "Trazabilidad completa de cada paquete"}
           </p>
         </div>
 
@@ -258,7 +262,7 @@ function Guides() {
                       {g.guide_number}
                     </Link>
                     <p className="mt-0.5 truncate text-[13px] text-slate-500 dark:text-slate-400">
-                      {g.at_clients?.business_name ?? "—"} · {formatDateTime(g.created_at)}
+                      {!esCliente && (g.at_clients?.business_name ?? "—") + " · "}{formatDateTime(g.created_at)}
                     </p>
                   </div>
                   <div className="shrink-0">
@@ -306,8 +310,8 @@ function Guides() {
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700/50 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Guía</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comercio</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
+                  {!esCliente && <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comercio</th>}
+                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Destinatario</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Zona</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">COD</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
@@ -326,9 +330,11 @@ function Guides() {
                         {g.guide_number}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-[15px] font-medium text-slate-700 dark:text-slate-300">
-                      {g.at_clients?.business_name ?? "—"}
-                    </td>
+                    {!esCliente && (
+                      <td className="px-6 py-4 text-[15px] font-medium text-slate-700 dark:text-slate-300">
+                        {g.at_clients?.business_name ?? "—"}
+                      </td>
+                    )}
                     <td className="px-6 py-4">
                       <p className="font-bold text-[15px] text-slate-900 dark:text-white">{g.recipient_name}</p>
                       <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">{g.recipient_address}</p>

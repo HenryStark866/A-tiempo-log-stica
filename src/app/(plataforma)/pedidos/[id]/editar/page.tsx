@@ -140,7 +140,7 @@ export default function EditGuidePage() {
       return;
     }
 
-    router.push(`/guias/${id}`);
+    router.push(`/pedidos/${id}`);
   }
 
   const set =

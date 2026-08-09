@@ -75,7 +75,7 @@ export interface PayloadRecibirLote {
   token: string;
 }
 export interface PayloadCrearGuia {
-  /** Va tal cual como lo arma /guias/nueva: una fila lista para insertar. */
+  /** Va tal cual como lo arma /pedidos/nueva: una fila lista para insertar. */
   fila: Record<string, unknown>;
 }
 export interface PayloadSolicitarRecogida {

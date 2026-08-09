@@ -211,7 +211,7 @@ export default function TrackingPage() {
             No tienes envíos en curso
           </p>
           <Link
-            href="/guias/nueva"
+            href="/pedidos/nueva"
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#ff812c] px-6 min-h-[48px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
           >
             Crear una guía
@@ -245,7 +245,7 @@ export default function TrackingPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <Link
-                        href={`/guias/${e.id}`}
+                        href={`/pedidos/${e.id}`}
                         className="text-[17px] font-bold text-slate-900 dark:text-white hover:underline"
                       >
                         {e.guide_number}

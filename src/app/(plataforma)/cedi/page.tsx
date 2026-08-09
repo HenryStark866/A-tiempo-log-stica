@@ -373,7 +373,7 @@ export default function CediPage() {
               {incoming.map((g) => (
                 <li key={g.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-2">
                   <div>
-                    <Link href={`/guias/${g.id}`} className="text-[16px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity">
+                    <Link href={`/pedidos/${g.id}`} className="text-[16px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity">
                       {g.guide_number}
                     </Link>
                     <p className="text-[14px] text-slate-600 dark:text-slate-400 mt-1">
@@ -420,7 +420,7 @@ export default function CediPage() {
               {returns.map((g) => (
                 <li key={g.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 px-2">
                   <div className="flex flex-col gap-1.5">
-                    <Link href={`/guias/${g.id}`} className="text-[16px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity">
+                    <Link href={`/pedidos/${g.id}`} className="text-[16px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity">
                       {g.guide_number}
                     </Link>
                     <p className="text-[14px] text-slate-600 dark:text-slate-400">

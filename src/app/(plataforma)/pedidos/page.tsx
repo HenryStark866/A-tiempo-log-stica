@@ -52,7 +52,7 @@ function Guides() {
    * Los filtros viven en la URL, no en el estado.
    *
    * Así una tarjeta de Mi panel puede abrir esta pantalla ya filtrada
-   * (`/guias?estado=en_ruta`), el enlace se puede compartir con el CEDI y
+   * (`/pedidos?estado=en_ruta`), el enlace se puede compartir con el CEDI y
    * volver atrás en el navegador deshace el filtro solo. Lo único local es la
    * caja de búsqueda, que es escritura, no navegación.
    */
@@ -78,7 +78,7 @@ function Guides() {
         else p.delete(clave);
       }
       const qs = p.toString();
-      router.replace(qs ? `/guias?${qs}` : "/guias", { scroll: false });
+      router.replace(qs ? `/pedidos?${qs}` : "/pedidos", { scroll: false });
     },
     [params, router]
   );
@@ -145,7 +145,7 @@ function Guides() {
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex flex-col">
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
-            {esCliente ? "Mis envíos" : "Guías"}
+            {esCliente ? "Mis pedidos" : "Pedidos"}
           </h1>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
             {esCliente
@@ -160,7 +160,7 @@ function Guides() {
               guía por guía. */}
           {filtered.length > 0 && (
             <Link
-              href={`/guias/rotulos?ids=${filtered
+              href={`/pedidos/rotulos?ids=${filtered
                 .slice(0, 100)
                 .map((g) => g.id)
                 .join(",")}`}
@@ -177,10 +177,10 @@ function Guides() {
           )}
 
           {esCliente && (
-            <Link href="/guias/nueva" className="shrink-0">
+            <Link href="/pedidos/nueva" className="shrink-0">
               <button className="min-h-[48px] px-6 rounded-xl font-bold flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] active:scale-[0.98] transition-transform w-full md:w-auto">
                 <Plus className="w-5 h-5" />
-                <span>Nueva guía</span>
+                <span>Nuevo pedido</span>
               </button>
             </Link>
           )}
@@ -256,7 +256,7 @@ function Guides() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link
-                      href={`/guias/${g.id}`}
+                      href={`/pedidos/${g.id}`}
                       className="text-[16px] font-bold text-[#ff812c] hover:underline"
                     >
                       {g.guide_number}
@@ -287,7 +287,7 @@ function Guides() {
                   {g.status === "creada" && (
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/guias/${g.id}/editar`}
+                        href={`/pedidos/${g.id}/editar`}
                         className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#F2F2F7] px-3 text-[14px] font-semibold text-slate-700 active:scale-95 dark:bg-[#1C1C1E] dark:text-slate-300"
                       >
                         <Edit2 className="w-4 h-4 text-[#ff812c]" /> Editar
@@ -309,7 +309,7 @@ function Guides() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-700/50 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Guía</th>
+                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">N.º de guía</th>
                   {!esCliente && <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comercio</th>}
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Destinatario</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Zona</th>
@@ -324,7 +324,7 @@ function Guides() {
                   <tr key={g.id} className="hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30 transition-colors group">
                     <td className="px-6 py-4">
                       <Link
-                        href={`/guias/${g.id}`}
+                        href={`/pedidos/${g.id}`}
                         className="text-[16px] font-bold text-[#ff812c] dark:text-white dark:group-hover:text-[#ff812c] transition-colors hover:underline"
                       >
                         {g.guide_number}
@@ -354,7 +354,7 @@ function Guides() {
                     <td className="px-6 py-4">
                       {g.status === "creada" && (
                         <div className="flex items-center gap-2">
-                          <Link href={`/guias/${g.id}/editar`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-[#ff812c]">
+                          <Link href={`/pedidos/${g.id}/editar`} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-[#ff812c]">
                             <Edit2 className="w-4 h-4" />
                           </Link>
                           <button

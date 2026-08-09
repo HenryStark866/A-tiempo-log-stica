@@ -26,8 +26,9 @@ No hay tests. La verificación es `npm run build` + revisar la pantalla en el na
 src/app/
   (plataforma)/        ~25 pantallas de trabajo, tras login, con AppShell
     admin, cedi, clientes, codigos, conductor, dashboard, destinatarios,
-    entregas, facturacion, guias, mapa, mensajeros, mi-comercio, mi-perfil,
-    novedades, productos, recaudo, recogidas, rutas, seguimiento, usuarios
+    entregas, facturacion, inicio, mapa, mensajeros, mi-comercio, mi-perfil,
+    mi-recaudo, novedades, pedidos, productos, recaudo, recogidas, rutas,
+    seguimiento, usuarios
   login, registro, bienvenido, rastreo, pagar, auth/confirmar   → públicas
 src/components/        UI compartida; `fondos/` solo para las públicas
 src/lib/               dominio y utilidades
@@ -45,7 +46,7 @@ supabase/functions/    edge functions (enviar-mensajes, shopify-sync)
 | Versión publicada y hora del servidor | `src/lib/servidor.ts` + `app/api/version` |
 | Etiquetas y colores de estados | `src/lib/constants.ts` |
 | Tipos del dominio | `src/lib/types.ts` |
-| Menú y permisos por rol | `src/lib/nav.ts` |
+| Menú y permisos por rol | `src/lib/menu.ts` — lo dibujan la barra lateral y `/inicio` |
 | Zonas y tarifas | `src/lib/zones.ts` |
 | Suscripciones realtime | `src/lib/realtime.ts` |
 | Primitivas de UI (PageHeader, Card…) | `src/components/ui.tsx` |

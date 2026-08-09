@@ -197,16 +197,16 @@ export default function DashboardPage() {
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <Kpi
           icon={PackagePlus}
-          label="Guías creadas hoy"
+          label="Pedidos creados hoy"
           value={String(kpis.guides_today)}
-          href={verGuias ? "/guias?creadas=hoy" : undefined}
+          href={verGuias ? "/pedidos?creadas=hoy" : undefined}
           accion="Ver guías"
         />
         <Kpi
           icon={PackageCheck}
           label="Entregadas hoy"
           value={String(kpis.delivered_today)}
-          href={verGuias ? "/guias?estado=entregada&entregadas=hoy" : undefined}
+          href={verGuias ? "/pedidos?estado=entregada&entregadas=hoy" : undefined}
           accion="Ver guías"
         />
         <Kpi
@@ -222,7 +222,7 @@ export default function DashboardPage() {
           label="Tasa de Logística Inversa (TLI)"
           value={kpis.tli_pct != null ? `${kpis.tli_pct}%` : "—"}
           hint="% de guías finalizadas en devolución (30 días)"
-          href={verGuias ? "/guias?estado=devuelta" : undefined}
+          href={verGuias ? "/pedidos?estado=devuelta" : undefined}
           accion="Ver devueltas"
         />
         <Kpi
@@ -234,7 +234,7 @@ export default function DashboardPage() {
              guías entregadas sin liquidar, y eso lo ve en su listado de guías. */
           href={
             esCliente
-              ? "/guias?estado=entregada&cod=pendiente"
+              ? "/pedidos?estado=entregada&cod=pendiente"
               : puede("recaudo")
                 ? "/recaudo?filtro=sin-consignar"
                 : undefined
@@ -253,7 +253,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">
-        <h2 className="text-[20px] font-bold text-slate-900 dark:text-white">Guías por estado</h2>
+        <h2 className="text-[20px] font-bold text-slate-900 dark:text-white">Pedidos por estado</h2>
         <p className="mt-1 mb-8 text-[15px] text-slate-500 dark:text-slate-400 font-medium">
           {total} guías en total
           {verGuias && " · toca un estado para ver esas guías"}
@@ -294,7 +294,7 @@ export default function DashboardPage() {
             return (
               <Link
                 key={s}
-                href={`/guias?estado=${s}`}
+                href={`/pedidos?estado=${s}`}
                 title={`Ver las guías en estado ${GUIDE_STATUS_LABELS[s]}`}
                 className="group -mx-2 flex items-center gap-3 sm:gap-4 rounded-2xl px-2 py-1.5 cursor-pointer transition-colors hover:bg-[#ff812c]/10 dark:hover:bg-[#ff812c]/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff812c]"
               >

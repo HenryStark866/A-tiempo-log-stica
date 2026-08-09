@@ -180,3 +180,21 @@ export function partesDelReloj(instante: Date): {
     fechaCorta: en({ day: "numeric", month: "short" }),
   };
 }
+
+/**
+ * La hora del día (0-23) en Colombia.
+ *
+ * Para decidir cosas como si saludar con «buenos días» o «buenas noches». Va
+ * aquí y no en la pantalla que la usa por la razón de siempre en este archivo:
+ * el reloj del equipo puede estar en otra zona —o el navegador de alguien que
+ * viaja— y entonces la app saludaría con la hora equivocada.
+ */
+export function horaDelDiaEnColombia(referencia: Date = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: ZONA,
+      hour: "2-digit",
+      hour12: false,
+    }).format(referencia)
+  );
+}

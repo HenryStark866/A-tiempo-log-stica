@@ -378,7 +378,7 @@ export default function MyRoutePage() {
                                 {i + 1}
                               </span>
                             )}
-                            <Link href={`/guias/${g.id}`} className="text-[17px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity truncate">
+                            <Link href={`/pedidos/${g.id}`} className="text-[17px] font-bold text-[#ff812c] hover:underline active:opacity-70 transition-opacity truncate">
                               {g.guide_number}
                             </Link>
                           </div>

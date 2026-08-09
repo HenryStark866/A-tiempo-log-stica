@@ -208,7 +208,7 @@ export default function GuideDetailPage() {
     if (error) {
       setDeleteError(error.message);
     } else {
-      router.replace("/guias");
+      router.replace("/pedidos");
     }
   }
 
@@ -238,14 +238,14 @@ export default function GuideDetailPage() {
             >
               Rastreo público <ExternalLink className="size-3.5" />
             </Link>
-            <Link href={`/guias/rotulos?ids=${id}`} target="_blank">
+            <Link href={`/pedidos/rotulos?ids=${id}`} target="_blank">
               <Button variant="secondary">
                 <Printer className="size-4" /> Rótulo
               </Button>
             </Link>
             {canEditDelete && (
               <>
-                <Link href={`/guias/${id}/editar`}>
+                <Link href={`/pedidos/${id}/editar`}>
                   <Button variant="secondary">
                     <Pencil className="size-4" /> Editar
                   </Button>
@@ -258,7 +258,7 @@ export default function GuideDetailPage() {
                 </Button>
               </>
             )}
-            <Link href="/guias">
+            <Link href="/pedidos">
               <Button variant="secondary">
                 <ArrowLeft className="size-4" /> Volver
               </Button>

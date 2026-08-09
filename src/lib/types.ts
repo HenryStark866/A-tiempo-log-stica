@@ -562,3 +562,57 @@ export interface LabelData {
   business_phone: string | null;
   zone_name: string | null;
 }
+
+/**
+ * Dónde está el dinero contraentrega de un pedido ya entregado.
+ *
+ * Son cuatro y no dos a propósito: "¿tienen mi plata?" tiene respuestas
+ * distintas según el momento, y juntarlas sería mentir por simplificación.
+ * Mientras el mensajero no cierre su caja, la plata es del comercio pero
+ * todavía NO está en nuestras manos.
+ */
+export type EstadoDelDinero =
+  | "con_el_mensajero"
+  | "en_nuestras_manos"
+  | "en_remesa"
+  | "girado";
+
+export interface RecaudoPedido {
+  guide_number: string;
+  recipient_name: string;
+  delivered_at: string | null;
+  cod_amount: number;
+  shipping_fee: number;
+  cod_includes_shipping: boolean;
+  /** Lo que le toca al comercio: el contraentrega menos el domicilio si venía dentro. */
+  le_corresponde: number;
+  estado_dinero: EstadoDelDinero;
+  remittance_number: string | null;
+  paid_at: string | null;
+}
+
+export interface RecaudoRemesa {
+  remittance_number: string;
+  period_start: string;
+  period_end: string;
+  guide_count: number;
+  gross_amount: number;
+  shipping_kept: number;
+  invoice_offset: number;
+  net_amount: number;
+  status: "pendiente" | "pagada";
+  method: string | null;
+  reference: string | null;
+  paid_at: string | null;
+  created_at: string;
+}
+
+/** Lo que devuelve at_mi_recaudo(). */
+export interface MiRecaudo {
+  resumen: Record<EstadoDelDinero, { pedidos: number; monto: number }> & {
+    recaudado_total: number;
+    domicilios_cobrados_al_comprador: number;
+  };
+  pedidos: RecaudoPedido[];
+  remesas: RecaudoRemesa[];
+}

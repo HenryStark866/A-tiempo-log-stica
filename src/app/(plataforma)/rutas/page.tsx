@@ -265,7 +265,7 @@ export default function RoutingPage() {
                         <li key={g.id} className="flex items-center justify-between gap-3 px-5 py-3">
                           <div className="min-w-0">
                             <Link
-                              href={`/guias/${g.id}`}
+                              href={`/pedidos/${g.id}`}
                               className="text-[15px] font-semibold text-[#ff812c] hover:underline"
                             >
                               {g.guide_number}
@@ -309,7 +309,7 @@ export default function RoutingPage() {
                     <li key={g.id} className="flex items-center justify-between gap-3 px-5 py-3">
                       <div className="min-w-0">
                         <Link
-                          href={`/guias/${g.id}`}
+                          href={`/pedidos/${g.id}`}
                           className="text-[15px] font-semibold text-[#ff812c] hover:underline"
                         >
                           {g.guide_number}
@@ -356,7 +356,7 @@ export default function RoutingPage() {
                 >
                   <div className="min-w-0">
                     <Link
-                      href={`/guias/${g.id}`}
+                      href={`/pedidos/${g.id}`}
                       className="text-[16px] font-bold text-slate-900 hover:underline dark:text-white"
                     >
                       {g.guide_number}

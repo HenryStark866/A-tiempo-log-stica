@@ -763,7 +763,7 @@ function Pickups() {
                       registrar las guías después, o crearlas ahora.
                     </p>
                     <Link
-                      href="/guias/nueva"
+                      href="/pedidos/nueva"
                       className="inline-flex items-center gap-2 text-[14px] font-semibold text-[#ff812c] active:opacity-70"
                     >
                       <Package className="w-4 h-4" /> Crear una guía

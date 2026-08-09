@@ -20,7 +20,7 @@ const BIENVENIDA: Record<string, {
 }> = {
   cliente: {
     saludo: "Tu comercio ya está listo para despachar.",
-    destino: "/dashboard",
+    destino: "/inicio",
     cta: "Ir a mi panel",
     pasos: [
       { icon: Package, titulo: "Carga tus productos", detalle: "Sube tu catálogo y así el valor a recaudar se llena solo." },

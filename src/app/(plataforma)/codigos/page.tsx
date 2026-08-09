@@ -195,7 +195,7 @@ export default function DeliveryCodesPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      href={`/guias/${r.guide_id}`}
+                      href={`/pedidos/${r.guide_id}`}
                       className="font-semibold text-slate-900 hover:underline dark:text-white"
                     >
                       {r.guide_number}

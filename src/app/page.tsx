@@ -3,8 +3,7 @@
 import Link from "next/link";
 import {
   History,
-  MapPinned,
-  PackageSearch,
+  LogIn,
   Warehouse,
   Truck,
   Receipt
@@ -71,41 +70,34 @@ export default function LandingPage() {
           </section>
         </div>
 
-        {/* Profiles Section (Grid) */}
+        {/* Acceso a la plataforma
+            Antes eran tres tarjetas —Cliente, Conductor, Administrador— que
+            llevaban a `/login?role=…`. Y el login nunca leyó ese parámetro: los
+            tres iban exactamente al mismo formulario. O sea que la pantalla
+            hacía elegir algo que no cambiaba nada, y de paso obligaba a quien
+            llega a decidir cómo se llama a sí mismo antes de poder entrar.
+            La cuenta ya sabe quién es cada quien; con entrar basta. */}
         <section>
-          <h2 className="text-[14px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center mb-6">Accesos a la Plataforma</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Cliente */}
-            <Link href="/login?role=cliente" className="group flex items-center p-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all min-h-[88px] border border-transparent dark:border-gray-800">
-              <div className="w-12 h-12 rounded-2xl bg-[#ff812c]/10 dark:bg-[#ff812c]/20 flex items-center justify-center mr-4 shrink-0 transition-colors">
-                <PackageSearch className="w-6 h-6 text-[#ff812c]" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-[17px] font-bold text-slate-900 dark:text-white group-hover:text-[#ff812c] transition-colors">Cliente</h3>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5">Solicita y gestiona envíos</p>
-              </div>
+          <div className="mx-auto max-w-md rounded-3xl border border-transparent bg-[#FFFFFF] p-6 text-center shadow-sm transition-colors duration-300 dark:border-gray-800 dark:bg-[#2C2C2E]">
+            <h2 className="text-[18px] font-bold text-slate-900 dark:text-white">
+              ¿Ya trabajas con nosotros?
+            </h2>
+            <p className="mx-auto mt-1 mb-5 max-w-xs text-[14px] leading-snug text-slate-500 dark:text-slate-400">
+              Entra con tu cuenta. Al hacerlo verás lo tuyo, seas comercio,
+              mensajero o parte del equipo.
+            </p>
+            <Link
+              href="/login"
+              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#ff812c] text-[17px] font-bold text-[#1C1C1E] transition-transform hover:bg-[#ff812c]/90 active:scale-[0.98]"
+            >
+              <LogIn className="h-5 w-5" />
+              Ingresar a la plataforma
             </Link>
-
-            {/* Conductor */}
-            <Link href="/login?role=conductor" className="group flex items-center p-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all min-h-[88px] border border-transparent dark:border-gray-800">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center mr-4 shrink-0 transition-colors">
-                <MapPinned className="w-6 h-6 text-blue-500 dark:text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-[17px] font-bold text-slate-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Conductor</h3>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5">Rutas de entrega y recaudo</p>
-              </div>
-            </Link>
-
-            {/* Administrador */}
-            <Link href="/login?role=admin" className="group flex items-center p-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all min-h-[88px] border border-transparent dark:border-gray-800">
-              <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center mr-4 shrink-0 transition-colors">
-                <Warehouse className="w-6 h-6 text-purple-500 dark:text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-[17px] font-bold text-slate-900 dark:text-white group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors">Administrador</h3>
-                <p className="text-[13px] text-slate-500 dark:text-slate-400 font-medium leading-tight mt-0.5">Control total del CEDI</p>
-              </div>
+            <Link
+              href="/registro"
+              className="mt-3 inline-block text-[15px] font-semibold text-[#ff812c] transition-opacity hover:underline active:opacity-70"
+            >
+              Crear una cuenta
             </Link>
           </div>
         </section>

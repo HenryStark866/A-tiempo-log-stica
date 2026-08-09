@@ -53,7 +53,7 @@ function LoginForm() {
         .then(() => {});
       return;
     }
-    router.push(params.get("next") ?? "/dashboard");
+    router.push(params.get("next") ?? "/inicio");
     router.refresh();
   }
 

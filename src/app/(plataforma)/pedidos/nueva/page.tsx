@@ -339,7 +339,7 @@ export default function NewGuidePage() {
       // se vuelve al listado, que es donde aparecerá cuando se sincronice.
       await offline.encolar("crear_guia", { fila });
       setSaving(false);
-      router.push("/guias?creada=en-cola");
+      router.push("/pedidos?creada=en-cola");
       return;
     }
 
@@ -388,7 +388,7 @@ export default function NewGuidePage() {
       }
     }
 
-    router.push(`/guias/${data.id}`);
+    router.push(`/pedidos/${data.id}`);
   }
 
   const set =
@@ -420,7 +420,7 @@ export default function NewGuidePage() {
             Los administradores de A Tiempo Logística gestionan el flujo operativo, pero no crean guías directamente. Cada guía es registrada por el comercio correspondiente.
           </p>
           <Link
-            href="/guias"
+            href="/pedidos"
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#ff812c] px-6 min-h-[48px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
           >
             Ver guías existentes
@@ -443,7 +443,7 @@ export default function NewGuidePage() {
 
       <div className="px-4 space-y-6">
         <div className="mb-2">
-          <h2 className="text-[34px] font-bold tracking-tight text-slate-900 dark:text-white">Nueva guía</h2>
+          <h2 className="text-[34px] font-bold tracking-tight text-slate-900 dark:text-white">Nuevo pedido</h2>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">Registra un envío para última milla</p>
         </div>
 

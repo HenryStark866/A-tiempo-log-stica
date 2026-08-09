@@ -1,0 +1,155 @@
+<!--
+  A TIEMPO LOGÍSTICA / YAM — correo de confirmación de cuenta.
+
+  ⚠ Este archivo NO lo usa la app. Las plantillas de correo viven en el panel
+  de Supabase, así que hay que PEGARLO a mano en:
+
+      Authentication → Emails → Confirm signup
+
+  y poner como asunto:
+
+      Confirma tu correo y empieza a mover paquetes con YAM
+
+  Se versiona aquí porque una plantilla que solo existe en un panel web se
+  pierde: nadie la revisa, nadie sabe quién la cambió y no hay a qué volver si
+  alguien la daña. Si se edita en el panel, hay que editarla también aquí.
+
+  ── Por qué está escrito así ───────────────────────────────────────────────
+  El correo se lee en Gmail, Outlook y en la app de correo del teléfono, y esos
+  clientes no son navegadores:
+
+  · Maquetado con <table>, no con flexbox ni grid: Outlook usa el motor de
+    Word y no entiende ninguno de los dos.
+  · Estilos en línea, no en <style>: Gmail descarta buena parte de las hojas
+    de estilo, incluso las incrustadas.
+  · Sin tipografías externas: no cargan, y el texto acaba en una fuente que
+    nadie eligió. Se usa la pila del sistema.
+  · Ancho fijo de 600 px, el que aguanta cualquier cliente.
+  · El logo se sirve desde el dominio de producción. Muchos clientes bloquean
+    imágenes por omisión, así que el correo tiene que entenderse SIN él: por
+    eso el nombre también va escrito en texto.
+  · El botón lleva además el enlace en texto plano debajo. Si el botón no se
+    renderiza —pasa—, la persona no se queda encerrada.
+
+  {{ .ConfirmationURL }} lo reemplaza Supabase por el enlace real.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;margin:0;padding:24px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:20px;overflow:hidden;">
+
+        <!-- Cabecera -->
+        <tr>
+          <td align="center" style="background-color:#1c1c1e;padding:32px 24px;">
+            <img src="https://atiempo-logistica.vercel.app/icons/icon-192.png"
+                 width="56" height="56" alt="YAM"
+                 style="display:block;border:0;border-radius:14px;margin-bottom:14px;">
+            <div style="font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;line-height:1.2;">
+              YAM
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#ff812c;letter-spacing:3px;margin-top:6px;">
+              MENSAJERÍA
+            </div>
+            <div style="font-size:13px;color:#8e8e93;margin-top:10px;">
+              por A Tiempo Logística
+            </div>
+          </td>
+        </tr>
+
+        <!-- Saludo -->
+        <tr>
+          <td style="padding:32px 32px 8px 32px;">
+            <h1 style="margin:0 0 14px 0;font-size:24px;line-height:1.25;font-weight:700;color:#1c1c1e;letter-spacing:-0.4px;">
+              Ya casi. Solo falta confirmar que este correo es tuyo.
+            </h1>
+            <p style="margin:0;font-size:16px;line-height:1.6;color:#3a3a3c;">
+              Gracias por registrarte en YAM. Un toque en el botón y tu cuenta
+              queda lista.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Botón -->
+        <tr>
+          <td align="center" style="padding:28px 32px 12px 32px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#ff812c" style="border-radius:12px;">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;padding:16px 36px;font-size:17px;font-weight:700;color:#1c1c1e;text-decoration:none;border-radius:12px;">
+                    Confirmar mi correo
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- El enlace en texto, por si el botón no se dibuja -->
+        <tr>
+          <td style="padding:0 32px 28px 32px;">
+            <p style="margin:0;font-size:13px;line-height:1.6;color:#8e8e93;text-align:center;">
+              ¿No ves el botón? Copia y pega este enlace en tu navegador:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#ff812c;word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- La historia. Va DESPUÉS del botón a propósito: quien solo quiere
+             entrar ya lo hizo arriba; esto es para quien se queda leyendo. -->
+        <tr>
+          <td style="padding:0 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;border-radius:16px;">
+              <tr>
+                <td style="padding:24px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#8e8e93;margin-bottom:12px;">
+                    POR QUÉ NOS LLAMAMOS YAM
+                  </div>
+                  <p style="margin:0 0 12px 0;font-size:15px;line-height:1.65;color:#3a3a3c;">
+                    En el siglo XIII, el <strong style="color:#1c1c1e;">yam</strong> era la red de
+                    postas del Imperio Mongol: estaciones cada 30 o 60 kilómetros donde el
+                    mensajero no descansaba. Entregaba, cambiaba de caballo y seguía. Así movían
+                    un mensaje 300 kilómetros en un día, ochocientos años antes de que existiera
+                    un camión.
+                  </p>
+                  <p style="margin:0;font-size:15px;line-height:1.65;color:#3a3a3c;">
+                    Llevaban una <strong style="color:#1c1c1e;">paiza</strong>, una tablilla que
+                    se validaba en cada posta, y cascabeles al cinto para que en la estación
+                    siguiente los oyeran llegar y tuvieran el relevo listo antes de verlos. Aquí
+                    la paiza es el número de tu pedido y el cascabel es la campana de las
+                    notificaciones. El oficio no cambió tanto; nosotros solo le pusimos pantalla.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Cierre -->
+        <tr>
+          <td style="padding:28px 32px 8px 32px;">
+            <p style="margin:0;font-size:16px;line-height:1.6;color:#3a3a3c;">
+              Desde hoy entras a esa misma cadena de relevos. Bienvenido.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Pie -->
+        <tr>
+          <td style="padding:24px 32px 32px 32px;">
+            <div style="border-top:1px solid #e5e5ea;padding-top:18px;">
+              <p style="margin:0 0 8px 0;font-size:13px;line-height:1.6;color:#8e8e93;">
+                Si no fuiste tú quien creó esta cuenta, ignora este mensaje: sin
+                confirmar el correo, la cuenta no se activa.
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#aeaeb2;">
+                YAM es una plataforma de A Tiempo Logística · Medellín, Colombia
+              </p>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

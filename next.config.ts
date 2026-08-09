@@ -22,6 +22,22 @@ const nextConfig: NextConfig = {
   // /_next/static/ cambien con cada despliegue y no con cada build: dos
   // compilaciones del mismo commit sirven los mismos archivos.
   generateBuildId: async () => (VERSION === "local" ? null : VERSION),
+  /**
+   * «Guías» pasó a llamarse «Pedidos», y con ella la ruta.
+   *
+   * Sin esto, quien tuviera /guias en favoritos —o en un enlace que le pasamos
+   * por WhatsApp— entraba, pasaba por el login y aterrizaba en un 404. El
+   * middleware disimula el problema mientras no hay sesión, porque redirige
+   * todo al login antes de mirar si la página existe; el 404 aparece justo
+   * después de escribir la contraseña, que es el peor momento.
+   *
+   * Permanente (308): la ruta vieja no va a volver, y así el navegador deja de
+   * pedirla y actualiza el favorito.
+   */
+  redirects: async () => [
+    { source: "/guias", destination: "/pedidos", permanent: true },
+    { source: "/guias/:resto*", destination: "/pedidos/:resto*", permanent: true },
+  ],
   headers: async () => [
     // ── El service worker y el manifest ─────────────────────────────────
     // Los dos archivos que deciden si la PWA se instala y si se actualiza.

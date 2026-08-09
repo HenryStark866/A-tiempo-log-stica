@@ -9,7 +9,7 @@ import { PieMarca } from "@/components/PieMarca";
 export const metadata: Metadata = {
   title: "Rastrea tu envío",
   description:
-    "Consulta dónde va tu paquete con el número de guía. No necesitas cuenta ni registrarte.",
+    "Consulta dónde va tu paquete con el número de pedido. No necesitas cuenta ni registrarte.",
 };
 
 /**
@@ -52,7 +52,7 @@ export default function RastreoPage() {
             Rastrea tu envío
           </h1>
           <p className="mx-auto mt-2 max-w-xs text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
-            Escribe el número de guía que te dio el comercio. No necesitas cuenta.
+            Escribe el número de pedido que te dio el comercio. No necesitas cuenta.
           </p>
         </div>
 

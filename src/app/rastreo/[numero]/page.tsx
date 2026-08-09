@@ -29,7 +29,7 @@ export default function TrackingPage() {
       .then(({ data, error }) => {
         setLoading(false);
         // Frenado no es lo mismo que inexistente: decirle a alguien que su
-        // guía no existe cuando solo iba muy rápido es una alarma falsa.
+        // pedido no existe cuando solo iba muy rápido es una alarma falsa.
         if (esDemasiadasSolicitudes(error)) {
           setFrenado(true);
           return;
@@ -65,7 +65,7 @@ export default function TrackingPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500 dark:text-slate-400">
               <LoaderCircle className="w-8 h-8 animate-spin text-[#ff812c]" />
-              <p className="text-[16px] font-medium">Consultando guía…</p>
+              <p className="text-[16px] font-medium">Consultando pedido…</p>
             </div>
           ) : frenado ? (
             <DemasiadasSolicitudes onReintentar={() => window.location.reload()} />
@@ -76,7 +76,7 @@ export default function TrackingPage() {
             <div className="py-8 text-center">
               <PackageX className="mx-auto mb-4 w-12 h-12 text-slate-400 dark:text-slate-500" />
               <h1 className="text-[22px] font-bold text-slate-900 dark:text-white">
-                No encontramos esa guía
+                No encontramos ese pedido
               </h1>
               <p className="mx-auto mt-2 mb-6 max-w-xs text-[15px] leading-relaxed text-slate-500 dark:text-slate-400">
                 Revisa el número que buscaste
@@ -94,7 +94,7 @@ export default function TrackingPage() {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 transition-colors">
                 <div>
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Guía
+                    Pedido
                   </p>
                   <h1 className="text-[24px] font-extrabold text-slate-900 dark:text-white tracking-tight">
                     {result.guide_number}

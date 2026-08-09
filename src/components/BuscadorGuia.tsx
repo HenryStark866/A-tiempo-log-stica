@@ -6,10 +6,10 @@ import { ArrowRight, Search } from "lucide-react";
 import { GUIA_EJEMPLO } from "@/lib/marca";
 
 /**
- * El buscador de guías del rastreo público.
+ * El buscador de pedidos del rastreo público.
  *
  * Vive en su propio componente porque se usa en tres sitios —la portada, la
- * página /rastreo y el estado «no encontramos esa guía»— y en los tres tiene
+ * página /rastreo y el estado «no encontramos ese pedido»— y en los tres tiene
  * que comportarse igual. Antes estaba copiado en la portada y en ningún otro
  * lado: quien se equivocaba de número tenía que volver al inicio a mano.
  *
@@ -44,13 +44,13 @@ export function BuscadorGuia({
           value={guia}
           onChange={(e) => setGuia(e.target.value)}
           autoFocus={autoFocus}
-          // El número de guía no es una palabra: que el teclado del teléfono no
+          // El número de pedido no es una palabra: que el teclado del teléfono no
           // lo autocorrija ni lo ponga en mayúscula a medias.
           autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}
           enterKeyHint="search"
-          aria-label="Número de guía"
+          aria-label="Número de pedido"
           placeholder={`Ej. ${GUIA_EJEMPLO}`}
           className="flex-1 bg-transparent text-[16px] font-medium focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
         />

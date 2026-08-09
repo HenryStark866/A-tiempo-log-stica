@@ -60,7 +60,7 @@ function Labels() {
     return (
       <>
         <PageHeader title="Rótulos" />
-        <Empty label="No hay guías para imprimir. Selecciona guías desde la lista." />
+        <Empty label="No hay pedidos para imprimir. Selecciona pedidos desde la lista." />
       </>
     );
   }
@@ -131,7 +131,7 @@ function Rotulo({ g, origin }: { g: LabelData; origin: string | null }) {
 
   return (
     <div className="rotulo rounded-2xl border border-slate-300 bg-white p-5 text-black">
-      {/* Cabecera: remitente y número de guía grande, que es lo que el
+      {/* Cabecera: remitente y número de pedido grande, que es lo que el
           mensajero canta al chequear contra su lista. */}
       <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-3">
         <div className="min-w-0">
@@ -142,7 +142,7 @@ function Rotulo({ g, origin }: { g: LabelData; origin: string | null }) {
           {g.business_phone && <p className="text-[12px] text-slate-600">{g.business_phone}</p>}
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Guía</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Pedido</p>
           <p className="text-[22px] font-extrabold leading-none tracking-tight">{g.guide_number}</p>
           {g.zone_name && <p className="mt-1 text-[12px] font-semibold">{g.zone_name}</p>}
         </div>

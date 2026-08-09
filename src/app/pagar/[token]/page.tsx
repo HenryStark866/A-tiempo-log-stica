@@ -67,7 +67,7 @@ export default function PagarPage() {
             <PackageX className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
             <h1 className="mt-4 text-[22px] font-bold">Enlace no válido</h1>
             <p className="mt-2 text-[15px] text-slate-500 dark:text-slate-400">
-              Este código de pago no corresponde a ninguna guía. Verifica con
+              Este código de pago no corresponde a ningún pedido. Verifica con
               quien te entregó el paquete.
             </p>
           </div>
@@ -86,7 +86,7 @@ function Contenido({ info }: { info: PaymentInfo }) {
         <Check className="w-12 h-12 mx-auto text-emerald-500" />
         <h1 className="mt-4 text-[22px] font-bold">Sin pago pendiente</h1>
         <p className="mt-2 text-[15px] text-slate-500 dark:text-slate-400">
-          La guía <strong>{info.guide_number}</strong> no tiene recaudo
+          El pedido <strong>{info.guide_number}</strong> no tiene recaudo
           contraentrega. No tienes que pagar nada al recibir.
         </p>
       </div>
@@ -105,12 +105,12 @@ function Contenido({ info }: { info: PaymentInfo }) {
           {formatCOP(info.cod_amount)}
         </p>
         <p className="mt-2 text-[14px] text-slate-400 dark:text-slate-500">
-          Guía {info.guide_number} · {info.recipient_name}
+          Pedido {info.guide_number} · {info.recipient_name}
         </p>
 
         {yaEntregada && (
           <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1.5 text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">
-            <Check className="w-3.5 h-3.5" /> Esta guía ya figura como entregada
+            <Check className="w-3.5 h-3.5" /> Este pedido ya figura como entregado
           </div>
         )}
       </div>

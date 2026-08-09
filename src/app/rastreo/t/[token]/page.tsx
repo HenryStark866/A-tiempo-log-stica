@@ -155,7 +155,7 @@ export default function TrackingByTokenPage() {
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Guía
+                    Pedido
                   </p>
                   <h1 className="text-[24px] font-extrabold tracking-tight">
                     {result.guide_number}

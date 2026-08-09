@@ -64,7 +64,7 @@ export default function LandingPage() {
               Rastrear envío
             </h2>
             <p className="mb-4 text-[14px] text-slate-500 dark:text-slate-400">
-              Con tu número de guía. No necesitas cuenta.
+              Con tu número de pedido. No necesitas cuenta.
             </p>
             <BuscadorGuia />
           </section>

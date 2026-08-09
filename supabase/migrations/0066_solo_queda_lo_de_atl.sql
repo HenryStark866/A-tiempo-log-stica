@@ -1,9 +1,7 @@
 -- A TIEMPO LOGÍSTICA — la base queda solo con lo de A Tiempo.
 --
--- ⚠ ESTA MIGRACIÓN NO ESTÁ APLICADA. Es la única del directorio que no está en
--- la nube: hay que pegarla a mano en el editor SQL de Supabase. Borra datos, y
--- eso no se ejecuta a ciegas — conviene abrir antes el respaldo y comprobar que
--- está lo que tiene que estar.
+-- Aplicada el 2026-08-09, con el respaldo ya hecho. Queda una sola cosa fuera
+-- de su alcance: el bucket `evidencias`, que solo se borra desde el panel.
 --
 -- Este proyecto se compartía con otras aplicaciones. Ya no: A Tiempo se queda
 -- sola. Al hacer el inventario aparecieron DOS apps ajenas, no una:
@@ -90,7 +88,25 @@ drop function if exists public.delete_evidence_file();
 drop type if exists public."MachineType";
 drop type if exists public."Role";
 
--- Su bucket. Está vacío —0 archivos—, así que no se pierde nada.
-delete from storage.objects where bucket_id = 'evidencias';
+-- Su política de almacenamiento. El BUCKET `evidencias` en sí no se puede
+-- borrar desde SQL: Supabase protege sus tablas de storage con un trigger
+-- (`storage.protect_delete`) que rechaza cualquier DELETE directo, y con razón
+-- —borrar la fila sin borrar los archivos deja basura invisible pagándose—.
+-- Hay que quitarlo desde el panel, en Storage. Está vacío, así que no corre
+-- prisa: sin política y sin permisos ya no lo alcanza nadie.
 drop policy if exists "solo staff usa el bucket evidencias" on storage.objects;
-delete from storage.buckets where id = 'evidencias';
+
+-- ── C) Las cuentas que TaxiYa dejó dentro de las NUESTRAS ────────────────
+-- Esto no está en sus tablas, por eso hace falta aparte: son usuarios suyos
+-- que acabaron en auth.users —que las dos apps compartían— y de ahí el trigger
+-- de A Tiempo les creó un perfil en at_profiles. Se les reconoce por el correo:
+-- TaxiYa los fabricaba como <telefono>@usuarios.taxiya.app.
+--
+-- Mientras estén, salen en la bandeja de solicitudes pendientes del admin como
+-- gente esperando aprobación que nunca va a llegar, y ensucian el conteo de
+-- usuarios. Ninguna ha entrado nunca a A Tiempo: su rol es 'pendiente' y su
+-- nombre está vacío.
+--
+-- Se borra el usuario de auth y el perfil se va detrás por la clave foránea.
+-- Va de último a propósito: si algo de arriba falla, esto ni se intenta.
+delete from auth.users where email like '%@usuarios.taxiya.app';

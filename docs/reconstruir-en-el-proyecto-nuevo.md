@@ -10,6 +10,55 @@ que el nuevo esté sirviendo producción y verificado.** Mientras tanto es la
 única red que hay, y borrarlo antes de tiempo convierte cualquier tropiezo en
 pérdida.
 
+## Lo primero: la app está en producción
+
+El riesgo de esta mudanza **no es que la app se caiga**. Es peor y más callado.
+
+Si vuelcas la base a las 22:00 y terminas de cambiar Vercel a las 22:30, durante
+esa media hora la app **sigue escribiendo en la base vieja**. Todo pedido
+creado, toda entrega confirmada y todo pago reportado en esa ventana queda allá
+y no existe en la nueva. Al cambiar, para el usuario simplemente desaparecieron:
+un mensajero que confirmó cinco entregas las ve sin confirmar, y no se entera
+nadie hasta que un comercio reclama días después.
+
+Eso no se arregla yendo rápido. Se arregla **impidiendo que nadie escriba
+mientras dura**.
+
+### Modo mantenimiento
+
+Se enciende con la variable `MANTENIMIENTO=1` en Vercel y un redespliegue.
+Cierra la plataforma —donde se escribe— y **deja en pie el rastreo público y la
+pantalla de pago**, que solo leen. Un destinatario con un paquete en camino
+sigue viendo dónde va, y quien tiene al mensajero en la puerta sigue pudiendo
+ver a quién pagarle.
+
+Probado en local, encendido y apagado, ruta por ruta.
+
+### El orden que hace esto reversible
+
+1. **Vercel: `MANTENIMIENTO=1` → redesplegar.** Desde este momento nadie
+   escribe. Empieza el reloj.
+2. Volcar el proyecto viejo (paso 1).
+3. Restaurar en el nuevo (paso 2).
+4. Copiar los archivos (paso 3).
+5. Verificar con el retrato (paso 5). **Si algo no cuadra, para aquí**: la app
+   sigue en mantenimiento y la base vieja está intacta.
+6. **Vercel: cambiar `NEXT_PUBLIC_SUPABASE_URL` y la llave al proyecto nuevo,
+   y `MANTENIMIENTO=0` → redesplegar.** Un solo despliegue para las dos cosas.
+7. Comprobar en producción (paso 8).
+
+**Y si algo sale mal después del paso 6:** devuelves las dos variables al
+proyecto viejo, redesplegas, y en dos minutos estás como antes — con todos los
+datos, porque la base vieja no se tocó. Ese es el motivo de no borrarla hasta
+dentro de unos días.
+
+### Cuándo hacerlo
+
+De noche, cuando no haya reparto. Con 527 filas y 39 archivos el trabajo real
+son minutos, no horas; lo que se alarga es verificar, y eso conviene hacerlo sin
+prisa. Avisa antes a los comercios: media hora anunciada no molesta a nadie,
+media hora por sorpresa sí.
+
 ## Antes de empezar
 
 **Las llaves y contraseñas no se pegan en el chat.** Van en variables de

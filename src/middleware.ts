@@ -22,10 +22,44 @@ const PUBLIC_PATHS = [
   "/pagar",
   "/recuperar",
   "/api/version",
+  // Sin esto, el guardia de sesión mandaría /mantenimiento a /login, y el modo
+  // mantenimiento manda /login a /mantenimiento: un bucle que deja la pantalla
+  // inalcanzable justo cuando es la única que debería verse.
+  "/mantenimiento",
 ];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(
+    (p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/"))
+  );
+}
+
+/**
+ * Modo mantenimiento, para la mudanza de base de datos.
+ *
+ * Se enciende poniendo MANTENIMIENTO=1 en Vercel y volviendo a desplegar. No
+ * es NEXT_PUBLIC_ a propósito: se lee aquí, en el servidor, para que no se
+ * pueda esquivar desde el navegador.
+ *
+ * Solo cubre la PLATAFORMA, que es donde la gente escribe. Lo que se queda en
+ * pie es lo que solo lee: el rastreo público y la pantalla de pago. Dejar a un
+ * destinatario sin saber dónde va su paquete —o sin poder ver a quién pagarle
+ * cuando el mensajero ya está en la puerta— sería cerrar justo lo que menos
+ * estorba y más se necesita.
+ *
+ * Por qué existe: mientras la base se mueve de un proyecto a otro, cualquier
+ * cosa que alguien guarde se escribiría en la base VIEJA y no llegaría a la
+ * nueva. No es que la app se caiga: es que ese trabajo se pierde en silencio y
+ * nadie lo nota hasta días después.
+ */
+const EN_MANTENIMIENTO = process.env.MANTENIMIENTO === "1";
+
+// Lo que sigue abierto durante la mudanza. `/` incluida: la portada lleva el
+// buscador de rastreo.
+const SIGUE_ABIERTO = ["/", "/rastreo", "/pagar", "/mantenimiento", "/api/version"];
+
+function aguantaElMantenimiento(pathname: string) {
+  return SIGUE_ABIERTO.some(
     (p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/"))
   );
 }
@@ -98,6 +132,19 @@ export async function middleware(request: NextRequest) {
       );
     }
     return res;
+  }
+
+  // La mudanza se comprueba ANTES de hablar con Supabase: durante la ventana
+  // la base puede estar a medio restaurar, y no tiene sentido preguntarle por
+  // una sesión para acabar mandando a la misma pantalla de todos modos.
+  if (EN_MANTENIMIENTO && !aguantaElMantenimiento(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/mantenimiento";
+    url.search = "";
+    // 307 y no 308: esto se acaba en media hora. Con una permanente, el
+    // navegador de un mensajero se seguiría yendo a /mantenimiento durante
+    // días aunque la app ya estuviera arriba.
+    return conCsp(NextResponse.redirect(url, 307));
   }
 
   let supabaseResponse = NextResponse.next({ request: requestConNonce });

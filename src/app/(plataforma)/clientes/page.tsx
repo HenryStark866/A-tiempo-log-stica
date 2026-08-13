@@ -33,12 +33,19 @@ export default function ClientsPage() {
   // Con la negación, el operario veía botones de editar que la base rechazaba.
   // Ver migración 0007.
   const canEdit = ["admin", "coordinador"].includes(profile.role);
+  // Eliminar no es editar: se lleva pedidos, facturas y recaudo por delante.
+  const esAdmin = profile.role === "admin";
   const [clients, setClients] = useState<Client[] | null>(null);
   // Solo edición: la creación desapareció, los comercios nacen del registro.
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Borrar un comercio pide escribir su nombre. Va en su propio estado y no en
+  // el formulario porque no es un dato del comercio: es la confirmación de algo
+  // que no tiene vuelta atrás.
+  const [borrando, setBorrando] = useState(false);
+  const [textoBorrado, setTextoBorrado] = useState("");
 
   const [zonas, setZonas] = useState<Zone[]>([]);
 
@@ -63,6 +70,8 @@ export default function ClientsPage() {
   }, [load]);
 
   function openEdit(c: Client) {
+    setBorrando(false);
+    setTextoBorrado("");
     setEditing(c);
     setError(null);
     setForm({
@@ -79,6 +88,27 @@ export default function ClientsPage() {
       zone_id: c.zone_id ?? "",
       active: c.active,
     });
+  }
+
+  async function eliminarComercio() {
+    if (!editing) return;
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_admin_eliminar_comercio", {
+      p_id: editing.id,
+      p_confirmacion: textoBorrado.trim(),
+      p_motivo: "Eliminado desde Clientes",
+    });
+    setBusy(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setEditing(null);
+    setBorrando(false);
+    setTextoBorrado("");
+    load();
   }
 
   async function save(e: React.FormEvent) {
@@ -481,6 +511,69 @@ export default function ClientsPage() {
                     <span>Guardar</span>
                   </button>
                 </div>
+
+                {/* Eliminar el comercio.
+                    Solo admin, al final y en texto: es irreversible y se lleva
+                    por delante sus pedidos, sus facturas y su historial. No
+                    debería competir con Guardar por la mirada.
+
+                    Escribir el nombre no es burocracia: es lo único que
+                    distingue «quería borrar este» de «me equivoqué de fila»,
+                    y con facturación detrás esa diferencia es cara. La base lo
+                    exige también, así que no se puede saltar desde fuera. */}
+                {esAdmin && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
+                    {!borrando ? (
+                      <button
+                        type="button"
+                        onClick={() => setBorrando(true)}
+                        className="text-[14px] font-semibold text-rose-600 dark:text-rose-400 active:opacity-70"
+                      >
+                        Eliminar este comercio
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-[14px] leading-snug text-slate-600 dark:text-slate-300">
+                          Se borra <strong className="font-semibold text-slate-900 dark:text-white">{editing.business_name}</strong> con
+                          todos sus pedidos, facturas y recaudo. Sus usuarios conservan la
+                          cuenta pero se quedan sin comercio. No se puede deshacer.
+                          <br />
+                          Para confirmar, escribe el nombre exacto:
+                        </p>
+                        <input
+                          value={textoBorrado}
+                          onChange={(e) => setTextoBorrado(e.target.value)}
+                          placeholder={editing.business_name}
+                          className="w-full rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-3 text-[16px] text-slate-900 dark:text-white focus:outline-none"
+                        />
+                        <div className="flex gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBorrando(false);
+                              setTextoBorrado("");
+                            }}
+                            className="flex-1 min-h-[46px] rounded-xl font-semibold bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300"
+                          >
+                            Mejor no
+                          </button>
+                          <button
+                            type="button"
+                            disabled={
+                              busy ||
+                              textoBorrado.trim().toLowerCase() !==
+                                editing.business_name.trim().toLowerCase()
+                            }
+                            onClick={eliminarComercio}
+                            className="flex-1 min-h-[46px] rounded-xl font-bold bg-rose-500 text-white disabled:opacity-40"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </form>
             </div>
           </div>

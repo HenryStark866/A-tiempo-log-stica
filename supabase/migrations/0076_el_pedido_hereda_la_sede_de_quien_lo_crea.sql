@@ -39,3 +39,12 @@ drop trigger if exists at_guides_asigna_sede on public.at_guides;
 create trigger at_guides_asigna_sede
   before insert on public.at_guides
   for each row execute function public.at_asigna_sede_al_pedido();
+
+-- Las funciones de TRIGGER no son superficie invocable. Se revocan a PUBLIC y
+-- no solo a anon: en Postgres una función nace con EXECUTE para todo el mundo,
+-- y anon lo hereda de ahí — revocarle a él a secas parece funcionar y no hace
+-- nada. Ya pasó antes en este repo, y se detectó porque el endpoint seguía
+-- respondiendo 200 después de "revocar". Un trigger llamado a mano falla igual,
+-- pero no tiene por qué estar al alcance de nadie.
+revoke execute on function public.at_asigna_sede_al_pedido() from public, anon, authenticated;
+revoke execute on function public.at_zona_de_la_sede() from public, anon, authenticated;

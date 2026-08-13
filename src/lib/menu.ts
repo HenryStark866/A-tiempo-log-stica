@@ -50,7 +50,10 @@ export interface NavItem {
  *                resuelve novedades y ve qué se entregó. NO toca plata ni
  *                aprueba personal; eso es decisión de coordinación.
  *  mensajero   → sus recogidas, su ruta, su perfil y su recaudo.
- *  cliente     → su comercio, sus pedidos, su recaudo, sus productos y su seguimiento.
+ *  cliente     → su comercio, sus sedes, su equipo, sus pedidos, su recaudo,
+ *                sus productos y su seguimiento. Es el DUEÑO.
+ *  asesor      → trabaja para un comercio: registra pedidos y pide recogidas.
+ *                Nunca ve facturas, pagos ni recaudo; eso es de su jefe.
  *
  * Esconder algo del menú NO es protegerlo: cada pantalla valida el rol por su
  * cuenta, y la base valida otra vez en RLS y en los RPC.
@@ -58,10 +61,10 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   // La puerta de entrada: el menú entero, en grande. Va de primera para poder
   // volver a ella desde cualquier pantalla sin usar el botón de atrás.
-  { href: "/inicio", label: "Inicio", icon: Home, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi"] },
-  { href: "/dashboard", label: "Mi panel", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi"] },
-  { href: "/pedidos", label: "Pedidos", icon: Package, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi"] },
-  { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi"] },
+  { href: "/inicio", label: "Inicio", icon: Home, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi", "asesor"] },
+  { href: "/dashboard", label: "Mi panel", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi", "asesor"] },
+  { href: "/pedidos", label: "Pedidos", icon: Package, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi", "asesor"] },
+  { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi", "asesor"] },
   { href: "/cedi", label: "CEDI", icon: Warehouse, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
   { href: "/mapa", label: "Mapa", icon: Map, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
   { href: "/codigos", label: "Códigos", icon: KeyRound, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
@@ -71,10 +74,14 @@ export const NAV: NavItem[] = [
   { href: "/novedades", label: "Novedades", icon: AlertTriangle, roles: ["admin", "coordinador", "operario", "admin_cedi"] },
   // El operario coordina el CEDI: necesita ver dónde va cada mensajero para
   // saber a quién le cabe el siguiente lote y a quién llamar si se atrasa.
-  { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario", "admin_cedi"] },
-  { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente"] },
-  { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente"] },
+  { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario", "admin_cedi", "asesor"] },
+  { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente", "asesor"] },
+  { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente", "asesor"] },
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
+  // Solo el dueño: son las dos palancas con las que reparte poder dentro de su
+  // propio negocio —dónde se despacha y quién puede despachar—.
+  { href: "/mis-sedes", label: "Mis sedes", icon: Building2, roles: ["cliente"] },
+  { href: "/mi-equipo", label: "Mi equipo", icon: Contact, roles: ["cliente"] },
   { href: "/conductor/recogida", label: "Mis recogidas", icon: PackageOpen, roles: ["mensajero"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["mensajero"] },

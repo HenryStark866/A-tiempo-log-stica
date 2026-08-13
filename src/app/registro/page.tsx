@@ -2,14 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse, Headset, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
 
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
-type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi";
+type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi" | "asesor";
+
+/** Un comercio devuelto por at_comercios_para_registro. */
+interface ComercioOpcion {
+  id: string;
+  business_name: string;
+}
 
 export default function RegisterPage() {
   const [requestedRole, setRequestedRole] = useState<RequestedRole>("cliente");
@@ -27,6 +33,14 @@ export default function RegisterPage() {
   // Datos del local (solo CEDI afiliado): reutiliza businessName/businessAddress
   // con otro rótulo — es el mismo dato, "nombre y dirección de la operación".
   const [proposedCity, setProposedCity] = useState("");
+  // Asesor comercial: a qué comercio dice pertenecer. Se busca por nombre en
+  // vez de listar todos, porque la lista completa de comercios es información
+  // comercial de A Tiempo y no tiene por qué estar al alcance de cualquiera
+  // que abra el registro.
+  const [buscaComercio, setBuscaComercio] = useState("");
+  const [comercios, setComercios] = useState<ComercioOpcion[]>([]);
+  const [comercioElegido, setComercioElegido] = useState<ComercioOpcion | null>(null);
+  const [buscando, setBuscando] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -34,6 +48,7 @@ export default function RegisterPage() {
 
   const isClient = requestedRole === "cliente";
   const isCedi = requestedRole === "admin_cedi";
+  const isAsesor = requestedRole === "asesor";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +64,10 @@ export default function RegisterPage() {
     }
     if (isCedi && (!businessName.trim() || !proposedCity.trim() || !businessAddress.trim())) {
       setError("El nombre del CEDI, la ciudad y la dirección del local son obligatorios.");
+      return;
+    }
+    if (isAsesor && !comercioElegido) {
+      setError("Busca y elige el comercio para el que trabajas.");
       return;
     }
 
@@ -80,6 +99,9 @@ export default function RegisterPage() {
                 business_address: businessAddress,
                 proposed_city: proposedCity,
               }
+            : {}),
+          ...(isAsesor && comercioElegido
+            ? { requested_client_id: comercioElegido.id }
             : {}),
         },
       },
@@ -177,6 +199,7 @@ export default function RegisterPage() {
                       { value: "cliente", label: "Cliente e-commerce", icon: Store },
                       { value: "mensajero", label: "Mensajero", icon: Bike },
                       { value: "operario", label: "Personal ATL", icon: IdCard },
+                      { value: "asesor", label: "Asesor comercial", icon: Headset },
                       { value: "admin_cedi", label: "CEDI afiliado", icon: Warehouse },
                     ] as { value: RequestedRole; label: string; icon: typeof Store }[]
                   ).map((opt) => {
@@ -332,6 +355,102 @@ export default function RegisterPage() {
                       </select>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Asesor comercial: para quién trabaja.
+                  Se busca por nombre y no se listan todos: la lista completa de
+                  comercios es información comercial de A Tiempo, y un desplegable
+                  la regalaría a cualquiera que abra el registro. La búsqueda pide
+                  tres letras y va con freno de solicitudes del lado del servidor. */}
+              {isAsesor && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
+                    ¿Para qué comercio trabajas?
+                  </p>
+                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+                    {comercioElegido ? (
+                      <div className="flex items-center gap-3 px-4 py-4">
+                        <Store className="w-5 h-5 shrink-0 text-[#ff812c]" />
+                        <p className="flex-1 text-[16px] font-semibold text-slate-900 dark:text-white">
+                          {comercioElegido.business_name}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setComercioElegido(null);
+                            setBuscaComercio("");
+                            setComercios([]);
+                          }}
+                          className="text-[14px] font-semibold text-[#ff812c] active:opacity-70"
+                        >
+                          Cambiar
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+                          <Search className="w-5 h-5 shrink-0 text-slate-400 mr-2" />
+                          <input
+                            value={buscaComercio}
+                            onChange={async (e) => {
+                              const q = e.target.value;
+                              setBuscaComercio(q);
+                              if (q.trim().length < 3) {
+                                setComercios([]);
+                                return;
+                              }
+                              setBuscando(true);
+                              const supabase = createClient();
+                              const { data } = await supabase.rpc("at_comercios_para_registro", {
+                                p_busca: q,
+                              });
+                              setBuscando(false);
+                              setComercios((data as ComercioOpcion[]) ?? []);
+                            }}
+                            placeholder="Escribe el nombre del comercio"
+                            className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                          />
+                          {buscando && (
+                            <LoaderCircle className="w-4 h-4 shrink-0 animate-spin text-slate-400" />
+                          )}
+                        </div>
+
+                        {buscaComercio.trim().length > 0 && buscaComercio.trim().length < 3 && (
+                          <p className="px-4 py-3 text-[14px] text-slate-400">
+                            Escribe al menos tres letras.
+                          </p>
+                        )}
+
+                        {comercios.length > 0 && (
+                          <ul className="max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                            {comercios.map((c) => (
+                              <li key={c.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => setComercioElegido(c)}
+                                  className="w-full px-4 py-3 text-left text-[16px] text-slate-900 dark:text-white active:bg-[#F2F2F7] dark:active:bg-[#1C1C1E]"
+                                >
+                                  {c.business_name}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {buscaComercio.trim().length >= 3 && !buscando && comercios.length === 0 && (
+                          <p className="px-4 py-3 text-[14px] leading-snug text-slate-400">
+                            No encontramos ningún comercio con ese nombre. Pregúntale a tu
+                            jefe con qué nombre está registrado.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <p className="mt-2 ml-1 text-[13px] leading-snug text-slate-500 dark:text-slate-400">
+                    Tu jefe recibirá tu solicitud y tendrá que confirmar que trabajas allí
+                    antes de que puedas entrar.
+                  </p>
                 </div>
               )}
 

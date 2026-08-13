@@ -8,7 +8,12 @@ export type Role =
   // El administrador de UN CEDI afiliado: ve y gestiona solo su propia
   // operación (su `facility_id`), nunca la del CEDI Principal ni la de otro
   // afiliado. Ver src/lib/types.ts:Client.facility_id y la migración 0046.
-  | "admin_cedi";
+  | "admin_cedi"
+  // Trabaja PARA un comercio: registra pedidos y pide recogidas. Comparte el
+  // `client_id` de su jefe —lo necesita para que RLS le deje ver los pedidos
+  // del comercio— pero NO ve facturas, pagos, remesas ni medios de pago. Esa
+  // frontera vive en la base, no en las pantallas. Ver migración 0074.
+  | "asesor";
 
 export type GuideStatus =
   | "creada"
@@ -615,4 +620,34 @@ export interface MiRecaudo {
   };
   pedidos: RecaudoPedido[];
   remesas: RecaudoRemesa[];
+}
+
+
+/** Una sede del comercio. Su zona es la mitad del precio de cada domicilio. */
+export interface Sede {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  zone_id: string | null;
+  zone_name: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  es_principal: boolean;
+  active: boolean;
+  asesores: number;
+  pedidos: number;
+}
+
+/** Un asesor del comercio, visto por su jefe (at_mis_asesores). */
+export interface Asesor {
+  id: string;
+  full_name: string;
+  phone: string | null;
+  /** `por_aprobar` todavía no entra; `suspendido` entró y se le quitó el acceso. */
+  estado: "por_aprobar" | "habilitado" | "suspendido";
+  site_id: string | null;
+  site_name: string | null;
+  created_at: string;
+  pedidos: number;
 }

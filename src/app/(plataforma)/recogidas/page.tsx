@@ -10,7 +10,7 @@ import { useMyClient } from "@/components/useMyClient";
 import { useOffline } from "@/components/OfflineContext";
 import { RecogidaQR, ImprimirQR } from "@/components/RecogidaQR";
 import { FiltroActivo, Loading } from "@/components/ui";
-import { PICKUP_STATUS_LABELS } from "@/lib/constants";
+import { PICKUP_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { esFalloDeRed } from "@/lib/offline/queue";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { hoyEnColombia } from "@/lib/tiempo";
@@ -75,7 +75,7 @@ export default function PickupsPage() {
 
 function Pickups() {
   const profile = useProfile();
-  const esCliente = profile.role === "cliente";
+  const esCliente = ROLES_DEL_COMERCIO.includes(profile.role);
   const params = useSearchParams();
   const router = useRouter();
   // La tarjeta del LTR abre aquí las recogidas ya completadas, que son las que

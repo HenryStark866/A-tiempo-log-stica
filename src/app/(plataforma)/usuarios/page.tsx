@@ -21,6 +21,34 @@ export default function UsersPage() {
   const [reqError, setReqError] = useState<string | null>(null);
 
   const esAdmin = yo.role === "admin";
+  // El borrado pide escribir el nombre antes de habilitarse. Va en su propio
+  // estado y no dentro del formulario porque no es un campo del perfil: es una
+  // confirmación de una acción que no tiene vuelta atrás.
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
+  const [textoBorrado, setTextoBorrado] = useState("");
+
+  async function eliminarCuenta() {
+    if (!editing) return;
+    setBusy(true);
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.rpc("at_admin_eliminar_usuario", {
+      p_id: editing.id,
+      p_motivo: "Eliminado desde Usuarios",
+    });
+    setBusy(false);
+    if (error) {
+      // La base rechaza los casos que dejarían cuentas descuadradas —el último
+      // admin, un mensajero con cierres de caja— y su mensaje explica cuál es.
+      setError(error.message);
+      setConfirmandoBorrado(false);
+      return;
+    }
+    setEditing(null);
+    setConfirmandoBorrado(false);
+    setTextoBorrado("");
+    load();
+  }
 
   const load = useCallback(async () => {
     if (!esAdmin) return;
@@ -51,6 +79,8 @@ export default function UsersPage() {
   const pending = (profiles ?? []).filter((p) => p.role === "pendiente" && p.requested_role);
 
   function openEdit(p: Profile) {
+    setConfirmandoBorrado(false);
+    setTextoBorrado("");
     setEditing(p);
     setError(null);
     setForm({
@@ -465,6 +495,68 @@ export default function UsersPage() {
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : "Guardar"}
                 </button>
               </div>
+
+              {/* Eliminar la cuenta.
+                  Va al final, separado por una línea y en texto y no en botón:
+                  es irreversible y no debería competir visualmente con Guardar.
+                  Antes de borrar hay que escribir el nombre — es lo único que
+                  distingue «quería borrar a esta persona» de «me equivoqué de
+                  fila». La base además se niega sola en los casos que dejarían
+                  cuentas descuadradas; aquí no se duplica esa lógica. */}
+              {esAdmin && editing.id !== yo.id && (
+                <div className="mt-6 border-t border-gray-100 dark:border-gray-800 pt-5">
+                  {!confirmandoBorrado ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmandoBorrado(true)}
+                      className="text-[14px] font-semibold text-rose-600 dark:text-rose-400 active:opacity-70"
+                    >
+                      Eliminar esta cuenta
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-[14px] leading-snug text-slate-600 dark:text-slate-300">
+                        Se borra la cuenta de{" "}
+                        <strong className="font-semibold text-slate-900 dark:text-white">
+                          {editing.full_name || "esta persona"}
+                        </strong>{" "}
+                        y no se puede deshacer. Su historial de pedidos y entregas se
+                        conserva, pero sin su nombre. Para confirmar, escríbelo:
+                      </p>
+                      <input
+                        value={textoBorrado}
+                        onChange={(e) => setTextoBorrado(e.target.value)}
+                        placeholder={editing.full_name || "nombre"}
+                        className="w-full rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3 text-[16px] text-slate-900 dark:text-white focus:outline-none"
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmandoBorrado(false);
+                            setTextoBorrado("");
+                          }}
+                          className="flex-1 min-h-[46px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300"
+                        >
+                          Mejor no
+                        </button>
+                        <button
+                          type="button"
+                          disabled={
+                            busy ||
+                            textoBorrado.trim().toLowerCase() !==
+                              (editing.full_name || "").trim().toLowerCase()
+                          }
+                          onClick={eliminarCuenta}
+                          className="flex-1 min-h-[46px] rounded-2xl font-bold bg-rose-500 text-white disabled:opacity-40"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </form>
           </div>
         </div>

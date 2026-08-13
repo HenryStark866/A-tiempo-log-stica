@@ -77,11 +77,9 @@ export const NAV: NavItem[] = [
   { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario", "admin_cedi", "asesor"] },
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente", "asesor"] },
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente", "asesor"] },
+  // Dentro de Mi comercio viven también sus sedes y su equipo de asesores:
+  // son configuración del mismo negocio, no tres pantallas distintas.
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
-  // Solo el dueño: son las dos palancas con las que reparte poder dentro de su
-  // propio negocio —dónde se despacha y quién puede despachar—.
-  { href: "/mis-sedes", label: "Mis sedes", icon: Building2, roles: ["cliente"] },
-  { href: "/mi-equipo", label: "Mi equipo", icon: Contact, roles: ["cliente"] },
   { href: "/conductor/recogida", label: "Mis recogidas", icon: PackageOpen, roles: ["mensajero"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["mensajero"] },

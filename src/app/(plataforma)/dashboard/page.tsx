@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
-import { GUIDE_STATUS_LABELS } from "@/lib/constants";
+import { GUIDE_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { cn, formatCOP } from "@/lib/utils";
 import type { DashboardKpis, GuideStatus, Role } from "@/lib/types";
 
@@ -153,7 +153,7 @@ function Kpi({
 export default function DashboardPage() {
   const profile = useProfile();
   // El cliente ve solo lo suyo: sin métricas internas de tesorería ni de flota.
-  const esCliente = profile.role === "cliente";
+  const esCliente = ROLES_DEL_COMERCIO.includes(profile.role);
   const puede = (destino: keyof typeof ALCANCE) => ALCANCE[destino].includes(profile.role);
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
 

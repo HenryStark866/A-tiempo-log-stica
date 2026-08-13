@@ -23,6 +23,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
 import { ShopifyConnect } from "@/components/ShopifyConnect";
 import { MarcaDelComercio } from "@/components/MarcaDelComercio";
+import { SedesDelComercio } from "@/components/SedesDelComercio";
+import { EquipoDelComercio } from "@/components/EquipoDelComercio";
 import { PAYMENT_KINDS, PAYMENT_KIND_LABELS } from "@/lib/constants";
 import { formatCOP } from "@/lib/utils";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
@@ -689,6 +691,22 @@ export default function MiComercioPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      {/* ── Sedes y equipo ──
+          Van aquí y no en pantallas sueltas porque son las dos palancas con las
+          que el dueño reparte su propio negocio: desde dónde se despacha y quién
+          puede despachar. Tenerlas separadas obligaba a saltar entre tres sitios
+          para configurar una sola cosa.
+
+          El id del ancla lo usa la notificación que le llega cuando un asesor
+          pide unirse: lo deja mirando justo la lista donde tiene que decidir. */}
+      <section id="sedes" className="scroll-mt-6">
+        <SedesDelComercio />
+      </section>
+
+      <section id="equipo" className="scroll-mt-6">
+        <EquipoDelComercio />
       </section>
 
       {/* ── Modal de medio de pago ── */}

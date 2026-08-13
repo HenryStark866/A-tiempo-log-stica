@@ -112,6 +112,21 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const STAFF_ROLES: Role[] = ["admin", "coordinador", "operario", "mensajero"];
+
+/**
+ * Gente del comercio: el dueño y sus asesores.
+ *
+ * Las pantallas venían preguntando `role === "cliente"` para decir «esto lo está
+ * mirando alguien de un comercio, no del CEDI». Al nacer el asesor esa pregunta
+ * empezó a mentir: en Pedidos gobernaba el botón de crear —el asesor no habría
+ * podido hacer su trabajo principal— y en Recogidas elegía a qué comercio
+ * pertenece la solicitud, con lo que un asesor habría pedido recogidas a nombre
+ * de otro.
+ *
+ * Para «solo el DUEÑO» se compara con "cliente" a secas, que es lo que hacen las
+ * pantallas de sedes, equipo, facturación y recaudo.
+ */
+export const ROLES_DEL_COMERCIO: Role[] = ["cliente", "asesor"];
 export const OPS_ROLES: Role[] = ["admin", "coordinador"];
 
 // Roles que una persona puede solicitar al registrarse por su cuenta.

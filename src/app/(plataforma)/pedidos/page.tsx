@@ -7,7 +7,7 @@ import { Plus, Printer, Search, Map, Trash2, Edit2, AlertTriangle } from "lucide
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { FiltroActivo, Loading } from "@/components/ui";
-import { GUIDE_STATUS_LABELS } from "@/lib/constants";
+import { GUIDE_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { inicioDeHoyEnColombia } from "@/lib/tiempo";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import type { Guide, GuideStatus } from "@/lib/types";
@@ -44,7 +44,7 @@ export default function GuidesPage() {
 
 function Guides() {
   const profile = useProfile();
-  const esCliente = profile.role === "cliente";
+  const esCliente = ROLES_DEL_COMERCIO.includes(profile.role);
   const params = useSearchParams();
   const router = useRouter();
 

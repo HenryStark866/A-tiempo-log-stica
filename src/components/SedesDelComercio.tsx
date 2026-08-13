@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Building2, Loader2, MapPin, Pencil, Plus, Star, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
 import type { Sede } from "@/lib/types";
@@ -29,8 +28,7 @@ const VACIA = {
  * Por eso el municipio es obligatorio y la zona se muestra siempre: es el dato
  * que se convierte en dinero.
  */
-export default function MisSedesPage() {
-  const profile = useProfile();
+export function SedesDelComercio() {
   const { clientId } = useMyClient();
   const [sedes, setSedes] = useState<Sede[] | null>(null);
   const [editando, setEditando] = useState<Sede | "nueva" | null>(null);
@@ -124,16 +122,6 @@ export default function MisSedesPage() {
     cargar();
   }
 
-  if (profile.role !== "cliente") {
-    return (
-      <div className="pb-10 font-sans">
-        <h1 className="text-[28px] font-bold text-slate-900 dark:text-white">Mis sedes</h1>
-        <p className="mt-6 text-slate-500">
-          Solo el dueño del comercio administra las sedes.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 pb-10 font-sans">

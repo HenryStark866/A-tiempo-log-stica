@@ -18,7 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
-import { GUIDE_STATUS_LABELS } from "@/lib/constants";
+import { GUIDE_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import type { Shipment, GuideStatus } from "@/lib/types";
 
@@ -64,7 +64,7 @@ function haceCuanto(iso: string | null): string {
 
 export default function TrackingPage() {
   const profile = useProfile();
-  const esCliente = profile.role === "cliente";
+  const esCliente = ROLES_DEL_COMERCIO.includes(profile.role);
   const { loading: cargandoComercio } = useMyClient();
 
   const [envios, setEnvios] = useState<Shipment[] | null>(null);

@@ -332,42 +332,50 @@ export default function BillingPage() {
 
       {/* Estado de cartera del comercio: es lo que decide si puede seguir
           despachando, así que va arriba de todo y no escondido en un detalle. */}
-      {esCliente && cartera && (
-        <div
-          className={`rounded-2xl p-4 ${
-            cartera.al_dia
-              ? "bg-emerald-50 dark:bg-emerald-500/10"
-              : "bg-rose-50 dark:bg-rose-500/10"
-          }`}
-        >
-          <p
-            className={`text-[15px] font-bold ${
-              cartera.al_dia
-                ? "text-emerald-700 dark:text-emerald-400"
-                : "text-rose-700 dark:text-rose-400"
+      {esCliente && cartera && (() => {
+        /* Estar bloqueado exige DEBER algo. Un comercio llegó a ver «Tienes $0
+           vencidos: no puedes solicitar más recogidas» —una factura en cero,
+           de cuando el comprador pagó el domicilio en la puerta, contaba como
+           vencida—. La causa se corrigió en la base, pero la condición se
+           deriva también aquí: ningún camino futuro debería poder decirle a
+           alguien que está en mora de nada. */
+        const debe = Number(cartera.saldo) > 0;
+        const bloqueado = !cartera.al_dia && debe;
+        return (
+          <div
+            className={`rounded-2xl p-4 ${
+              bloqueado ? "bg-rose-50 dark:bg-rose-500/10" : "bg-emerald-50 dark:bg-emerald-500/10"
             }`}
           >
-            {cartera.al_dia
-              ? Number(cartera.saldo) > 0
-                ? `Debes ${formatCOP(cartera.saldo)} — puedes seguir solicitando recogidas`
-                : "Estás al día"
-              : `Tienes ${formatCOP(cartera.saldo)} vencidos: no puedes solicitar más recogidas`}
-          </p>
-          <p
-            className={`mt-1 text-[13px] leading-snug ${
-              cartera.al_dia
-                ? "text-emerald-700/80 dark:text-emerald-400/80"
-                : "text-rose-700/80 dark:text-rose-400/80"
-            }`}
-          >
-            {cartera.al_dia
-              ? cartera.vence_en
-                ? `Tienes plazo hasta el ${formatDateTime(cartera.vence_en)} para pagar.`
-                : "No tienes facturas pendientes."
-              : "Reporta el pago con su comprobante y, apenas lo verifiquemos, se desbloquea."}
-          </p>
-        </div>
-      )}
+            <p
+              className={`text-[15px] font-bold ${
+                bloqueado
+                  ? "text-rose-700 dark:text-rose-400"
+                  : "text-emerald-700 dark:text-emerald-400"
+              }`}
+            >
+              {bloqueado
+                ? `Tienes ${formatCOP(cartera.saldo)} vencidos: no puedes solicitar más recogidas`
+                : debe
+                  ? `Debes ${formatCOP(cartera.saldo)} — puedes seguir solicitando recogidas`
+                  : "Estás al día"}
+            </p>
+            <p
+              className={`mt-1 text-[13px] leading-snug ${
+                bloqueado
+                  ? "text-rose-700/80 dark:text-rose-400/80"
+                  : "text-emerald-700/80 dark:text-emerald-400/80"
+              }`}
+            >
+              {bloqueado
+                ? "Reporta el pago con su comprobante y, apenas lo verifiquemos, se desbloquea."
+                : debe && cartera.vence_en
+                  ? `Tienes plazo hasta el ${formatDateTime(cartera.vence_en)} para pagar.`
+                  : "No tienes facturas pendientes."}
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── Tu recaudo ──
           La otra mitad de la cuenta: lo que nosotros te debemos a ti del

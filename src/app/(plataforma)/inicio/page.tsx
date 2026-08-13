@@ -6,6 +6,7 @@ import { useProfile } from "@/components/ProfileContext";
 import { NAV } from "@/lib/menu";
 import { ROLE_LABELS } from "@/lib/constants";
 import { horaDelDiaEnColombia } from "@/lib/tiempo";
+import { EncuestaSatisfaccion } from "@/components/EncuestaSatisfaccion";
 
 /**
  * La pantalla que se ve al entrar.
@@ -100,6 +101,11 @@ export default function InicioPage() {
           );
         })}
       </div>
+
+      {/* Al final y no arriba: quien abre la app viene a hacer algo. La
+          encuesta se le cruza cuando ya vio sus opciones, no antes de
+          dejarlo trabajar. Se oculta sola si no toca mostrarla. */}
+      <EncuestaSatisfaccion />
     </div>
   );
 }

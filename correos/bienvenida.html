@@ -1,0 +1,160 @@
+<!--
+  A TIEMPO LOGÍSTICA / YAM — mensaje de bienvenida al nuevo usuario.
+
+  ⚠ Este archivo NO lo usa la app. Es una plantilla para enviar A MANO, desde el
+  correo de A Tiempo, cuando entra alguien que te importa —un comercio nuevo,
+  un CEDI afiliado—. Supabase solo manda correos de autenticación; este no es
+  uno de ellos y por eso no hay dónde pegarlo en el panel.
+
+  Cuándo mandarlo: DESPUÉS de que confirme el correo, no antes. Antes de
+  confirmar, la persona ya tiene un correo nuestro en la bandeja y dos seguidos
+  se leen como ruido.
+
+  Qué reemplazar antes de enviar (está entre llaves dobles):
+    {{NOMBRE}}    el nombre de pila, no el completo
+    {{COMERCIO}}  el nombre del negocio
+
+  Si el destinatario es un mensajero, borra el bloque marcado «solo comercio» y
+  descomenta el de «solo mensajero»: lo que tiene que hacer el primer día es
+  distinto, y mandarle los pasos equivocados es peor que no mandar nada.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;margin:0;padding:24px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:20px;overflow:hidden;">
+
+        <tr>
+          <td align="center" style="background-color:#1c1c1e;padding:32px 24px;">
+            <img src="https://atiempo-logistica.vercel.app/icons/icon-192.png"
+                 width="56" height="56" alt="YAM"
+                 style="display:block;border:0;border-radius:14px;margin-bottom:14px;">
+            <div style="font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;line-height:1.2;">YAM</div>
+            <div style="font-size:12px;font-weight:600;color:#ff812c;letter-spacing:3px;margin-top:6px;">MENSAJERÍA</div>
+            <div style="font-size:13px;color:#8e8e93;margin-top:10px;">por A Tiempo Logística</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:32px 32px 0 32px;">
+            <h1 style="margin:0 0 14px 0;font-size:24px;line-height:1.3;font-weight:700;color:#1c1c1e;letter-spacing:-0.4px;">
+              {{NOMBRE}}, bienvenido a la red
+            </h1>
+            <p style="margin:0 0 14px 0;font-size:16px;line-height:1.6;color:#3a3a3c;">
+              Tu cuenta ya está activa y {{COMERCIO}} puede empezar a despachar hoy
+              mismo. No hay que esperar a que nadie te apruebe nada.
+            </p>
+            <p style="margin:0;font-size:16px;line-height:1.6;color:#3a3a3c;">
+              Detrás de cada pedido que despaches hay alguien esperando en una puerta.
+              De ese tramo —el último, el que más se recuerda— nos encargamos nosotros.
+            </p>
+          </td>
+        </tr>
+
+        <!-- ══ SOLO COMERCIO ══ -->
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;border-radius:16px;">
+              <tr>
+                <td style="padding:22px 24px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#8e8e93;margin-bottom:14px;">
+                    PARA ARRANCAR
+                  </div>
+                  <p style="margin:0 0 12px 0;font-size:15px;line-height:1.55;color:#3a3a3c;">
+                    <strong style="color:#1c1c1e;">1. Confirma tu municipio.</strong><br>
+                    En <em>Mi comercio</em>. De ahí sale tu zona, y de la zona el precio de
+                    cada domicilio. Es el dato que más plata mueve.
+                  </p>
+                  <p style="margin:0 0 12px 0;font-size:15px;line-height:1.55;color:#3a3a3c;">
+                    <strong style="color:#1c1c1e;">2. Sube tus productos y tus clientes.</strong><br>
+                    Así el valor a recaudar y la dirección se llenan solos al crear un pedido.
+                  </p>
+                  <p style="margin:0;font-size:15px;line-height:1.55;color:#3a3a3c;">
+                    <strong style="color:#1c1c1e;">3. Crea tu primer pedido y pide la recogida.</strong><br>
+                    Nosotros vamos por él.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ══ SOLO MENSAJERO — descomenta esto y borra el bloque de arriba ══
+        <tr>
+          <td style="padding:24px 32px 0 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;border-radius:16px;">
+              <tr>
+                <td style="padding:22px 24px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#8e8e93;margin-bottom:14px;">PARA ARRANCAR</div>
+                  <p style="margin:0 0 12px 0;font-size:15px;line-height:1.55;color:#3a3a3c;">
+                    <strong style="color:#1c1c1e;">1. Sube tus documentos.</strong><br>
+                    Cédula, licencia y papeles del vehículo, en Mi perfil. Es lo único que
+                    falta para que puedas recibir entregas.
+                  </p>
+                  <p style="margin:0;font-size:15px;line-height:1.55;color:#3a3a3c;">
+                    <strong style="color:#1c1c1e;">2. Apenas te habilitemos, mira Mi ruta.</strong><br>
+                    Ahí están las entregas del día, en orden.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ══ FIN SOLO MENSAJERO ══ -->
+
+        <tr>
+          <td align="center" style="padding:26px 32px 8px 32px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#ff812c" style="border-radius:12px;">
+                  <a href="https://atiempo-logistica.vercel.app/inicio"
+                     style="display:inline-block;padding:16px 36px;font-size:17px;font-weight:700;color:#1c1c1e;text-decoration:none;border-radius:12px;">
+                    Entrar a la plataforma
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:18px 32px 0 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;border-radius:16px;">
+              <tr>
+                <td style="padding:22px 24px;">
+                  <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#8e8e93;margin-bottom:12px;">
+                    POR QUÉ NOS LLAMAMOS YAM
+                  </div>
+                  <p style="margin:0;font-size:15px;line-height:1.65;color:#3a3a3c;">
+                    En el siglo XIII, el <strong style="color:#1c1c1e;">yam</strong> era la red de
+                    postas del Imperio Mongol: estaciones cada 30 o 60 kilómetros donde el
+                    mensajero no descansaba. Entregaba, cambiaba de caballo y seguía. Movían un
+                    mensaje 300 kilómetros en un día —no por ir más rápido, sino por no
+                    detenerse nunca—. Llevaban una <strong style="color:#1c1c1e;">paiza</strong>,
+                    una tablilla que se validaba en cada posta, y cascabeles al cinto para que en
+                    la estación siguiente los oyeran llegar y tuvieran el relevo listo.
+                    Aquí la paiza es el número de tu pedido y el cascabel es la campana de las
+                    notificaciones. El oficio no cambió tanto; nosotros solo le pusimos pantalla.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:26px 32px 32px 32px;">
+            <p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#3a3a3c;">
+              Cualquier cosa, respóndenos este correo. Lo lee una persona.
+            </p>
+            <div style="border-top:1px solid #e5e5ea;padding-top:16px;">
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#aeaeb2;">
+                YAM es una plataforma de A Tiempo Logística · Medellín, Colombia
+              </p>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

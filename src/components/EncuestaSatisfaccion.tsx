@@ -104,7 +104,7 @@ export function EncuestaSatisfaccion() {
         <div className="mt-5 space-y-5">
           <div>
             <p className="text-[14px] font-semibold text-slate-900 dark:text-white">
-              ¿Qué tanto la recomendarías a alguien como tú?
+              ¿Qué tanto la recomendarías a otros empresarios?
             </p>
             {/* De 0 a 10 y no estrellas: es la escala con la que se calcula el
                 NPS, y permite comparar contra cualquier referencia externa. */}
@@ -156,7 +156,7 @@ export function EncuestaSatisfaccion() {
 
           <div>
             <p className="text-[14px] font-semibold text-slate-900 dark:text-white">
-              ¿Qué te cambiaríamos? <span className="font-normal text-slate-400">(opcional)</span>
+              ¿Qué cambiarías o ajustarías de la app? <span className="font-normal text-slate-400">(opcional)</span>
             </p>
             <textarea
               value={comentario}

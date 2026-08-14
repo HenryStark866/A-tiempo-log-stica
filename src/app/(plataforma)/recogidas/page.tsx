@@ -63,6 +63,19 @@ function PickupBadge({ status }: { status: PickupStatus }) {
   );
 }
 
+/**
+ * La franja en la que se recoge. Vive aquí arriba y no escrita a mano en cada
+ * campo: son dos formularios —crear y editar— y con el valor repetido bastaba
+ * con cambiar uno para que la app ofreciera dos horarios distintos.
+ *
+ * La base lo vuelve a exigir en at_request_pickup y at_update_pickup: `min` y
+ * `max` de un input son una ayuda para quien escribe, no una garantía. Un
+ * navegador viejo los ignora, y la RPC se puede llamar sin pasar por la
+ * pantalla.
+ */
+const HORA_MIN = "08:00";
+const HORA_MAX = "17:00";
+
 export default function PickupsPage() {
   // El filtro llega por la URL desde Mi panel, y `useSearchParams` pide su
   // frontera de Suspense para no romper el build.
@@ -715,10 +728,16 @@ function Pickups() {
                   </label>
                   <input
                     type="time"
+                    min={HORA_MIN}
+                    max={HORA_MAX}
+                    step={900}
                     value={form.scheduled_time}
                     onChange={(e) => setForm((f) => ({ ...f, scheduled_time: e.target.value }))}
                     className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                    Recogemos de {HORA_MIN} a {HORA_MAX}.
+                  </p>
                 </div>
               </div>
 
@@ -973,10 +992,16 @@ function Pickups() {
                   <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Hora</label>
                   <input
                     type="time"
+                    min={HORA_MIN}
+                    max={HORA_MAX}
+                    step={900}
                     value={editForm.scheduled_time}
                     onChange={(e) => setEditForm({ ...editForm, scheduled_time: e.target.value })}
                     className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
+                  <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
+                    Recogemos de {HORA_MIN} a {HORA_MAX}.
+                  </p>
                 </div>
               </div>
 

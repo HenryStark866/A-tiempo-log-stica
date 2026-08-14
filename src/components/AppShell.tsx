@@ -241,29 +241,46 @@ export function AppShell({
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);
                 return (
+                  /* Iconos con cuerpo.
+                     Antes eran trazos de 24 px sobre fondo transparente y una
+                     etiqueta de 10 px: en la calle, con sol y con el teléfono
+                     en una mano, había que fijarse para saber dónde estabas.
+                     Ahora el icono va dentro de una pastilla que se enciende en
+                     el activo —el color solo no basta para quien distingue mal
+                     el naranja del gris— y el trazo es más grueso, que es lo que
+                     de verdad se ve a distancia de brazo. */
                   <Link
                     key={item.href}
                     href={item.href}
                     ref={active ? tabActiva : undefined}
-                    className="flex flex-col items-center justify-center min-w-[72px] shrink-0 h-full space-y-1 active:scale-95 transition-transform"
+                    aria-current={active ? "page" : undefined}
+                    className="flex flex-col items-center justify-center min-w-[76px] shrink-0 h-full gap-1 active:scale-95 transition-transform"
                   >
-                    <span className="relative">
+                    <span
+                      className={cn(
+                        "relative flex h-9 w-[52px] items-center justify-center rounded-2xl transition-colors",
+                        active ? "bg-[#ff812c]/15" : "bg-transparent"
+                      )}
+                    >
                       <item.icon
+                        strokeWidth={active ? 2.4 : 2}
                         className={cn(
-                           "w-6 h-6",
-                          active ? "text-[#ff812c]" : "text-slate-400 dark:text-slate-500"
+                          "w-[26px] h-[26px]",
+                          active ? "text-[#ff812c]" : "text-slate-500 dark:text-slate-400"
                         )}
                       />
                       {item.href === "/usuarios" && pendingRequests > 0 && (
-                        <span className="absolute -top-1 -right-1.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-[#ff812c] text-white text-[10px] font-bold leading-none">
+                        <span className="absolute top-0 right-1 inline-flex items-center justify-center min-w-[17px] h-[17px] px-1 rounded-full bg-[#ff812c] text-white text-[10px] font-bold leading-none ring-2 ring-[#FFFFFF] dark:ring-[#2C2C2E]">
                           {pendingRequests}
                         </span>
                       )}
                     </span>
                     <span
                       className={cn(
-                        "max-w-full truncate px-0.5 text-[10px] font-medium tracking-wide",
-                        active ? "text-[#ff812c]" : "text-slate-500 dark:text-slate-400"
+                        "max-w-full truncate px-0.5 text-[11px] tracking-wide",
+                        active
+                          ? "font-bold text-[#ff812c]"
+                          : "font-medium text-slate-500 dark:text-slate-400"
                       )}
                     >
                       {item.label}
@@ -272,12 +289,16 @@ export function AppShell({
                 );
               })}
               
+              {/* Mismo cuerpo que las demás, para que la fila no cojee al
+                  final. Sin pastilla: nunca es la pestaña «activa». */}
               <button
                 onClick={signOut}
-                className="flex flex-col items-center justify-center min-w-[72px] shrink-0 h-full space-y-1 active:scale-95 transition-transform"
+                className="flex flex-col items-center justify-center min-w-[76px] shrink-0 h-full gap-1 active:scale-95 transition-transform"
               >
-                <LogOut className="w-6 h-6 text-slate-400 dark:text-slate-500" />
-                <span className="text-[10px] font-medium tracking-wide text-slate-500 dark:text-slate-400">
+                <span className="flex h-9 w-[52px] items-center justify-center">
+                  <LogOut strokeWidth={2} className="w-[26px] h-[26px] text-slate-500 dark:text-slate-400" />
+                </span>
+                <span className="text-[11px] font-medium tracking-wide text-slate-500 dark:text-slate-400">
                   Salir
                 </span>
               </button>

@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   Banknote,
   Building2,
-  Home,
   Contact,
   IdCard,
   KeyRound,
@@ -59,9 +58,11 @@ export interface NavItem {
  * cuenta, y la base valida otra vez en RLS y en los RPC.
  */
 export const NAV: NavItem[] = [
-  // La puerta de entrada: el menú entero, en grande. Va de primera para poder
-  // volver a ella desde cualquier pantalla sin usar el botón de atrás.
-  { href: "/inicio", label: "Inicio", icon: Home, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi", "asesor"] },
+  // «Inicio» NO está en esta lista, y la pantalla sí existe: es donde aterriza
+  // todo el mundo al entrar y a donde lleva el logo desde cualquier sitio.
+  // Tenerla además como pestaña era ofrecer un camino de vuelta a la pantalla
+  // que ya es el punto de partida — una fila del menú gastada en no ir a
+  // ninguna parte.
   { href: "/dashboard", label: "Mi panel", icon: LayoutDashboard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi", "asesor"] },
   { href: "/pedidos", label: "Pedidos", icon: Package, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi", "asesor"] },
   { href: "/recogidas", label: "Recogidas", icon: PackageOpen, roles: ["admin", "coordinador", "operario", "cliente", "admin_cedi", "asesor"] },

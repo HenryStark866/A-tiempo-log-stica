@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { MapaDeFondo } from "@/components/fondos/MapaDeFondo";
 import { useMyClient } from "@/components/useMyClient";
+import { MiniMap } from "@/components/MiniMap";
 import { GUIDE_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import type { Shipment, GuideStatus } from "@/lib/types";
@@ -329,17 +330,7 @@ export default function TrackingPage() {
                   <div className="border-t border-gray-100 dark:border-gray-800">
                     {tienePos ? (
                       <>
-                        <iframe
-                          title={`Ubicación de ${e.guide_number}`}
-                          className="w-full h-56 border-0"
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${
-                            e.courier_lng! - 0.006
-                          }%2C${e.courier_lat! - 0.004}%2C${e.courier_lng! + 0.006}%2C${
-                            e.courier_lat! + 0.004
-                          }&layer=mapnik&marker=${e.courier_lat}%2C${e.courier_lng}`}
-                        />
+                        <MiniMap lat={e.courier_lat!} lng={e.courier_lng!} />
                         <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
                           <p className="flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
                             <Radio className="w-3.5 h-3.5 shrink-0 text-[#ff812c]" />

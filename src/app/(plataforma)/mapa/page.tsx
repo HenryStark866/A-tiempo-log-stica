@@ -190,6 +190,12 @@ function Fleet() {
           : `${c.en_ruta} en ruta · ${c.por_salir} por salir`) + ` · ${haceCuanto(min)}`,
       tipo: "mensajero",
       minutos: min ?? undefined,
+      courier_type: c.courier_type,
+      phone: c.phone,
+      en_ruta: c.en_ruta,
+      por_salir: c.por_salir,
+      entregadas_hoy: c.entregadas_hoy,
+      max_capacity: c.max_capacity,
     };
   });
 

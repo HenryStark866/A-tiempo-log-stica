@@ -211,7 +211,11 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
               
-              <button className="w-full mt-6 min-h-[52px] bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all text-white font-bold text-[16px] rounded-2xl flex items-center justify-center">
+              {/* Naranja y no rojo: despachar urgentes es la acción que QUEREMOS que se
+                  toque. El rojo en esta app significa «esto no tiene vuelta atrás»
+                  —eliminar una cuenta, borrar un comercio— y gastarlo en un botón
+                  normal le quita el peso justo donde hace falta. */}
+              <button className="w-full mt-6 min-h-[52px] bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-all text-[#1C1C1E] font-bold text-[16px] rounded-2xl flex items-center justify-center">
                 Despachar Urgentes
               </button>
             </div>

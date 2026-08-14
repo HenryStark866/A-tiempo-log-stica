@@ -55,7 +55,13 @@ export default async function RootLayout({
     // navegación se iría deslizando en vez de empezar arriba de una.
     <html lang="es" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} nonce={nonce}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          themes={["light", "dark", "tema-multicolor"]}
+          nonce={nonce}
+        >
           {children}
           {/* Va de último y tapa por z-index, no por orden del DOM: así el
               contenido real ya está pintado debajo cuando el splash se

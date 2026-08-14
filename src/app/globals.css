@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 /* Tailwind v4 usa prefers-color-scheme por defecto; next-themes controla el tema
-   con la clase .dark en <html>, así que la variante debe basarse en esa clase. */
-@custom-variant dark (&:where(.dark, .dark *));
+   con la clase .dark en <html>, así que la variante debe basarse en esa clase.
+
+   `.tema-multicolor` entra aquí a propósito. Es un tema oscuro, y la app tiene
+   más de mil reglas `dark:` escritas a lo largo de treinta pantallas. Si el
+   tercer tema no activara esa variante habría que duplicarlas todas —y
+   mantenerlas sincronizadas para siempre—. Heredando la variante, el tema nace
+   funcionando en toda la app y solo tiene que declarar en qué se diferencia. */
+@custom-variant dark (&:where(.dark, .dark *, .tema-multicolor, .tema-multicolor *));
 
 @theme {
   --color-brand-50: #fff7ed;
@@ -415,4 +421,61 @@ textarea:-webkit-autofill:focus {
 
   /* Asegura que el fondo siga siendo transparente para que Tailwind haga su trabajo */
   background-color: transparent !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEMA MULTICOLOR-DARK
+
+   El tercer tema. Hereda la variante `dark` (ver arriba), así que las más de mil
+   reglas `dark:` repartidas por treinta pantallas ya saben pintarse solas: el
+   tema nace funcionando en toda la app sin duplicar una sola.
+
+   Lo que aporta es la LUZ: el gris neutro del modo oscuro pasa a un índigo
+   profundo y sobre él caen cuatro focos de color —naranja de marca, violeta,
+   turquesa y magenta— muy apagados, en un degradado fijo detrás de todo. Al
+   desplazarse, las tarjetas oscuras van pasando sobre esos focos y la pantalla
+   cambia de temperatura sin que ningún texto pierda contraste.
+
+   ── Lo que este tema NO hace, y por qué ─────────────────────────────────
+
+   Las tarjetas conservan su gris. La intención era teñirlas también, pero los
+   colores de esta app están escritos como valores literales dentro de las
+   clases (`dark:bg-[#2C2C2E]`) y Tailwind no emite una regla propia para cada
+   uno que se pueda sobrescribir por su nombre: se comprobó en el navegador y
+   ninguna regla del documento contiene ese valor como selector.
+
+   Teñirlas de verdad pide migrar esos colores a variables CSS —un barrido
+   mecánico por unos treinta archivos— y eso hay que hacerlo pudiendo revisar
+   pantalla por pantalla que ningún contraste se rompe. Se deja anotado como el
+   siguiente paso, no disimulado con reglas que no funcionan.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tema-multicolor {
+  --mc-fondo: #0c0a1c;
+}
+
+.tema-multicolor body {
+  background-color: var(--mc-fondo);
+}
+
+/* Los cuatro focos. Fijos y detrás de todo: se mueven las tarjetas por encima,
+   no el degradado, que es lo que evita el mareo en un scroll largo. */
+.tema-multicolor body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 45% at 12% 8%,  rgba(255, 129, 44, 0.20), transparent 70%),
+    radial-gradient(55% 45% at 88% 18%, rgba(120, 90, 255, 0.22), transparent 70%),
+    radial-gradient(60% 50% at 78% 92%, rgba(0, 190, 190, 0.18), transparent 70%),
+    radial-gradient(50% 40% at 18% 88%, rgba(255, 70, 140, 0.16), transparent 70%);
+}
+
+/* La viñeta de los fondos animados apaga el centro con el color del tema. Sin
+   esto seguiría usando el gris del modo oscuro y dejaría un rectángulo más
+   claro justo en medio de la pantalla. */
+.tema-multicolor .atl-fondo {
+  --atl-centro: rgba(12, 10, 28, 0.86);
 }

@@ -96,7 +96,7 @@ export default function NewGuidePage() {
     recipient_name: "",
     recipient_phone: "",
     recipient_address: "",
-    recipient_city: "Medellín",
+    recipient_city: "",
     zone_id: "",
     is_cod: false,
     cod_amount: "",
@@ -179,10 +179,21 @@ export default function NewGuidePage() {
       .then(({ data }) => setProducts((data as Product[]) ?? []));
   }, [esCliente, clientId, form.client_id]);
 
-  // Sugerencia de zona por dirección/ciudad mientras no la fijen a mano.
+  /**
+   * La zona se deduce sola de la dirección de destino.
+   *
+   * Espera a que haya una dirección escrita: antes el formulario nacía con
+   * «Medellín» puesto y eso bastaba para fijar una zona antes de que nadie
+   * escribiera nada. Quien abría la pantalla ya veía una zona elegida —y un
+   * precio— sin haber dicho a dónde iba el pedido, que es justo la impresión
+   * que no queremos dar cuando de ahí sale lo que se cobra.
+   */
   useEffect(() => {
     if (zonaManual || zones.length === 0) return;
-    const z = zoneForText(zones, `${form.recipient_city} ${form.recipient_address}`);
+    const hayDireccion = form.recipient_address.trim().length >= 4;
+    const z = hayDireccion
+      ? zoneForText(zones, `${form.recipient_city} ${form.recipient_address}`)
+      : null;
     setForm((f) => (f.zone_id === (z?.id ?? "") ? f : { ...f, zone_id: z?.id ?? "" }));
   }, [form.recipient_city, form.recipient_address, zones, zonaManual]);
 
@@ -981,16 +992,48 @@ export default function NewGuidePage() {
             </div>
 
             {zonaElegida ? (
-              <div className="mt-2 mx-1 flex items-center justify-between gap-3 rounded-2xl bg-[#ff812c]/10 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="text-[14px] font-semibold text-[#ff812c] truncate">{zonaElegida.name}</p>
-                  {zonaElegida.coverage && (
-                    <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{zonaElegida.coverage}</p>
-                  )}
+              /* La cuenta completa, no solo el flete.
+                 Quien crea un pedido necesita ver tres cifras: lo que vale el
+                 contenido, lo que cuesta llevarlo y cuánto suma. Antes solo
+                 aparecía el domicilio suelto y había que hacer la suma de
+                 cabeza —o cobrarle de menos al comprador sin darse cuenta—. */
+              <div className="mt-2 mx-1 rounded-2xl bg-[#ff812c]/10 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-[#ff812c] truncate">{zonaElegida.name}</p>
+                    {zonaElegida.coverage && (
+                      <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{zonaElegida.coverage}</p>
+                    )}
+                  </div>
+                  <p className="text-[15px] font-semibold text-slate-900 dark:text-white shrink-0">
+                    {formatCOP(precioDomicilio)}
+                  </p>
                 </div>
-                <p className="text-[17px] font-bold text-slate-900 dark:text-white shrink-0">
-                  {formatCOP(precioDomicilio)}
-                </p>
+
+                <div className="mt-3 space-y-1 border-t border-[#ff812c]/25 pt-3">
+                  <div className="flex justify-between text-[13px] text-slate-600 dark:text-slate-300">
+                    <span>Contenido del pedido</span>
+                    <span>{formatCOP(totalContenido)}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px] text-slate-600 dark:text-slate-300">
+                    <span>Domicilio a {zonaElegida.name}</span>
+                    <span>{formatCOP(precioDomicilio ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 text-[16px] font-bold text-slate-900 dark:text-white">
+                    <span>Total</span>
+                    <span>{formatCOP(totalContenido + (precioDomicilio ?? 0))}</span>
+                  </div>
+                  {/* Quién paga el domicilio cambia lo que hay que cobrar en la
+                      puerta, así que se dice aquí y no solo en el interruptor
+                      de abajo: es donde se está mirando la cifra. */}
+                  <p className="pt-1 text-[12px] leading-snug text-slate-500 dark:text-slate-400">
+                    {form.is_cod
+                      ? form.cod_includes_shipping
+                        ? `El mensajero cobra ${formatCOP(Number(form.cod_amount || 0))} e incluye el domicilio.`
+                        : `El mensajero cobra ${formatCOP(Number(form.cod_amount || 0))}; el domicilio te lo facturamos a ti.`
+                      : `Sin contraentrega: el domicilio de ${formatCOP(precioDomicilio ?? 0)} va a tu factura.`}
+                  </p>
+                </div>
               </div>
             ) : (
               form.recipient_address.trim().length > 3 && (
@@ -1135,7 +1178,7 @@ export default function NewGuidePage() {
                 className="flex-[2] flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px] shadow-sm disabled:opacity-60"
               >
                 {saving ? <LoaderCircle className="w-5 h-5 animate-spin text-[#1C1C1E]" /> : <PackagePlus className="w-5 h-5 text-[#1C1C1E]" />}
-                <span>Crear guía</span>
+                <span>Crear pedido</span>
               </button>
             </div>
           </div>

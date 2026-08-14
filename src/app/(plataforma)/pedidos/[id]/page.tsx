@@ -429,6 +429,23 @@ export default function GuideDetailPage() {
 
         <Card className="p-6 lg:col-span-2">
           <h2 className="mb-5 font-bold text-navy-900">Línea de tiempo</h2>
+          {/* Un pedido siempre tiene al menos un hito: haberse creado. El
+              trigger at_evento_al_crear_pedido lo escribe, pero si por lo que
+              sea faltara, aquí se deriva de la fecha del propio pedido. Un
+              recuadro blanco y vacío hace pensar que la pantalla no cargó, y
+              es la peor impresión posible en la pantalla donde alguien viene a
+              comprobar que su envío existe. */}
+          {events.length === 0 && (
+            <ol>
+              <li className="relative flex gap-3">
+                <CheckCircle2 className="relative z-10 size-5 shrink-0 text-brand-500" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-navy-900">Pedido creado</p>
+                  <p className="text-xs text-slate-400">{formatDateTime(guide.created_at)}</p>
+                </div>
+              </li>
+            </ol>
+          )}
           <ol>
             {events.map((ev, i) => (
               <li key={ev.id} className="relative flex gap-3 pb-5 last:pb-0">

@@ -11,6 +11,33 @@ interface MiniMapProps {
   alto?: number;
 }
 
+function slideTo(marker: Marker, dest: [number, number], durationMs = 1200) {
+  const start = marker.getLatLng();
+  const end = L.latLng(dest);
+  
+  if (start.distanceTo(end) > 10000) {
+    marker.setLatLng(end);
+    return;
+  }
+
+  const startTime = performance.now();
+
+  function step(time: number) {
+    const elapsed = time - startTime;
+    const progress = Math.min(elapsed / durationMs, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    
+    marker.setLatLng([
+      start.lat + (end.lat - start.lat) * ease,
+      start.lng + (end.lng - start.lng) * ease
+    ]);
+    
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  
+  requestAnimationFrame(step);
+}
+
 export function MiniMap({ lat, lng, alto = 224 }: MiniMapProps) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<L.Map | null>(null);
@@ -86,7 +113,7 @@ export function MiniMap({ lat, lng, alto = 224 }: MiniMapProps) {
         </div>`;
 
       if (marcador.current) {
-        marcador.current.setLatLng([lat, lng]);
+        slideTo(marcador.current, [lat, lng]);
       } else {
         const icon = L.divIcon({
           html: iconHtml,

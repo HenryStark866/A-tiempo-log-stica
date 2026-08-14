@@ -128,6 +128,38 @@ function popupHtml(p: MapPoint): string {
   return html;
 }
 
+function slideTo(marker: L.Marker, dest: [number, number], durationMs = 1000) {
+  const start = marker.getLatLng();
+  const end = L.latLng(dest);
+  
+  // Si está a más de 10km (salto gigante), teleportar
+  if (start.distanceTo(end) > 10000) {
+    marker.setLatLng(end);
+    return;
+  }
+
+  const startTime = performance.now();
+
+  function step(time: number) {
+    const elapsed = time - startTime;
+    const progress = Math.min(elapsed / durationMs, 1);
+    
+    // Ease-out cubic
+    const ease = 1 - Math.pow(1 - progress, 3);
+    
+    const lat = start.lat + (end.lat - start.lat) * ease;
+    const lng = start.lng + (end.lng - start.lng) * ease;
+    
+    marker.setLatLng([lat, lng]);
+    
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+  
+  requestAnimationFrame(step);
+}
+
 export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: number }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<L.Map | null>(null);
@@ -246,8 +278,8 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         const existente = marcadores.current[p.id];
 
         if (existente) {
-          // Leaflet.markercluster handles setLatLng efficiently usually
-          existente.setLatLng([p.lat, p.lng]);
+          // Movimiento fluido del marcador
+          slideTo(existente, [p.lat, p.lng], 1200);
           existente.setIcon(
             L.divIcon({ html: icono(p), className: "", iconSize: [34, 34], iconAnchor: [17, 17] })
           );

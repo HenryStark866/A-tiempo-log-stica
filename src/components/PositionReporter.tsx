@@ -1,40 +1,47 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Radio, RadioTower, TriangleAlert } from "lucide-react";
+import { Radio, RadioTower, TriangleAlert, Smartphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-// Cada cuánto se manda la posición al servidor. watchPosition dispara mucho más
-// seguido que esto, así que se limita para no golpear la base ni la batería.
-// A 10 s el punto del mapa se mueve de forma creíble (a 30 km/h son ~80 m entre
-// avisos) sin castigar el plan de datos del mensajero.
-const ENVIO_MS = 10000;
-// Si además se movió poco, no hace falta gastar un envío: por debajo de estos
-// metros el punto prácticamente no cambia de sitio en pantalla.
+// ─── Constantes ──────────────────────────────────────────────────────────────
+
+/** Intervalo mínimo entre envíos a la base. 10 s = ~80 m a 30 km/h. */
+const ENVIO_MS = 10_000;
+/** Distancia mínima de movimiento para enviar (ahorra datos si está parado). */
 const MOVIMIENTO_MIN_M = 25;
+/** Si no hay movimiento, se manda una señal de vida cada 2 min. */
+const HEARTBEAT_INMOVIL_MS = 120_000;
+/**
+ * Intervalo del polling de respaldo. Cuando el navegador suspende
+ * watchPosition (pantalla apagada / segundo plano), este intervalo lo
+ * complementa: al volver a primer plano el setInterval ya había corrido y
+ * tenemos la posición lista para enviar sin esperar a watchPosition.
+ */
+const POLL_RESPALDO_MS = 30_000;
+
 const STORAGE_KEY = "at_compartir_ubicacion";
 const EVENTO = "at:ubicacion";
 
-/** Metros entre dos coordenadas (haversine). Sirve para no reenviar lo mismo. */
+// ─── Utilidades ──────────────────────────────────────────────────────────────
+
 function distanciaM(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371000;
+  const R = 6_371_000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+// ─── API pública ─────────────────────────────────────────────────────────────
+
 /**
  * Enciende el rastreo desde otra pantalla.
- *
- * Lo usa el mensajero al pulsar Iniciar en una recogida: el rastreo es parte
- * del trabajo que acaba de arrancar, no algo que deba acordarse de prender
- * aparte. El interruptor sigue visible y él puede apagarlo.
- *
- * Va por evento y no solo por localStorage porque el componente puede estar ya
- * montado en pantalla, y escribir la clave a secas no lo despierta.
+ * El mensajero lo activa indirectamente al pulsar "Iniciar recogida".
  */
 export function activarUbicacion() {
   if (typeof window === "undefined") return;
@@ -42,24 +49,36 @@ export function activarUbicacion() {
   window.dispatchEvent(new Event(EVENTO));
 }
 
+// ─── Componente ──────────────────────────────────────────────────────────────
+
 /**
- * Reporta la ubicación del mensajero mientras trabaja, para que el e-commerce
- * pueda seguir su paquete en vivo.
+ * Reporta la posición del mensajero en tiempo real con tres capas de resiliencia:
  *
- * Es opt-in y con interruptor visible: se rastrea la ubicación de una persona,
- * así que debe poder verlo y apagarlo. La preferencia queda en el dispositivo.
+ * 1. `watchPosition` — actualización continua mientras la app está al frente.
+ * 2. Polling de respaldo — `getCurrentPosition` cada 30 s. Cuando el navegador
+ *    suspende watchPosition (pantalla apagada), este intervalo sigue corriendo
+ *    y al volver a primer plano ya tiene la posición lista.
+ * 3. Heartbeat al volver — `visibilitychange` dispara un envío inmediato en
+ *    cuanto el mensajero vuelve a la app tras cambiar de pestaña o desbloquear.
+ *
+ * Limitación conocida y documentada: si el mensajero cierra el navegador o
+ * bloquea la pantalla durante más de ~30 s, el rastreo se pausa.
+ * Wake Lock mitiga el bloqueo de pantalla mientras la app está visible.
+ * El banner de advertencia guía al mensajero para mantener la app activa.
  */
 export function PositionReporter() {
   const [activo, setActivo] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [permisoDenegado, setPermisoDenegado] = useState(false);
   const [ultimoEnvio, setUltimoEnvio] = useState<Date | null>(null);
+  const [enSegundoPlano, setEnSegundoPlano] = useState(false);
+
   const watchId = useRef<number | null>(null);
+  const pollId = useRef<ReturnType<typeof setInterval> | null>(null);
   const ultimoTs = useRef(0);
   const ultimaPos = useRef<{ lat: number; lng: number } | null>(null);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
 
-  // Restaura la preferencia guardada, y queda atento a que otra pantalla lo
-  // encienda (arrancar una recogida, por ejemplo).
+  // ── Persistencia de preferencia ──────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     const leer = () => setActivo(window.localStorage.getItem(STORAGE_KEY) === "1");
@@ -68,31 +87,35 @@ export function PositionReporter() {
     return () => window.removeEventListener(EVENTO, leer);
   }, []);
 
+  // ── Envío a la base ───────────────────────────────────────────────────────
   const enviar = useCallback(
     async (lat: number, lng: number, accuracy?: number, speed?: number, heading?: number) => {
+      const ahora = Date.now();
+      const previa = ultimaPos.current;
+      const movida = previa
+        ? distanciaM(previa.lat, previa.lng, lat, lng)
+        : Infinity;
+
+      // No reenviar si se movió poco y no ha pasado el heartbeat
+      if (movida < MOVIMIENTO_MIN_M && ahora - ultimoTs.current < HEARTBEAT_INMOVIL_MS) return;
+
+      ultimoTs.current = ahora;
+      ultimaPos.current = { lat, lng };
+
       const supabase = createClient();
       const { error } = await supabase.rpc("at_report_position", {
         p_lat: lat,
         p_lng: lng,
-        // El GPS entrega velocidad en m/s; el CEDI la lee en km/h.
         p_accuracy: Number.isFinite(accuracy) ? accuracy : null,
         p_speed: Number.isFinite(speed) && speed! >= 0 ? speed! * 3.6 : null,
         p_heading: Number.isFinite(heading) ? heading : null,
       });
-      if (error) setError(error.message);
-      else {
-        setError(null);
-        setUltimoEnvio(new Date());
-      }
+      if (!error) setUltimoEnvio(new Date());
     },
     []
   );
 
-  // Mientras se comparte ubicación, se pide mantener la pantalla encendida: si
-  // el teléfono se bloquea, el navegador congela watchPosition y el punto del
-  // mensajero se queda clavado en el mapa. El sistema suelta este bloqueo solo
-  // cuando la pestaña pasa a segundo plano, así que hay que volver a tomarlo al
-  // regresar.
+  // ── Wake Lock (mantiene pantalla encendida) ───────────────────────────────
   useEffect(() => {
     if (!activo) return;
     const nav = navigator as Navigator & {
@@ -106,7 +129,7 @@ export function PositionReporter() {
         if (document.visibilityState !== "visible") return;
         wakeLock.current = await nav.wakeLock!.request("screen");
       } catch {
-        /* batería baja o el sistema lo niega: el rastreo sigue igual */
+        /* sistema lo niega (p.ej. batería baja): rastreo sigue igual */
       }
     };
     const alVolver = () => {
@@ -123,6 +146,7 @@ export function PositionReporter() {
     };
   }, [activo]);
 
+  // ── watchPosition principal ───────────────────────────────────────────────
   useEffect(() => {
     if (!activo) {
       if (watchId.current !== null) {
@@ -132,27 +156,13 @@ export function PositionReporter() {
       return;
     }
 
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setError("Este dispositivo no permite compartir ubicación.");
-      return;
-    }
+    if (!navigator?.geolocation) return;
 
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
         const ahora = Date.now();
         if (ahora - ultimoTs.current < ENVIO_MS) return;
-
-        // Quieto en un semáforo o en el almacén: no se gasta un envío en
-        // repetir la misma coordenada, pero cada 2 minutos se manda igual
-        // para que el CEDI sepa que el equipo sigue vivo.
-        const previa = ultimaPos.current;
-        const movida = previa
-          ? distanciaM(previa.lat, previa.lng, pos.coords.latitude, pos.coords.longitude)
-          : Infinity;
-        if (movida < MOVIMIENTO_MIN_M && ahora - ultimoTs.current < 120000) return;
-
-        ultimoTs.current = ahora;
-        ultimaPos.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPermisoDenegado(false);
         enviar(
           pos.coords.latitude,
           pos.coords.longitude,
@@ -162,13 +172,9 @@ export function PositionReporter() {
         );
       },
       (err) => {
-        setError(
-          err.code === err.PERMISSION_DENIED
-            ? "Permiso de ubicación denegado. Actívalo en los ajustes del navegador."
-            : "No pudimos obtener tu ubicación."
-        );
+        if (err.code === err.PERMISSION_DENIED) setPermisoDenegado(true);
       },
-      { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 }
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 20_000 }
     );
 
     return () => {
@@ -179,19 +185,77 @@ export function PositionReporter() {
     };
   }, [activo, enviar]);
 
+  // ── Polling de respaldo + heartbeat al volver ─────────────────────────────
+  useEffect(() => {
+    if (!activo) {
+      if (pollId.current) {
+        clearInterval(pollId.current);
+        pollId.current = null;
+      }
+      return;
+    }
+    if (!navigator?.geolocation) return;
+
+    /** Pide posición puntual. Si el navegador estaba suspendido, esto fuerza
+     *  una lectura fresca al volver a primer plano. */
+    const sondear = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setPermisoDenegado(false);
+          enviar(
+            pos.coords.latitude,
+            pos.coords.longitude,
+            pos.coords.accuracy ?? undefined,
+            pos.coords.speed ?? undefined,
+            pos.coords.heading ?? undefined
+          );
+        },
+        () => {
+          /* silencioso: watchPosition ya maneja el error */
+        },
+        { enableHighAccuracy: true, maximumAge: 30_000, timeout: 15_000 }
+      );
+    };
+
+    // Al volver de segundo plano: envía de inmediato
+    const alVolver = () => {
+      if (document.visibilityState === "visible") {
+        setEnSegundoPlano(false);
+        sondear();
+      } else {
+        setEnSegundoPlano(true);
+      }
+    };
+
+    // Intervalo de respaldo para cuando watchPosition está suspendido
+    pollId.current = setInterval(sondear, POLL_RESPALDO_MS);
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      if (pollId.current) clearInterval(pollId.current);
+      pollId.current = null;
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+  }, [activo, enviar]);
+
+  // ── Alternar ─────────────────────────────────────────────────────────────
   function alternar() {
     const siguiente = !activo;
     setActivo(siguiente);
-    setError(null);
+    setPermisoDenegado(false);
     window.localStorage.setItem(STORAGE_KEY, siguiente ? "1" : "0");
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm p-4 space-y-2 transition-colors duration-300">
+    <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm p-4 space-y-3 transition-colors duration-300">
+      {/* Fila principal */}
       <div className="flex items-center gap-3">
         <div
           className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-            activo ? "bg-[#ff812c]/10 text-[#ff812c]" : "bg-slate-100 dark:bg-slate-700 text-slate-400"
+            activo
+              ? "bg-[#ff812c]/10 text-[#ff812c]"
+              : "bg-slate-100 dark:bg-slate-700 text-slate-400"
           }`}
         >
           {activo ? <RadioTower className="w-5 h-5" /> : <Radio className="w-5 h-5" />}
@@ -203,7 +267,10 @@ export function PositionReporter() {
           <p className="text-[13px] text-slate-500 dark:text-slate-400">
             {activo
               ? ultimoEnvio
-                ? `Enviada a las ${ultimoEnvio.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}`
+                ? `Enviada a las ${ultimoEnvio.toLocaleTimeString("es-CO", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
                 : "Buscando señal…"
               : "Nadie en el CEDI puede ver dónde vas"}
           </p>
@@ -211,7 +278,7 @@ export function PositionReporter() {
         <button
           type="button"
           onClick={alternar}
-          aria-label="Compartir ubicación"
+          aria-label={activo ? "Desactivar compartir ubicación" : "Activar compartir ubicación"}
           className={`w-12 h-7 rounded-full transition-colors duration-200 relative shrink-0 ${
             activo ? "bg-[#ff812c]" : "bg-gray-300 dark:bg-gray-600"
           }`}
@@ -224,10 +291,38 @@ export function PositionReporter() {
         </button>
       </div>
 
-      {error && (
-        <p className="flex items-start gap-1.5 text-[13px] text-amber-600 dark:text-amber-400">
-          <TriangleAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          {error}
+      {/* Banner: permiso denegado */}
+      {permisoDenegado && (
+        <div className="flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 px-3 py-2.5">
+          <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+          <div>
+            <p className="text-[13px] font-semibold text-rose-700 dark:text-rose-400">
+              Permiso de ubicación bloqueado
+            </p>
+            <p className="text-[12px] text-rose-600 dark:text-rose-400 mt-0.5">
+              Abre los ajustes del navegador → Sitios → A Tiempo → Ubicación → Permitir. Luego
+              vuelve aquí y activa el interruptor.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner: app en segundo plano */}
+      {activo && enSegundoPlano && !permisoDenegado && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 px-3 py-2.5">
+          <Smartphone className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <p className="text-[12px] text-amber-700 dark:text-amber-400">
+            <strong>La app está en segundo plano.</strong> El rastreo se reanuda cuando
+            vuelvas aquí. Para que sea continuo, mantén esta pantalla activa y no bloquees
+            el teléfono.
+          </p>
+        </div>
+      )}
+
+      {/* Nota informativa cuando está activo y sin problemas */}
+      {activo && !permisoDenegado && !enSegundoPlano && (
+        <p className="text-[12px] text-slate-400 dark:text-slate-500 px-1">
+          Mantén la app abierta y la pantalla encendida para un rastreo ininterrumpido.
         </p>
       )}
     </div>

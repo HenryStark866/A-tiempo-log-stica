@@ -96,6 +96,11 @@ export function MiniMap({ lat, lng, alto = 224 }: MiniMapProps) {
         });
         marcador.current = L.marker([lat, lng], { icon }).addTo(mapa.current!);
       }
+      
+      // Asegurar que el mapa se redimensione correctamente
+      setTimeout(() => {
+        mapa.current?.invalidateSize();
+      }, 250);
     };
 
     pintar().catch(() => {});

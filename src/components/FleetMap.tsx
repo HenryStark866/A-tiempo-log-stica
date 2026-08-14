@@ -139,6 +139,8 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
 
     const pintar = async () => {
       const L = await import("leaflet");
+      // @ts-expect-error L is needed globally by leaflet.markercluster
+      window.L = L;
       // Importar markercluster asincronamente
       await import("leaflet.markercluster");
 
@@ -274,6 +276,11 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         mapa.current!.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 15 });
         encuadrado.current = true;
       }
+
+      // Asegurar que el mapa se redimensione correctamente
+      setTimeout(() => {
+        mapa.current?.invalidateSize();
+      }, 250);
     };
 
     pintar().catch((err) => {

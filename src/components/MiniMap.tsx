@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Map as LeafletMap, Marker } from "leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type { Marker } from "leaflet";
 
 interface MiniMapProps {
   lat: number;
@@ -12,14 +13,13 @@ interface MiniMapProps {
 
 export function MiniMap({ lat, lng, alto = 224 }: MiniMapProps) {
   const contenedor = useRef<HTMLDivElement>(null);
-  const mapa = useRef<LeafletMap | null>(null);
+  const mapa = useRef<L.Map | null>(null);
   const marcador = useRef<Marker | null>(null);
 
   useEffect(() => {
     let cancelado = false;
 
-    const pintar = async () => {
-      const L = await import("leaflet");
+    const pintar = () => {
       if (cancelado || !contenedor.current) return;
 
       if (!mapa.current) {
@@ -103,7 +103,7 @@ export function MiniMap({ lat, lng, alto = 224 }: MiniMapProps) {
       }, 250);
     };
 
-    pintar().catch(() => {});
+    pintar();
 
     return () => {
       cancelado = true;

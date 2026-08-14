@@ -6,8 +6,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { escucharTabla } from "@/lib/realtime";
 import { useProfile } from "@/components/ProfileContext";
-import { FleetMap, type MapPoint } from "@/components/FleetMap";
+import dynamic from "next/dynamic";
+import { type MapPoint } from "@/components/FleetMap";
 import { FiltroActivo, Loading } from "@/components/ui";
+
+const FleetMap = dynamic(() => import("@/components/FleetMap").then((mod) => mod.FleetMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[420px] w-full items-center justify-center rounded-3xl bg-slate-100 dark:bg-slate-800 text-slate-500">
+      Cargando mapa...
+    </div>
+  ),
+});
 import { COURIER_TYPE_LABELS } from "@/lib/constants";
 import type { CourierType } from "@/lib/types";
 

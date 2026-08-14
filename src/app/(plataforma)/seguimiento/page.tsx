@@ -19,8 +19,17 @@ import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { MapaDeFondo } from "@/components/fondos/MapaDeFondo";
 import { useMyClient } from "@/components/useMyClient";
-import { MiniMap } from "@/components/MiniMap";
+import dynamic from "next/dynamic";
 import { GUIDE_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
+
+const MiniMap = dynamic(() => import("@/components/MiniMap").then((mod) => mod.MiniMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[224px] w-full items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500">
+      Cargando mapa...
+    </div>
+  ),
+});
 import { formatCOP, formatDateTime } from "@/lib/utils";
 import type { Shipment, GuideStatus } from "@/lib/types";
 

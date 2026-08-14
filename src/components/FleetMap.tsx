@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Map as LeafletMap, Marker } from "leaflet";
+import L from "leaflet";
 // Del paquete instalado, no de un CDN
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import type { Marker } from "leaflet";
 import type { CourierType } from "@/lib/types";
 
 export interface MapPoint {
@@ -128,7 +130,7 @@ function popupHtml(p: MapPoint): string {
 
 export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: number }) {
   const contenedor = useRef<HTMLDivElement>(null);
-  const mapa = useRef<LeafletMap | null>(null);
+  const mapa = useRef<L.Map | null>(null);
   const marcadores = useRef<Record<string, Marker>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clusterGroup = useRef<any>(null);
@@ -137,13 +139,7 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
   useEffect(() => {
     let cancelado = false;
 
-    const pintar = async () => {
-      const L = await import("leaflet");
-      // @ts-expect-error L is needed globally by leaflet.markercluster
-      window.L = L;
-      // Importar markercluster asincronamente
-      await import("leaflet.markercluster");
-
+    const pintar = () => {
       if (cancelado || !contenedor.current) return;
 
       if (!mapa.current) {
@@ -283,10 +279,7 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
       }, 250);
     };
 
-    pintar().catch((err) => {
-      console.error(err);
-      /* sin mapa, pero la pantalla y la lista siguen en pie */
-    });
+    pintar();
 
     return () => {
       cancelado = true;

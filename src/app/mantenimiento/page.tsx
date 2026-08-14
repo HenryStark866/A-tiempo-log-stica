@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wrench } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { MARCA } from "@/lib/marca";
+import { FondoRastreo } from "@/components/fondos/FondoRastreo";
 
 export const metadata = {
   title: "Volvemos en unos minutos",
@@ -28,6 +29,10 @@ export const metadata = {
 export default function MantenimientoPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-6 font-sans text-slate-900 transition-colors duration-300 dark:text-white">
+      {/* La única pública que se quedó sin fondo cuando la creé. Lleva el del
+          rastreo a propósito: durante la ventana de mantenimiento el rastreo
+          sigue en pie, y es a donde manda el botón de esta pantalla. */}
+      <FondoRastreo />
       <div className="w-full max-w-md text-center">
         <div className="mb-8 flex justify-center">
           <Logo />

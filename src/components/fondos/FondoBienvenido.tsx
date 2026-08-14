@@ -1,4 +1,5 @@
 import { Fondo, Resplandor, Vinneta, NARANJA } from "@/components/fondos/Fondo";
+import { MapaAburra } from "@/components/fondos/MapaAburra";
 
 /**
  * BIENVENIDO — "el arranque".
@@ -45,6 +46,10 @@ export function FondoBienvenido() {
 
       {/* El cronómetro de fondo, enorme y quieto: la marca sosteniendo la escena
           mientras todo lo demás corre. */}
+      {/* El valle, debajo de todo lo demás: es el terreno sobre el
+          que pasa lo que dibuja esta pantalla. */}
+      <MapaAburra opacidad={0.85} />
+
       <svg
         className="absolute left-1/2 top-1/2 h-[120vh] w-[120vh] -translate-x-1/2 -translate-y-1/2 opacity-[0.06] dark:opacity-[0.1]"
         viewBox="0 0 240 200"

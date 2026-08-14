@@ -1,4 +1,5 @@
 import { Fondo, Rejilla, Resplandor, Vinneta, NARANJA } from "@/components/fondos/Fondo";
+import { MapaAburra } from "@/components/fondos/MapaAburra";
 import { MarcasFlotantes } from "@/components/fondos/MarcasFlotantes";
 
 /**
@@ -35,6 +36,10 @@ export function FondoInicio() {
       <Rejilla paso={72} duracion={11} />
       <Resplandor x="18%" y="55%" tamano={720} fuerza={0.12} />
       <Resplandor x="78%" y="22%" tamano={520} fuerza={0.07} duracion={14} />
+
+      {/* El valle, debajo de todo lo demás: es el terreno sobre el
+          que pasa lo que dibuja esta pantalla. */}
+      <MapaAburra opacidad={0.8} />
 
       <svg
         className="absolute inset-0 h-full w-full"

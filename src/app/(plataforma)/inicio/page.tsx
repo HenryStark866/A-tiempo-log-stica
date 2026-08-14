@@ -7,6 +7,7 @@ import { NAV } from "@/lib/menu";
 import { ROLE_LABELS } from "@/lib/constants";
 import { horaDelDiaEnColombia } from "@/lib/tiempo";
 import { EncuestaSatisfaccion } from "@/components/EncuestaSatisfaccion";
+import { MapaDeFondo } from "@/components/fondos/MapaDeFondo";
 
 /**
  * La pantalla que se ve al entrar.
@@ -47,7 +48,12 @@ export default function InicioPage() {
   const nombre = profile.full_name?.trim().split(" ")[0] ?? "";
 
   return (
-    <div className="space-y-6 pb-10 font-sans">
+    <div className="relative space-y-6 pb-10 font-sans">
+      {/* El valle, detrás del saludo. Es la primera pantalla que ve alguien al
+          entrar y la única de la plataforma donde el fondo no le quita sitio a
+          nada: aquí no hay tablas ni cifras, solo tarjetas para elegir. */}
+      <MapaDeFondo />
+
       <div>
         <p className="text-[15px] text-slate-500 dark:text-slate-400">
           {saludo()}

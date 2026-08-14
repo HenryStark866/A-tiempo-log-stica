@@ -1,4 +1,5 @@
 import { Fondo, Resplandor, Vinneta, NARANJA } from "@/components/fondos/Fondo";
+import { MapaAburra } from "@/components/fondos/MapaAburra";
 
 /**
  * PAGAR — "el cobro que se confirma".
@@ -35,6 +36,10 @@ export function FondoPago() {
   return (
     <Fondo>
       <Resplandor x="50%" y="42%" tamano={700} fuerza={0.11} duracion={7} />
+
+      {/* El valle, debajo de todo lo demás: es el terreno sobre el
+          que pasa lo que dibuja esta pantalla. */}
+      <MapaAburra opacidad={0.75} />
 
       <svg
         className="absolute inset-0 h-full w-full"

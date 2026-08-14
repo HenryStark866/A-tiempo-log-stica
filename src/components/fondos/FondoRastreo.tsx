@@ -1,4 +1,5 @@
 import { Fondo, Rejilla, Resplandor, Vinneta, NARANJA } from "@/components/fondos/Fondo";
+import { MapaAburra } from "@/components/fondos/MapaAburra";
 
 /**
  * RASTREO — "la línea de vida del paquete".
@@ -26,6 +27,10 @@ export function FondoRastreo() {
       <Rejilla paso={64} duracion={13} opacidad={0.35} />
       <Resplandor x="30%" y="70%" tamano={620} fuerza={0.09} />
       <Resplandor x="85%" y="28%" tamano={520} fuerza={0.09} duracion={13} />
+
+      {/* El valle, debajo de todo lo demás: es el terreno sobre el
+          que pasa lo que dibuja esta pantalla. */}
+      <MapaAburra opacidad={1} />
 
       <svg
         className="absolute inset-0 h-full w-full"

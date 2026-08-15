@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
-import { MapaDeFondo } from "@/components/fondos/MapaDeFondo";
 import { useMyClient } from "@/components/useMyClient";
 import dynamic from "next/dynamic";
 import { GUIDE_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
@@ -136,11 +135,6 @@ export default function TrackingPage() {
 
   return (
     <div className="relative pb-10 space-y-6 font-sans">
-      {/* Aquí el valle no es adorno: esta pantalla es literalmente seguir
-          paquetes por el Área Metropolitana. Va más tenue que en Inicio porque
-          encima hay una lista que se lee todo el día. */}
-      <MapaDeFondo opacidad={0.32} />
-
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">

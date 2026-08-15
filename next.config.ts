@@ -80,7 +80,11 @@ const nextConfig: NextConfig = {
         // persona nunca haya dicho que no. Se abre solo para el propio origen.
         {
           key: "Permissions-Policy",
-          value: "camera=(), microphone=(), geolocation=(self)",
+          // La cámara la usa el operario del CEDI para escanear guías
+          // (EscanerQR.tsx, con getUserMedia): cerrada del todo, ese escáner
+          // no podía pedir permiso nunca, en ningún entorno. Se abre solo
+          // para el propio origen, igual que la ubicación.
+          value: "camera=(self), microphone=(), geolocation=(self)",
         },
         // Un año, con subdominios: una vez que el navegador la recuerda no
         // vuelve a intentar http:// para este dominio ni para uno colgante.

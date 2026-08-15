@@ -50,7 +50,11 @@ export default function EntregaActivaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] pb-32 font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300">
+    // Sin color propio: esta pantalla pintaba su propio fondo opaco encima de
+    // todo, así que era la única de la plataforma donde el valle no se
+    // hubiera visto aunque se destapara el armazón. El color base ya lo pone
+    // el body (globals.css) y el valle lo cuelga AppShell una sola vez.
+    <div className="min-h-screen pb-32 font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300">
 
       {/* Navigation Bar */}
       <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">

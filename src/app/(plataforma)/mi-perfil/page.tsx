@@ -7,12 +7,14 @@ import {
   Eye,
   FileUp,
   ShieldAlert,
+  ShieldCheck,
   TriangleAlert,
   LoaderCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { PageHeader, Card, Loading, inputCls } from "@/components/ui";
+import { reabrirPermisosTurno } from "@/components/PermisosTurno";
 import {
   COURIER_DOCS,
   COURIER_REQUIRED_DOCS,
@@ -136,6 +138,31 @@ export default function MyProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Único sitio de la app, aparte del primer arranque, donde se puede
+          volver a ver el diálogo de permisos. Antes de esto, quien ya lo
+          había resuelto una vez —o probaba con otro rol— no tenía forma de
+          revisarlo: ni de confirmar que quedó bien, ni de reintentarlo si lo
+          había bloqueado sin querer. */}
+      <Card className="mb-4">
+        <button
+          type="button"
+          onClick={() => reabrirPermisosTurno()}
+          className="flex w-full items-center gap-3 p-4 text-left active:opacity-70"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#ff812c]/10 text-[#ff812c]">
+            <ShieldCheck className="size-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <p className="font-semibold text-slate-900 dark:text-white">
+              Permisos del turno
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Ubicación y pantalla encendida. Tócalo para revisarlos o volver a concederlos.
+            </p>
+          </span>
+        </button>
+      </Card>
 
       {error && (
         <div className="mb-4 rounded-2xl bg-rose-50 p-4 dark:bg-rose-500/10">

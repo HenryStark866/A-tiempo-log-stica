@@ -296,8 +296,13 @@ export default function MyRoutePage() {
         </div>
       )}
 
-      {/* Ubicación en vivo para que el comercio pueda seguir su paquete */}
-      <PositionReporter />
+      {/* Ubicación en vivo para que el comercio pueda seguir su paquete.
+          Solo mensajero: at_report_position rechaza a cualquier otro rol, y
+          sin este freno un admin o coordinador que abriera esta pantalla con
+          el interruptor en «1» generaba una excepción en la base cada 10-30 s
+          —tragada en silencio— mientras la tarjeta se quedaba eternamente en
+          «Buscando señal…». Ver el mismo freno en conductor/recogida. */}
+      {profile.role === "mensajero" && <PositionReporter />}
 
       {NAV_HANDOFF_ENABLED && (
         <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-4 sm:p-5 shadow-sm transition-colors duration-300 flex flex-col sm:flex-row sm:items-center gap-4">

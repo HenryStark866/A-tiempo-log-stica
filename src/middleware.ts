@@ -135,7 +135,12 @@ export async function middleware(request: NextRequest) {
     //   la app; nada más debería poder pedir cámara, micrófono ni GPS.
     res.headers.set("X-Content-Type-Options", "nosniff");
     res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.headers.set("Permissions-Policy", "camera=(), microphone=(), payment=(), geolocation=(self)");
+    // Iba cerrada del todo: camera=() sin "self" bloquea getUserMedia incluso
+    // para el propio sitio, y dejaba muerto el escáner QR del CEDI (EscanerQR.tsx)
+    // en cualquier entorno — no es que fallara el permiso, es que ni se podía
+    // pedir. Los <input capture="environment"> de entregas y pedidos no se ven
+    // afectados: abren la app de cámara del sistema, no esta API.
+    res.headers.set("Permissions-Policy", "camera=(self), microphone=(), payment=(), geolocation=(self)");
     if (process.env.NODE_ENV === "production") {
       res.headers.set(
         "Strict-Transport-Security",

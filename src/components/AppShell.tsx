@@ -12,6 +12,8 @@ import { ProfileProvider } from "@/components/ProfileContext";
 import { SolicitudCediPendiente } from "@/components/SolicitudCediPendiente";
 import { InstalarApp } from "@/components/InstalarApp";
 import { Reloj } from "@/components/Reloj";
+import { FondoPlataforma } from "@/components/fondos/FondoPlataforma";
+import { STORAGE_KEY as UBICACION_STORAGE_KEY } from "@/components/PositionReporter";
 import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -56,6 +58,13 @@ export function AppShell({
   }, [profile.role, pathname]);
 
   async function signOut() {
+    // El interruptor de rastreo es una clave de localStorage sin dueño, no
+    // por sesión: sin esto, un teléfono compartido entre mensajeros —o
+    // cualquiera que entrara después en ese aparato— arrancaba con el
+    // rastreo ya encendido, sin que esa persona lo hubiera prendido en SU
+    // sesión. No es solo un estado que sobra: es rastrear a alguien sin que
+    // lo haya consentido.
+    window.localStorage.removeItem(UBICACION_STORAGE_KEY);
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
@@ -71,7 +80,8 @@ export function AppShell({
 
   if (profile.role === "pendiente" || !profile.active) {
     return (
-      <div className="grid min-h-screen place-items-center bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 transition-colors duration-300">
+      <div className="relative grid min-h-screen place-items-center px-4 transition-colors duration-300">
+          <FondoPlataforma />
           <div className="max-w-md rounded-3xl border border-gray-200 dark:border-gray-800 bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm transition-colors duration-300">
             <Hourglass className="mx-auto mb-4 size-10 text-[#ff812c]" />
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -103,8 +113,12 @@ export function AppShell({
           en la calle, el CEDI en la bodega y el comercio con mal servicio
           comparten el mismo mecanismo, ver src/lib/offline. */}
       <OfflineProvider>
-      <div className="min-h-screen bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col md:flex-row font-sans">
-          
+      <div className="min-h-screen text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col md:flex-row font-sans">
+          {/* El valle, detrás de las 25 pantallas. Aquí es donde se veía
+              bloqueado: este div pintaba su propio color opaco encima de
+              cualquier cosa con z-index negativo. Ver FondoPlataforma.tsx. */}
+          <FondoPlataforma />
+
           {/* Top Header (Mobile Only) — al padding de arriba se le suma la zona
               segura: la barra de estado de iOS es translúcida y la app se
               dibuja por debajo de la hora.

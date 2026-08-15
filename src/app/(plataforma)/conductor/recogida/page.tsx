@@ -112,6 +112,23 @@ export default function CourierPickupPage() {
     window.open(buildNavUrl(p, direccion, ciudad), "_blank", "noopener,noreferrer");
   }
 
+  /**
+   * Abre la pestaña de navegación EN BLANCO, dentro del mismo gesto de clic
+   * que arranca la recogida — antes de cualquier await. La activación
+   * transitoria que autoriza a `window.open` expira en pocos segundos,
+   * y esperar al RPC de `at_start_pickup` ya se la come; en 3G eso es lo
+   * normal, no la excepción. Mismo patrón que ya resolvió esto en /entregas
+   * (ver openNavWindow).
+   *
+   * Si todavía no hay proveedor de navegación guardado no se abre nada: se le
+   * va a preguntar primero (ver `iniciar`), y una pestaña en blanco esperando
+   * esa respuesta confundiría más de lo que ayuda.
+   */
+  function abrirVentanaNav(): Window | null {
+    if (!(navProvider ?? getNavProvider())) return null;
+    return window.open("", "_blank");
+  }
+
   function elegirYNavegar(p: NavProvider) {
     saveNavProvider(p);
     setNavProvider(p);
@@ -126,19 +143,40 @@ export default function CourierPickupPage() {
    * Arranca la recogida: la marca en curso, enciende el rastreo y abre la
    * navegación hacia el comercio. Las tres cosas son el mismo gesto para el
    * mensajero, así que van en un solo botón.
+   *
+   * El orden importa, y aquí es donde se perdía la primera posición del
+   * turno: antes se encendía el rastreo y se navegaba a Waze en el mismo
+   * instante, pero el watch de PositionReporter se registra en un efecto de
+   * React que corre DESPUÉS de ese repintado — y el salto a la app de
+   * navegación podía dejar la pestaña en segundo plano antes de que ese
+   * efecto alcanzara a montarse. El CEDI no veía salir a nadie hasta que el
+   * mensajero volvía a la app, que podía ser al llegar al comercio.
+   *
+   * Ahora: la pestaña de navegación se abre en blanco DENTRO del gesto de
+   * clic (antes del await, para no perder la activación transitoria), se
+   * espera a que `activarUbicacion` mande el primer punto de una vez, y solo
+   * entonces se le pone destino a esa pestaña.
    */
   async function iniciar(p: Pickup) {
     setBusy(p.pickup_id);
     setMsg(null);
+    const ventanaNav = abrirVentanaNav();
     const supabase = createClient();
     const { error } = await supabase.rpc("at_start_pickup", { p_pickup_id: p.pickup_id });
     setBusy(null);
     if (error) {
+      ventanaNav?.close();
       setMsg({ ok: false, text: error.message });
       return;
     }
-    activarUbicacion();
-    navegarA(p.address);
+    await activarUbicacion();
+    if (ventanaNav) {
+      const prov = navProvider ?? getNavProvider();
+      if (prov) ventanaNav.location.href = buildNavUrl(prov, p.address);
+      else ventanaNav.close();
+    } else {
+      navegarA(p.address);
+    }
     load();
   }
 

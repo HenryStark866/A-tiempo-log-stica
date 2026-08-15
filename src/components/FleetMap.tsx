@@ -167,6 +167,37 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clusterGroup = useRef<any>(null);
   const encuadrado = useRef(false);
+  const observadorTema = useRef<MutationObserver | null>(null);
+
+  /**
+   * El tamaño del mapa, y su limpieza.
+   *
+   * Va en su propio efecto —sin dependencias— porque no tiene nada que ver con
+   * los datos: solo importa cuando el contenedor cambia de tamaño. Leaflet
+   * calcula el suyo al crearse, y si en ese momento el contenedor todavía no
+   * tiene alto definitivo, el mapa queda con las medidas equivocadas y las
+   * teselas salen cortadas.
+   *
+   * Con ResizeObserver se entera del cambio real en vez de adivinarlo con un
+   * temporizador, que es lo que antes provocaba los tirones.
+   */
+  useEffect(() => {
+    const nodo = contenedor.current;
+    if (!nodo) return;
+
+    const ro = new ResizeObserver(() => {
+      // `pan: false` para que ajustar el tamaño no mueva el centro: si alguien
+      // está mirando una esquina del valle, se queda donde estaba.
+      mapa.current?.invalidateSize({ pan: false });
+    });
+    ro.observe(nodo);
+
+    return () => {
+      ro.disconnect();
+      observadorTema.current?.disconnect();
+      observadorTema.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelado = false;
@@ -178,8 +209,26 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         mapa.current = L.map(contenedor.current, {
           center: CENTRO_VALLE,
           zoom: 12,
-          scrollWheelZoom: true, // Accesibilidad: permitir zoom con rueda
+          // La rueda NO hace zoom hasta que se toca el mapa.
+          //
+          // El mapa vive dentro de una página que se desplaza. Con la rueda
+          // activa desde el principio, bajar por la pantalla con el puntero
+          // encima del mapa hacía zoom en vez de desplazar: la página se
+          // quedaba clavada y el mapa se iba a un zoom que nadie pidió. Se
+          // enciende al hacer clic dentro y se apaga al salir el puntero, que
+          // es el patrón que la gente ya conoce de otros mapas embebidos.
+          scrollWheelZoom: false,
         });
+
+        // Se escucha en el CONTENEDOR y no con el `mouseout` de Leaflet: ese
+        // también salta al pasar el puntero sobre un marcador, y apagaría el
+        // zoom sin que nadie se haya ido a ninguna parte.
+        contenedor.current.addEventListener("click", () =>
+          mapa.current?.scrollWheelZoom.enable()
+        );
+        contenedor.current.addEventListener("mouseleave", () =>
+          mapa.current?.scrollWheelZoom.disable()
+        );
 
         // Capas gratuitas
         const cartoLight = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
@@ -199,13 +248,39 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
           maxZoom: 19,
         });
 
-        // Elegir tema según el sistema (modo oscuro)
-        const isDarkMode = document.documentElement.classList.contains("dark") || window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (isDarkMode) {
-          cartoDark.addTo(mapa.current);
-        } else {
-          cartoLight.addTo(mapa.current);
-        }
+        /**
+         * Qué teselas tocan según el tema.
+         *
+         * Se miraba solo la clase `dark`, así que con el tema multicolor
+         * —que también es oscuro— el mapa cargaba las teselas CLARAS: un
+         * rectángulo blanco deslumbrante en medio de una pantalla oscura.
+         *
+         * Y se decidía una sola vez, al crear el mapa: quien cambiaba de tema
+         * se quedaba con las teselas del tema anterior hasta recargar.
+         */
+        const esOscuro = () => {
+          const c = document.documentElement.classList;
+          return c.contains("dark") || c.contains("tema-multicolor");
+        };
+
+        const aplicarTema = () => {
+          if (!mapa.current) return;
+          // Si el usuario eligió satélite a mano, no se le cambia por debajo.
+          if (mapa.current.hasLayer(esriSat)) return;
+          const quiero = esOscuro() ? cartoDark : cartoLight;
+          const sobra = esOscuro() ? cartoLight : cartoDark;
+          if (mapa.current.hasLayer(sobra)) mapa.current.removeLayer(sobra);
+          if (!mapa.current.hasLayer(quiero)) quiero.addTo(mapa.current);
+        };
+
+        aplicarTema();
+
+        // El tema se cambia en <html>, así que se vigila esa clase.
+        observadorTema.current = new MutationObserver(aplicarTema);
+        observadorTema.current.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
 
         // Control de capas
         const baseMaps = {
@@ -305,10 +380,14 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         encuadrado.current = true;
       }
 
-      // Asegurar que el mapa se redimensione correctamente
-      setTimeout(() => {
-        mapa.current?.invalidateSize();
-      }, 250);
+      // Aquí ya NO se llama a invalidateSize().
+      //
+      // Estaba en un temporizador que se rearmaba con cada cambio de `puntos`,
+      // y `puntos` cambia cada pocos segundos entre el sondeo y el realtime.
+      // invalidateSize desplaza el mapa para conservar el centro, así que a
+      // media maniobra te movía la vista: arrastrabas, y a los 250 ms el mapa
+      // daba un tirón. Ahora se llama una vez al montar y cuando el contenedor
+      // cambia de tamaño de verdad, que es lo único que lo necesita.
     };
 
     pintar();

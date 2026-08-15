@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { BuscadorGuia } from "@/components/BuscadorGuia";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
 import { PieMarca } from "@/components/PieMarca";
+import { InstalarApp } from "@/components/InstalarApp";
 import { MARCA } from "@/lib/marca";
 
 const PILLARS = [
@@ -37,6 +38,12 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 pb-16 transition-colors duration-300">
       <FondoInicio />
+
+      {/* Quien acaba de confirmar su correo aterriza aquí (ver
+          /auth/confirmar): esta es la única pantalla pública donde de verdad
+          se puede instalar la app, así que el banner vive aquí y no solo
+          dentro de la plataforma. */}
+      <InstalarApp enPagina />
 
       {/* Top Nav Bar */}
       <nav className="sticky top-0 z-50 flex items-center justify-end px-6 py-3 bg-white/70 dark:bg-[#1C1C1E]/70 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-800/60 transition-colors duration-300">

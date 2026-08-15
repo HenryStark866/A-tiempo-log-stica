@@ -77,9 +77,13 @@ export default function RegisterPage() {
       email,
       password,
       options: {
-        // Al confirmar, Supabase manda aquí; la ruta canjea el token y lleva
-        // a la bienvenida con la sesión ya iniciada.
-        emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/bienvenido`,
+        // Al confirmar, Supabase manda aquí; la ruta canjea el token —queda
+        // con sesión si abrió el enlace en el mismo navegador— y lleva a la
+        // portada. Ahí puede entrar con esa sesión o instalar la app; no se
+        // le da por hecho que el navegador donde revisó el correo es el que
+        // va a usar para trabajar, que en el teléfono es un dueño de comercio
+        // de cada tres.
+        emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/`,
         data: {
           full_name: fullName,
           phone: phone || null,

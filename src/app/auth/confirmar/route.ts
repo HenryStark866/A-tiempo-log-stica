@@ -4,8 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Canjea el enlace del correo de confirmación por una sesión y lleva a la
- * bienvenida. Al confirmarse el correo, el trigger at_activate_on_confirm ya
- * le asignó su rol, así que la persona aterriza con la cuenta lista.
+ * portada pública. Al confirmarse el correo, el trigger at_activate_on_confirm
+ * ya le asignó su rol, así que si la sesión prende —abrió el enlace en el
+ * mismo navegador— la cuenta ya está lista para usarse.
+ *
+ * Por qué la portada y no directo a la plataforma: el enlace del correo se
+ * abre donde sea que alguien revise su bandeja, y ese no es necesariamente el
+ * navegador —ni el teléfono— desde el que va a trabajar. Mandarlo a la
+ * portada le da las dos salidas: entrar con la sesión que sí quedó activa, o
+ * instalar la app e iniciar sesión ahí. `next` sigue existiendo para el caso
+ * distinto de este flujo: /recuperar manda aquí con next=/nueva-clave, porque
+ * ese enlace sí tiene que aterrizar en una pantalla concreta.
  *
  * Acepta las DOS formas en que Supabase puede mandar a la gente, porque
  * dependen de qué plantilla de correo esté puesta en el dashboard:
@@ -23,10 +32,10 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/bienvenido";
+  const next = searchParams.get("next") ?? "/";
 
   // Solo rutas internas: evita que un enlace manipulado nos use de redirector.
-  const destino = next.startsWith("/") && !next.startsWith("//") ? next : "/bienvenido";
+  const destino = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   const supabase = await createClient();
 

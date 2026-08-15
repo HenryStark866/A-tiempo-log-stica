@@ -56,7 +56,7 @@ function yaEstaInstalada(): boolean {
  * Safari en iPhone no tiene nada de eso: ahí lo único posible es explicar los
  * dos toques del menú Compartir, que es lo que se muestra en ese caso.
  */
-export function InstalarApp() {
+export function InstalarApp({ enPagina = false }: { enPagina?: boolean }) {
   const [evento, setEvento] = useState<EventoDeInstalacion | null>(null);
   const [enIphone, setEnIphone] = useState(false);
 
@@ -116,7 +116,13 @@ export function InstalarApp() {
     <div
       role="dialog"
       aria-label={`Instalar ${MARCA.app}`}
-      className="fixed left-4 right-4 bottom-nav z-40 md:left-auto md:right-6 md:bottom-6 md:w-[21rem] rounded-3xl border border-gray-200 dark:border-gray-800 bg-[#FFFFFF] dark:bg-[#2C2C2E] p-4 shadow-lg"
+      className={`fixed left-4 right-4 z-40 md:left-auto md:right-6 md:bottom-6 md:w-[21rem] rounded-3xl border border-gray-200 dark:border-gray-800 bg-[#FFFFFF] dark:bg-[#2C2C2E] p-4 shadow-lg ${
+        // bottom-nav deja el hueco de la barra de pestañas del móvil, que
+        // solo existe dentro de la plataforma (AppShell). En una pantalla
+        // pública no hay nada debajo: sin esto quedaría flotando separado
+        // del borde, con un vacío de sobra que aquí no significa nada.
+        enPagina ? "bottom-4" : "bottom-nav"
+      }`}
     >
       <button
         onClick={posponer}

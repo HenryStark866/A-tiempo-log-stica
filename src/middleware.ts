@@ -83,7 +83,18 @@ function buildCsp(nonce: string): string {
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: https://tile.openstreetmap.org ${SUPABASE_ORIGIN}`,
+    // Los tres servidores de teselas que usa FleetMap, y solo esos.
+    //
+    // Aquí estaba el mapa gris en producción: la lista solo abría
+    // tile.openstreetmap.org, pero el código pide las teselas a CARTO (claro y
+    // oscuro) y a Esri (satélite). El navegador las bloqueaba todas y el mapa
+    // se quedaba en blanco, sin un error visible en pantalla — el aviso solo
+    // sale en la consola, donde nadie que use la app está mirando.
+    //
+    // La regla se rompió sola cuando alguien cambió el proveedor de teselas sin
+    // que nada obligara a actualizar esta línea. Si mañana se cambia otra vez,
+    // hay que volver aquí.
+    `img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com https://server.arcgisonline.com ${SUPABASE_ORIGIN}`,
     "font-src 'self' data:",
     `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WS_ORIGIN}`,
     // /seguimiento embebe el mapa de OpenStreetMap en un iframe mientras el

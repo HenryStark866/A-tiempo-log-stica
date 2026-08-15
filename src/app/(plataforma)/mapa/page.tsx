@@ -7,8 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { escucharTabla } from "@/lib/realtime";
 import { useProfile } from "@/components/ProfileContext";
 import dynamic from "next/dynamic";
+import { COURIER_TYPE_LABELS } from "@/lib/constants";
 import { type MapPoint } from "@/components/FleetMap";
 import { FiltroActivo, Loading } from "@/components/ui";
+import type { CourierType } from "@/lib/types";
+
 
 const FleetMap = dynamic(() => import("@/components/FleetMap").then((mod) => mod.FleetMap), {
   ssr: false,
@@ -18,8 +21,6 @@ const FleetMap = dynamic(() => import("@/components/FleetMap").then((mod) => mod
     </div>
   ),
 });
-import { COURIER_TYPE_LABELS } from "@/lib/constants";
-import type { CourierType } from "@/lib/types";
 
 /**
  * Red de seguridad del sondeo. Las posiciones llegan por Realtime en cuanto el
@@ -52,10 +53,25 @@ interface LiveCourier {
   } | null;
 }
 
+/**
+ * El CEDI, con sus coordenadas ya guardadas en la base.
+ *
+ * Antes se geocodificaban en el navegador con Nominatim, en cada carga. No
+ * funcionaba y además molestaba: la CSP de producción no permite hablar con
+ * Nominatim —así que fallaba en silencio y el CEDI no salía nunca—, y como la
+ * pantalla se re-consulta cada pocos segundos por el sondeo de la flota, cada
+ * ciclo disparaba otra petición contra un servicio gratuito que limita a una
+ * por segundo.
+ *
+ * La dirección del CEDI no cambia. Se geocodificó una vez y vive en
+ * at_facilities (migración 0083): sin llamadas externas y funcionando sin señal.
+ */
 interface Facility {
   name: string;
   address: string;
   city: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 function minutosDesde(iso: string | null): number | null {
@@ -187,27 +203,44 @@ function Fleet() {
     (c) => typeof c.last_lat !== "number" || typeof c.last_lng !== "number"
   );
 
-  const puntos: MapPoint[] = conPosicion.map((c) => {
-    const min = minutosDesde(c.last_position_at);
-    return {
-      id: c.id,
-      lat: c.last_lat!,
-      lng: c.last_lng!,
-      titulo: c.full_name,
-      detalle:
-        (c.recogida_en_curso
-          ? `Recogiendo en ${c.recogida_en_curso.business_name}`
-          : `${c.en_ruta} en ruta · ${c.por_salir} por salir`) + ` · ${haceCuanto(min)}`,
-      tipo: "mensajero",
-      minutos: min ?? undefined,
-      courier_type: c.courier_type,
-      phone: c.phone,
-      en_ruta: c.en_ruta,
-      por_salir: c.por_salir,
-      entregadas_hoy: c.entregadas_hoy,
-      max_capacity: c.max_capacity,
-    };
-  });
+  const puntos: MapPoint[] = [
+    // Mensajeros con posición conocida
+    ...conPosicion.map((c) => {
+      const min = minutosDesde(c.last_position_at);
+      return {
+        id: c.id,
+        lat: c.last_lat!,
+        lng: c.last_lng!,
+        titulo: c.full_name,
+        detalle:
+          (c.recogida_en_curso
+            ? `Recogiendo en ${c.recogida_en_curso.business_name}`
+            : `${c.en_ruta} en ruta · ${c.por_salir} por salir`) + ` · ${haceCuanto(min)}`,
+        tipo: "mensajero" as const,
+        minutos: min ?? undefined,
+        courier_type: c.courier_type,
+        phone: c.phone,
+        en_ruta: c.en_ruta,
+        por_salir: c.por_salir,
+        entregadas_hoy: c.entregadas_hoy,
+        max_capacity: c.max_capacity,
+      };
+    }),
+    // Sede del CEDI (solo si ya tenemos coordenadas geocodificadas)
+    // Solo si el CEDI tiene coordenadas guardadas. Un CEDI afiliado recién
+    // aprobado todavía no las tiene, y un punto en el (0,0) del Atlántico es
+    // peor que ningún punto.
+    ...(sede && typeof sede.lat === "number" && typeof sede.lng === "number"
+      ? [{
+          id: "sede-principal",
+          lat: sede.lat,
+          lng: sede.lng,
+          titulo: sede.name,
+          detalle: `${sede.address} · ${sede.city}`,
+          tipo: "sede" as const,
+        }]
+      : []),
+  ];
 
   return (
     <div className="pb-10 space-y-5 font-sans">

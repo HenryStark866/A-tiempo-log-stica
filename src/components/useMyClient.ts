@@ -41,9 +41,16 @@ export function useMyClient() {
 
     // El asesor lee su comercio con un select normal: el RLS de at_clients ya
     // solo le deja ver el suyo (id = at_my_client()).
+    // Si todavía no tiene client_id asignado no lanzamos la query: pasarle
+    // una cadena vacía a una columna uuid provoca "invalid input syntax for
+    // type uuid: """ en PostgreSQL.
+    if (esAsesor && !profile.client_id) {
+      setLoading(false);
+      return;
+    }
     const consulta = esDueno
       ? supabase.rpc("at_ensure_my_client")
-      : supabase.from("at_clients").select("*").eq("id", profile.client_id ?? "").maybeSingle();
+      : supabase.from("at_clients").select("*").eq("id", profile.client_id!).maybeSingle();
 
     consulta.then(({ data, error }) => {
       if (cancelado) return;

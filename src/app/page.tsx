@@ -45,7 +45,7 @@ export default function LandingPage() {
 
       {/* Welcoming Header — translúcido para que la red de rutas se vea correr
           por detrás sin restarle contraste al logo. */}
-      <header className="atl-encima px-6 py-10 flex flex-col items-center text-center bg-white/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl shadow-sm rounded-b-[32px] mb-10 transition-colors duration-300">
+      <header className="atl-encima px-6 py-10 flex flex-col items-center text-center bg-white/10 dark:bg-white/5 backdrop-blur-xl border-b border-white/10 shadow-sm rounded-b-[32px] mb-10 transition-colors duration-300">
         <Logo variant="vertical" conFirma className="mb-2 scale-110" />
         <h1 className="mt-6 text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
           Bienvenido a {MARCA.app}
@@ -59,7 +59,7 @@ export default function LandingPage() {
 
         {/* Tracking Section (Centered) */}
         <div className="max-w-md mx-auto">
-          <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 rounded-3xl shadow-sm transition-colors duration-300">
+          <section className="bg-white/15 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 p-6 rounded-3xl shadow-sm transition-colors duration-300">
             <h2 className="text-[18px] font-bold text-slate-900 dark:text-white mb-1">
               Rastrear envío
             </h2>
@@ -78,7 +78,7 @@ export default function LandingPage() {
             llega a decidir cómo se llama a sí mismo antes de poder entrar.
             La cuenta ya sabe quién es cada quien; con entrar basta. */}
         <section>
-          <div className="mx-auto max-w-md rounded-3xl border border-transparent bg-[#FFFFFF] p-6 text-center shadow-sm transition-colors duration-300 dark:border-gray-800 dark:bg-[#2C2C2E]">
+          <div className="mx-auto max-w-md rounded-3xl border border-white/20 dark:border-white/10 bg-white/15 dark:bg-white/5 backdrop-blur-xl p-6 text-center shadow-sm transition-colors duration-300">
             <h2 className="text-[18px] font-bold text-slate-900 dark:text-white">
               ¿Ya trabajas con nosotros?
             </h2>
@@ -107,7 +107,7 @@ export default function LandingPage() {
           <h2 className="text-[14px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center mb-8">Nuestros Pilares Operativos</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {PILLARS.map((p, idx) => (
-              <div key={idx} className="bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 rounded-3xl shadow-sm border border-transparent dark:border-gray-800 flex flex-col items-start transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+              <div key={idx} className="bg-white/15 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 p-6 rounded-3xl shadow-sm flex flex-col items-start transition-all duration-300 hover:shadow-md hover:-translate-y-1">
                 <div className="w-12 h-12 rounded-2xl bg-[#ff812c]/10 dark:bg-[#ff812c]/20 flex items-center justify-center mb-5 shrink-0 transition-colors">
                   <p.icon className="w-6 h-6 text-[#ff812c]" />
                 </div>
@@ -126,7 +126,7 @@ export default function LandingPage() {
             quien vino a rastrear un paquete ya resolvió lo suyo arriba, y a
             quien se quedó leyendo le explica por qué la app se llama así. */}
         <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl border border-transparent dark:border-gray-800 p-6 sm:p-8 shadow-sm">
+          <div className="bg-white/15 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-sm">
             <h2 className="text-[14px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-5">
               Por qué {MARCA.app}
             </h2>

@@ -30,7 +30,7 @@ import { useMyClient } from "@/components/useMyClient";
 import { useOffline } from "@/components/OfflineContext";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
 import { PriceList } from "@/components/PriceList";
-import { PACKAGE_SIZES, PACKAGE_TYPES } from "@/lib/constants";
+import { PACKAGE_SIZES, PACKAGE_TYPES, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { esFalloDeRed } from "@/lib/offline/queue";
 import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
@@ -60,7 +60,17 @@ function igual(a: string, b: string) {
 export default function NewGuidePage() {
   const router = useRouter();
   const profile = useProfile();
-  const esCliente = profile.role === "cliente";
+  /**
+   * ¿Quien está creando el pedido trabaja para el comercio?
+   *
+   * Antes esto era `role === "cliente"`, y por eso el asesor —que es quien más
+   * pedidos va a registrar— caía en la rama del personal de A Tiempo: se le
+   * pintaba un selector de comercios en vez de su tienda, y no se le cargaba el
+   * tarifario, así que tampoco veía el precio del domicilio.
+   *
+   * ROLES_DEL_COMERCIO es la misma lista que ya usan /pedidos y /recogidas.
+   */
+  const esDelComercio = ROLES_DEL_COMERCIO.includes(profile.role);
   // Autoaprovisiona el comercio: una cuenta cliente nunca queda bloqueada.
   const { client: miComercio, clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
   const offline = useOffline();
@@ -122,17 +132,17 @@ export default function NewGuidePage() {
 
   // Su tarifario personalizado: cuánto le cuesta a ÉL llegar a cada zona.
   useEffect(() => {
-    if (!esCliente) return;
+    if (!esDelComercio) return;
     const supabase = createClient();
     supabase.rpc("at_mi_tarifario").then(({ data }) => {
       const filas = (data as { id: string; delivery_rate: number }[]) ?? [];
       setTarifaPorZona(Object.fromEntries(filas.map((f) => [f.id, Number(f.delivery_rate)])));
     });
-  }, [esCliente, clientId]);
+  }, [esDelComercio, clientId]);
 
   // Comercios: el cliente no elige, se le carga el suyo automáticamente.
   useEffect(() => {
-    if (esCliente) {
+    if (esDelComercio) {
       if (clientId) setForm((f) => ({ ...f, client_id: clientId }));
       return;
     }
@@ -147,7 +157,7 @@ export default function NewGuidePage() {
         setClients(list);
         if (list.length) setForm((f) => ({ ...f, client_id: f.client_id || list[0].id }));
       });
-  }, [esCliente, clientId]);
+  }, [esDelComercio, clientId]);
 
   // Clientes guardados del comercio (si ya sincronizó su base).
   useEffect(() => {
@@ -166,7 +176,7 @@ export default function NewGuidePage() {
 
   // Catálogo de productos del comercio
   useEffect(() => {
-    const cid = esCliente ? clientId : form.client_id;
+    const cid = esDelComercio ? clientId : form.client_id;
     if (!cid) return;
     const supabase = createClient();
     supabase
@@ -177,7 +187,7 @@ export default function NewGuidePage() {
       .order("name")
       .limit(500)
       .then(({ data }) => setProducts((data as Product[]) ?? []));
-  }, [esCliente, clientId, form.client_id]);
+  }, [esDelComercio, clientId, form.client_id]);
 
   /**
    * La zona se deduce sola de la dirección de destino.
@@ -208,7 +218,7 @@ export default function NewGuidePage() {
   const precioDomicilio =
     tarifaPorZona[form.zone_id] ?? zonaElegida?.delivery_rate ?? null;
 
-  const nombreComercio = esCliente
+  const nombreComercio = esDelComercio
     ? miComercio?.business_name ?? ""
     : clients?.find((c) => c.id === form.client_id)?.business_name ?? "";
 
@@ -407,7 +417,7 @@ export default function NewGuidePage() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  if (esCliente && cargandoComercio) {
+  if (esDelComercio && cargandoComercio) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500 dark:text-slate-400 font-sans">
         <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -417,7 +427,7 @@ export default function NewGuidePage() {
   }
 
   // Admin/Staff no crean guías directamente, las gestionan.
-  if (!esCliente) {
+  if (!esDelComercio) {
     return (
       <div className="pb-10 max-w-2xl mx-auto w-full font-sans px-4">
         <button onClick={() => router.back()} className="flex items-center text-[#ff812c] py-4">
@@ -770,7 +780,7 @@ export default function NewGuidePage() {
           </section>
 
           {/* Clientes guardados, o invitación a sincronizar si no hay */}
-          {esCliente && (
+          {esDelComercio && (
             <section>
               <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
                 Mis clientes
@@ -855,7 +865,7 @@ export default function NewGuidePage() {
               {/* El comercio que crea la guía se carga solo; el cliente no lo elige. */}
               <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
                 <Store className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
-                {esCliente ? (
+                {esDelComercio ? (
                   <div className="flex-1 min-w-0 py-3">
                     <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-none">Comercio remitente</p>
                     <p className="mt-1 text-[17px] font-semibold text-slate-900 dark:text-white truncate">

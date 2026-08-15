@@ -9,10 +9,17 @@ import { ROLE_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import type { Profile, Role, Zone } from "@/lib/types";
 
+/** Lo mínimo del comercio para poder elegirlo en una lista. */
+interface Comercio {
+  id: string;
+  business_name: string;
+}
+
 export default function UsersPage() {
   const yo = useProfile();
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
+  const [comercios, setComercios] = useState<Comercio[]>([]);
   const [editing, setEditing] = useState<Profile | null>(null);
   const [form, setForm] = useState({ role: "pendiente", client_id: "", zone_id: "", active: true, max_capacity: 30 });
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +67,16 @@ export default function UsersPage() {
     setProfiles((data as Profile[]) ?? []);
   }, [esAdmin]);
 
-  // Ya no se cargan los comercios: el admin no elige a cuál pertenece un
-  // usuario. Cuando el rol pasa a 'cliente', el trigger at_profiles_autoclient
-  // lo enlaza solo (ver el comentario en `save`). La lista quedó cargándose
-  // sin que nadie la mirara.
-
+  // Los comercios vuelven a cargarse, y solo por el asesor.
+  //
+  // Se habían quitado con razón: para el rol 'cliente' el admin no elige nada,
+  // porque at_profiles_autoclient le crea el comercio solo. Pero al aparecer el
+  // asesor quedó un caso sin dueño — un asesor SÍ pertenece a un comercio y
+  // alguien tiene que poder decir a cuál.
+  //
+  // El camino normal es otro: el asesor elige su comercio al registrarse y su
+  // jefe lo habilita desde Mi equipo. Esto es la salida de emergencia para
+  // cuando alguien quedó a medias, que es justo como quedó el primero.
   useEffect(() => {
     if (!esAdmin) return;
     load();
@@ -74,6 +86,12 @@ export default function UsersPage() {
       .select("*")
       .order("name")
       .then(({ data }) => setZones((data as Zone[]) ?? []));
+    supabase
+      .from("at_clients")
+      .select("id, business_name")
+      .eq("active", true)
+      .order("business_name")
+      .then(({ data }) => setComercios((data as Comercio[]) ?? []));
   }, [esAdmin, load]);
 
   const pending = (profiles ?? []).filter((p) => p.role === "pendiente" && p.requested_role);
@@ -142,9 +160,20 @@ export default function UsersPage() {
       .from("at_profiles")
       .update({
         role: form.role as Role,
-        // client_id no se envía: lo resuelve el trigger at_profiles_autoclient
-        // cuando el rol pasa a cliente, y se limpia cuando deja de serlo.
-        client_id: form.role === "cliente" ? editing.client_id : null,
+        // El comercio, según el rol:
+        //  cliente → lo resuelve el trigger at_profiles_autoclient; no se toca.
+        //  asesor  → el que se eligió arriba. ANTES SE PONÍA EN NULL, y por eso
+        //            el primer asesor de producción quedó sin comercio: la
+        //            pantalla se lo borraba al guardar. Sin client_id no puede
+        //            crear un pedido ni ver el catálogo — at_my_client() le
+        //            devuelve nulo y todas las políticas lo dejan fuera.
+        //  el resto → null: el personal de A Tiempo no pertenece a un comercio.
+        client_id:
+          form.role === "cliente"
+            ? editing.client_id
+            : form.role === "asesor"
+              ? form.client_id || null
+              : null,
         zone_id: form.role === "mensajero" ? form.zone_id || null : null,
         active: form.active,
         max_capacity: form.role === "mensajero" ? form.max_capacity : editing.max_capacity,
@@ -426,6 +455,31 @@ export default function UsersPage() {
                   <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
                     Todo usuario con rol cliente <strong>es</strong> un e-commerce: su comercio se
                     crea automáticamente y aparece en la lista de Clientes. No hay que vincular nada.
+                  </p>
+                </div>
+              )}
+
+              {form.role === "asesor" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                    Comercio para el que trabaja
+                  </label>
+                  <select
+                    value={form.client_id}
+                    onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
+                    className="w-full min-h-[46px] rounded-2xl bg-[#F2F2F7] px-4 text-[15px] text-slate-900 focus:outline-none dark:bg-[#1C1C1E] dark:text-white"
+                  >
+                    <option value="">Sin asignar</option>
+                    {comercios.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.business_name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[13px] leading-snug text-slate-500 dark:text-slate-400">
+                    Lo normal es que el asesor elija su comercio al registrarse y su jefe lo
+                    habilite desde Mi equipo. Esto es para arreglar a quien quedó sin comercio:
+                    sin él no puede crear pedidos ni ver el catálogo de la tienda.
                   </p>
                 </div>
               )}

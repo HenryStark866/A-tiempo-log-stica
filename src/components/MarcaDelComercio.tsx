@@ -150,7 +150,7 @@ export function MarcaDelComercio({
           </p>
           <p className="mt-0.5 text-[13px] leading-snug text-slate-500 dark:text-slate-400">
             {logoUrl
-              ? "El logo aparece flotando en la animación de atiempo-logistica.vercel.app, donde lo ve cualquiera. Se puede apagar cuando quieras."
+              ? "El logo aparece flotando en la animación de atiempologistica.com, donde lo ve cualquiera. Se puede apagar cuando quieras."
               : "Primero sube el logo. Sin él no hay nada que mostrar."}
           </p>
         </div>

@@ -308,7 +308,9 @@ export default function UsersPage() {
         </section>
       )}
 
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
+      {/* Translúcida, sin blur: el modal de edición de abajo se queda opaco
+          a propósito, aísla una decisión de rol que no debe verse a medias. */}
+      <div className="bg-[#FFFFFF]/90 dark:bg-[#2C2C2E]/90 rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
         {profiles === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />

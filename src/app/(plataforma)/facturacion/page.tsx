@@ -386,7 +386,12 @@ export default function BillingPage() {
           <h2 className="mb-3 ml-1 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             Tu recaudo contraentrega
           </h2>
-          <ul className="overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E] divide-y divide-gray-100 dark:divide-gray-800">
+          {/* Translúcida, sin backdrop-blur: alfa alcanza para que el valle
+              se note, y difuminar cada tarjeta en cada scroll cuesta batería.
+              Los modales de esta pantalla (nueva factura, detalle, rechazar
+              pago) se quedan opacos: aíslan una decisión, y sus bloques
+              internos no se tocan para no multiplicar la opacidad. */}
+          <ul className="overflow-hidden rounded-2xl bg-[#FFFFFF]/90 shadow-sm dark:bg-[#2C2C2E]/90 divide-y divide-gray-100 dark:divide-gray-800">
             {remesas.map((r) => (
               <li key={r.id} className="px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
@@ -466,8 +471,8 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Invoices List */}
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+      {/* Invoices List — translúcida, sin blur (ver la nota de arriba). */}
+      <div className="bg-[#FFFFFF]/90 dark:bg-[#2C2C2E]/90 rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
         {invoices === null ? (
           <div className="flex items-center justify-center py-16">
             <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">

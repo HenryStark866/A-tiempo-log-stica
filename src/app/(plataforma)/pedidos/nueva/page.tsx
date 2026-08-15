@@ -434,7 +434,7 @@ export default function NewGuidePage() {
           <ChevronLeft className="w-6 h-6 -ml-2" />
           <span className="text-[17px]">Atrás</span>
         </button>
-        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+        <div className="rounded-3xl bg-[#FFFFFF]/90 dark:bg-[#2C2C2E]/90 p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
           <PackagePlus className="mx-auto mb-4 size-10 text-slate-400" />
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-white">Creación de guías reservada a comercios</h2>
           <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">

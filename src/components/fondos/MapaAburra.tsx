@@ -169,7 +169,7 @@ export function MapaAburra({
       {/* El pulso: un paquete subiendo el valle. Recorre el mismo trazo del río
           porque es por donde se mueve todo aquí. */}
       {animado && (
-        <circle r="4" fill={NARANJA} className="opacity-60 dark:opacity-80">
+        <circle r="4" fill={NARANJA} className="opacity-60 dark:opacity-80" data-motion>
           <animateMotion dur="16s" repeatCount="indefinite" path={RIO} />
         </circle>
       )}

@@ -295,6 +295,14 @@ select option {
     animation: none !important;
     transition: none !important;
   }
+
+  /* El pulso que recorre el río (MapaAburra) no es una animación CSS: es
+     <animateMotion>, la versión SMIL de SVG, y `animation: none` de arriba no
+     la toca — son dos mecanismos distintos. Sin esta regla, quien pide menos
+     movimiento seguiría viendo un punto recorriendo el valle. */
+  .atl-fondo [data-motion] {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

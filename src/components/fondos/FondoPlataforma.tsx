@@ -16,16 +16,29 @@ import { MapaAburra } from "@/components/fondos/MapaAburra";
  * dos que antes lo hacían a mano (Inicio, Seguimiento) ya no lo necesitan —
  * verían el valle dos veces.
  *
- * Sin animación, igual que el resto de la plataforma: el mensajero pasa el
+ * ── Con movimiento, a propósito ──────────────────────────────────────────
+ *
+ * La primera versión iba `animado={false}` y muy tenue: el mensajero pasa el
  * turno entero con la app abierta, y una animación en bucle mantiene
- * despierto el compositor del navegador todo ese tiempo. Ver el razonamiento
- * completo en MapaDeFondo.tsx. Y más tenue que en las públicas: aquí encima
- * hay tablas y formularios que se leen todo el día, no una portada.
+ * despierto el compositor del navegador todo ese tiempo. Ese razonamiento
+ * seguía siendo válido para algo como la rejilla en fuga de las públicas
+ * —un `background-position` que se repinta constante—, pero aquí lo único
+ * que se mueve es UN punto de 4 px recorriendo el río con `<animateMotion>`:
+ * una animación SMIL nativa del navegador, sin JavaScript, del tamaño de un
+ * grano de arroz. El costo real es mínimo, y Henry pidió que el fondo y su
+ * movimiento se notaran más — así que ahora se ve.
+ *
+ * `prefers-reduced-motion` lo sigue apagando igual (globals.css, con la regla
+ * aparte para SMIL que `animation: none` no cubre).
+ *
+ * Más opaco que la primera versión, también a propósito: 0.16 quedaba casi
+ * invisible detrás de tarjetas al 90%. En 0.30 el valle se nota en los
+ * márgenes y se asoma por los bordes translúcidos sin competir con el texto.
  */
 export function FondoPlataforma() {
   return (
     <Fondo>
-      <MapaAburra animado={false} opacidad={0.16} />
+      <MapaAburra animado opacidad={0.3} />
       <Vinneta />
     </Fondo>
   );

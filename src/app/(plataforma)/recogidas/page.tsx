@@ -513,14 +513,15 @@ function Pickups() {
         </div>
       )}
 
-      {/* Translúcida a propósito: es la tarjeta donde se lee la lista, y es
-          donde más se nota el valle detrás. Sin backdrop-blur — con muchas
-          tarjetas así en pantalla, difuminar cada una en cada scroll cuesta
-          batería en un teléfono gama baja; con solo alfa alcanza. Los
-          modales de abajo (nueva solicitud, asignar, editar, cancelar, QR)
-          se quedan opacos: existen para aislar una decisión, y dejar ver el
-          fondo ahí resta foco en vez de sumarlo. */}
-      <div className="bg-[#FFFFFF]/90 dark:bg-[#2C2C2E]/90 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
+      {/* Translúcida y con blur: es la tarjeta donde se lee la lista, y es
+          donde más se nota el valle detrás. Probado en vivo: sin blur, /90
+          no se distinguía de una tarjeta opaca — hacía falta el blur para
+          que el alfa se notara sin perder legibilidad. Es UN contenedor por
+          pantalla, no las 234 tarjetas del barrido completo que preocupaban
+          por batería. Los modales de abajo (nueva solicitud, asignar,
+          editar, cancelar, QR) se quedan opacos: existen para aislar una
+          decisión, y dejar ver el fondo ahí resta foco en vez de sumarlo. */}
+      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
         {pickups === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />

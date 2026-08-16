@@ -406,9 +406,10 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* Translúcida, sin blur: el formulario de edición y el importador se
-          quedan opacos — son donde se lee y escribe con cuidado. */}
-      <div ref={listaRef} className="bg-[#FFFFFF]/90 dark:bg-[#2C2C2E]/90 rounded-3xl shadow-sm overflow-hidden scroll-mt-24">
+      {/* Translúcida y con blur (probado en vivo: /90 sin blur no se
+          notaba). El formulario de edición y el importador se quedan
+          opacos — son donde se lee y escribe con cuidado. */}
+      <div ref={listaRef} className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm overflow-hidden scroll-mt-24">
         {products === null ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-7 h-7 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />

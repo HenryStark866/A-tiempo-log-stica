@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
+import { useProfile } from "@/components/ProfileContext";
 import {
   parseCsv,
   decodeCsvBytes,
@@ -53,6 +54,14 @@ const FORM_VACIO = {
 export default function RecipientsPage() {
   const { clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
   const fileRef = useRef<HTMLInputElement>(null);
+  // Subir la base completa de clientes por archivo es decisión del dueño del
+  // comercio, no de quien trabaja para él: reemplaza de golpe lo que ya
+  // había. La base ya lo bloquea (at_sync_recipients exige rol cliente), pero
+  // sin esconder aquí el botón el asesor llegaba hasta el final —elegía el
+  // archivo, mapeaba las columnas— para toparse con un error genérico al
+  // sincronizar. Crear clientes uno por uno sí es suyo: ver el botón «Nuevo»
+  // más abajo.
+  const esAsesor = useProfile().role === "asesor";
 
   const [recipients, setRecipients] = useState<Recipient[] | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
@@ -321,13 +330,15 @@ export default function RecipientsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setImportAbierto((v) => !v)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 min-h-[48px] text-[15px] font-semibold text-slate-700 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
-          >
-            <Upload className="w-4 h-4" /> Importar
-            <ChevronDown className={`w-4 h-4 transition-transform ${importAbierto ? "rotate-180" : ""}`} />
-          </button>
+          {!esAsesor && (
+            <button
+              onClick={() => setImportAbierto((v) => !v)}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 min-h-[48px] text-[15px] font-semibold text-slate-700 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
+            >
+              <Upload className="w-4 h-4" /> Importar
+              <ChevronDown className={`w-4 h-4 transition-transform ${importAbierto ? "rotate-180" : ""}`} />
+            </button>
+          )}
           <button
             onClick={abrirNuevo}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#ff812c] hover:bg-[#ff812c]/90 px-5 min-h-[48px] text-[15px] font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
@@ -364,7 +375,7 @@ export default function RecipientsPage() {
       )}
 
       {/* Importador: colapsado por defecto */}
-      {importAbierto && (
+      {importAbierto && !esAsesor && (
         <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm p-5 space-y-4 transition-colors duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <input

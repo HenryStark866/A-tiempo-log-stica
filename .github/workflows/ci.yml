@@ -1,0 +1,62 @@
+# Verificación automática en cada cambio.
+#
+# Antes de esto, `npm run build` y `npm run lint` se corrían a mano, si alguien
+# se acordaba, y todo commit en `main` iba a producción sin filtro. Este archivo
+# es el primer filtro que no depende de que nadie se acuerde.
+#
+# Las variables de Supabase van con valores falsos a propósito: `src/middleware.ts`
+# hace `new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!)` al cargar el módulo, así
+# que sin ellas el build revienta. No se conecta a nada — solo necesita que la
+# cadena sea una URL válida. Las llaves de verdad viven en Vercel.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Si se empuja dos veces seguidas, la primera ejecución se cancela: interesa el
+# veredicto del último commit, no el del anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: https://ejemplo.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: llave-falsa-solo-para-compilar
+
+jobs:
+  verificar:
+    name: Tipos, lint, tests y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` y no `npm install`: instala exactamente lo que dice
+      # package-lock.json y falla si el lock no cuadra con package.json. Sin
+      # esto, CI podría pasar con dependencias distintas de las de producción.
+      - name: Instalar dependencias
+        run: npm ci
+
+      # El orden importa: lo barato primero. Si los tipos no cuadran, no tiene
+      # sentido esperar tres minutos al build para enterarse.
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm run test:run
+
+      - name: Build
+        run: npm run build

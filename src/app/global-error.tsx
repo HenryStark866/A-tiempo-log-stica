@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { esErrorDeVersion, recargarPorVersionNueva } from "@/lib/recuperacion";
+import { reportarError } from "@/lib/observabilidad";
 
 /**
  * Última red de la app.
@@ -25,6 +26,12 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     recargarPorVersionNueva(error);
+    // Los errores de versión no se reportan: no son un fallo, son la app
+    // dándose cuenta de que hay un despliegue nuevo. Reportarlos llenaría el
+    // log de ruido cada vez que publicamos.
+    if (!esErrorDeVersion(error)) {
+      reportarError(error, { origen: "global-error" });
+    }
   }, [error]);
 
   const porVersion = esErrorDeVersion(error);

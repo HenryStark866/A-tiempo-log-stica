@@ -22,6 +22,11 @@ const PUBLIC_PATHS = [
   "/pagar",
   "/recuperar",
   "/api/version",
+  // /api/telemetria recibe los errores del navegador y los avisos de CSP. Va
+  // aquí porque el error que más interesa cazar es justamente el de las
+  // pantallas públicas —el rastreo y el pago, que abre gente sin cuenta—, y
+  // porque el navegador manda los avisos de CSP sin sesión ni cookies.
+  "/api/telemetria",
   // Sin esto, el guardia de sesión mandaría /mantenimiento a /login, y el modo
   // mantenimiento manda /login a /mantenimiento: un bucle que deja la pantalla
   // inalcanzable justo cuando es la única que debería verse.
@@ -106,6 +111,18 @@ function buildCsp(nonce: string): string {
     "form-action 'self'",
     "object-src 'none'",
     "upgrade-insecure-requests",
+    // Que la CSP avise cuando bloquea algo, en vez de bloquearlo en silencio.
+    //
+    // Aquí estuvo el mapa gris: la regla se rompió sola porque alguien cambió
+    // el proveedor de teselas, el navegador bloqueó las peticiones y el único
+    // aviso salió en la consola, donde nadie que use la app está mirando. Con
+    // esto, ese mismo fallo aparece en los logs del servidor el primer día.
+    //
+    // report-uri está obsoleto pero lo entienden todos los navegadores;
+    // report-to es el reemplazo y todavía no lo implementan todos. Se declaran
+    // los dos a propósito: cuestan una línea y cubren ambos casos.
+    "report-uri /api/telemetria",
+    "report-to yam",
   ].join("; ");
 }
 
@@ -120,7 +137,15 @@ export async function middleware(request: NextRequest) {
   const requestConNonce = { headers: requestHeaders };
 
   function conCsp(res: NextResponse): NextResponse {
-    if (csp) res.headers.set("Content-Security-Policy", csp);
+    if (csp) {
+      res.headers.set("Content-Security-Policy", csp);
+      // El grupo al que apunta `report-to` de la CSP. Va junto con ella: sin
+      // esta cabecera, `report-to` no sabe a dónde mandar nada.
+      res.headers.set(
+        "Reporting-Endpoints",
+        `yam="${request.nextUrl.origin}/api/telemetria"`
+      );
+    }
 
     // Estas no dependen del entorno: valen igual en desarrollo, y así no se
     // descubre en producción que faltaba una.

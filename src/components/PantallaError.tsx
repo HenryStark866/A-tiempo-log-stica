@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { RefreshCw, RotateCcw, TriangleAlert } from "lucide-react";
 import { esErrorDeVersion, recargarPorVersionNueva } from "@/lib/recuperacion";
+import { reportarError } from "@/lib/observabilidad";
 
 /**
  * Lo que ve la persona cuando una pantalla falla.
@@ -21,6 +22,14 @@ export function PantallaError({
 }) {
   useEffect(() => {
     recargarPorVersionNueva(error);
+    // Va aquí y no en cada error.tsx porque los dos boundaries —el público y
+    // el de la plataforma— pasan por este componente: un solo sitio que tocar.
+    // Los errores de versión se dejan fuera: no son un fallo, es la app
+    // detectando un despliegue nuevo, y llenarían el log cada vez que se
+    // publica.
+    if (!esErrorDeVersion(error)) {
+      reportarError(error, { origen: "error-boundary" });
+    }
   }, [error]);
 
   const porVersion = esErrorDeVersion(error);

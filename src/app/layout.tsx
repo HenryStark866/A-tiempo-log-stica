@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RegistrarSW } from "@/components/RegistrarSW";
+import { CapturaDeErrores } from "@/components/CapturaDeErrores";
 import { Splash } from "@/components/Splash";
 import { MARCA } from "@/lib/marca";
 import "./globals.css";
@@ -68,6 +69,7 @@ export default async function RootLayout({
               retira, y nadie ve la app armándose. */}
           <Splash />
           <RegistrarSW />
+          <CapturaDeErrores />
         </ThemeProvider>
       </body>
     </html>

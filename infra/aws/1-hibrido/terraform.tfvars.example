@@ -1,0 +1,18 @@
+# Copiar a terraform.tfvars y completar. terraform.tfvars está en .gitignore.
+
+# Lista de distribución de los tres socios, no el correo de una persona:
+# el punto focal rota cada semana.
+correo_alertas = "alertas@atiempologistica.com"
+
+# ⚠️ CONFIRMAR cuál de los dos proyectos está sirviendo producción. Hay una
+# mudanza a medias (ver docs/reconstruir-en-el-proyecto-nuevo.md):
+#   viejo: https://uhbtivaepyhwfdvtpfjq.supabase.co   (org Incubant, us-west-2)
+#   nuevo: https://kjfwlofcqtptedwfpddh.supabase.co   (org YAM, us-east-1)
+supabase_url = "https://uhbtivaepyhwfdvtpfjq.supabase.co"
+
+# ⚠️ OBLIGATORIA y sin valor por defecto a propósito. NO hay una IP única de
+# Vercel: los proyectos nuevos toman una de un pool. Cópiala de la tarjeta de
+# Vercel → Settings → Domains de ESTE proyecto.
+vercel_ip = "76.76.21.21"   # ← comprobar; puede ser 216.198.79.1 u otra
+
+# Los valores por defecto de region, dominio y presupuesto suelen servir.

@@ -1,0 +1,10 @@
+# Copiar a terraform.tfvars y completar.
+
+correo_alertas = "alertas@atiempologistica.com"
+
+# Para arrancar. Subir viendo el tablero, no antes.
+acu_min          = 0.5
+acu_max          = 16
+replicas_lectura = 1
+tareas_min       = 2
+tareas_max       = 20

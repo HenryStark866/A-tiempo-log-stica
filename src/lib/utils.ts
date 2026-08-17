@@ -22,12 +22,23 @@ export function cn(...classes: (string | false | null | undefined)[]): string {
  * un teléfono. Quien busca «aji» tiene que encontrar «Ají» igual que quien
  * busca «ají»: nadie debería quedarse sin resultados por no haber mantenido
  * presionada la tecla del acento.
+ *
+ * El rango va escrito con escapes (\u0300-\u036f) y no con los caracteres
+ * literales. Son marcas combinantes: invisibles en el editor. Escritas a pelo,
+ * parecía `/[ -]/` —un rango entre dos caracteres que nadie puede ver— y
+ * cualquier herramienta que normalice Unicode al guardar podía cambiarla de
+ * significado sin que se notara en el diff. `zones.ts` ya lo hacía así; esto
+ * solo iguala las dos.
+ *
+ * Ojo con lo que hace de más: en NFD la «ñ» es «n» + tilde combinante, así que
+ * también se pliega. Para BUSCAR está bien («munoz» encuentra «Muñoz»), pero
+ * NO sirve para comparar identidades: «Muñoz» y «Munoz» colisionan aquí.
  */
 export function normalizarBusqueda(s: string): string {
   return s
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
+    .replace(/[\u0300-\u036f]/g, "");
 }
 
 /**

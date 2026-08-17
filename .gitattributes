@@ -1,0 +1,39 @@
+# Finales de línea.
+#
+# Ahora mismo `git status` marca 31 archivos como modificados sin que nadie los
+# haya tocado: 9.575 líneas insertadas y 9.476 borradas, todas idénticas. Lo
+# único que cambió es CRLF por LF. El repo se creó con LF, alguien lo abrió en
+# Windows sin `core.autocrlf`, y desde entonces `git diff` no sirve para nada
+# —el cambio real se pierde entre miles de líneas de ruido— y cualquier PR es
+# imposible de revisar.
+#
+# `text=auto eol=lf` normaliza a LF en el repositorio, que es lo que ya está
+# guardado. En Windows los editores modernos (VS Code, los IDE de JetBrains)
+# trabajan con LF sin quejarse.
+#
+# Después de añadir este archivo hay que normalizar UNA vez:
+#
+#     git add --renormalize .
+#     git commit -m "chore: finales de linea en LF, para que los diffs se lean"
+#
+# Ese commit toca muchos archivos y no cambia ni un carácter de código. Conviene
+# hacerlo solo, sin nada más dentro.
+
+* text=auto eol=lf
+
+# Los .bat los ejecuta cmd.exe en Windows: se quedan con CRLF.
+*.bat text eol=crlf
+
+# Binarios: que git no intente convertir nada.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
+
+# El lock lo escribe npm: en los diffs solo estorba.
+package-lock.json -diff linguist-generated

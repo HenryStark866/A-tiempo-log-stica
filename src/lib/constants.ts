@@ -12,6 +12,7 @@ import type {
   SecurityEventType,
   SecuritySeverity,
   SettlementStatus,
+  SocialPlatform,
 } from "./types";
 
 // Los nombres de la marca viven en `lib/marca.ts`, que distingue la plataforma
@@ -147,6 +148,22 @@ export const PAYMENT_KINDS = [
 export const PAYMENT_KIND_LABELS: Record<string, string> = Object.fromEntries(
   PAYMENT_KINDS.map((k) => [k.value, k.label])
 );
+
+// ── Mi perfil: la red social que cada quien elige mostrar ───────────────
+// Un enlace por persona, no una lista — por eso es texto libre con un tipo
+// fijo al lado, igual que PAYMENT_KINDS arriba, y no una tabla aparte.
+
+export const SOCIAL_PLATFORMS: { value: SocialPlatform; label: string; hint: string }[] = [
+  { value: "whatsapp", label: "WhatsApp", hint: "Número con indicativo, ej: 573001234567" },
+  { value: "instagram", label: "Instagram", hint: "@usuario" },
+  { value: "facebook", label: "Facebook", hint: "Nombre de la página o perfil" },
+  { value: "tiktok", label: "TikTok", hint: "@usuario" },
+  { value: "x", label: "X", hint: "@usuario" },
+];
+
+export const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = Object.fromEntries(
+  SOCIAL_PLATFORMS.map((p) => [p.value, p.label])
+) as Record<SocialPlatform, string>;
 
 // ── Mensajeros: tipo y documentos ──────────────────────────────────────
 

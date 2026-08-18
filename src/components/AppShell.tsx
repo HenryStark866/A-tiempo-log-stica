@@ -14,6 +14,7 @@ import { InstalarApp } from "@/components/InstalarApp";
 import { Reloj } from "@/components/Reloj";
 import { FondoPlataforma } from "@/components/fondos/FondoPlataforma";
 import { STORAGE_KEY as UBICACION_STORAGE_KEY } from "@/components/PositionReporter";
+import { desbloquearSonido } from "@/lib/sonidoNotificacion";
 import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,15 @@ export function AppShell({
   useEffect(() => {
     tabActiva.current?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [pathname]);
+
+  // El sonido de las notificaciones necesita un toque real antes de poder
+  // sonar — así es en todos los navegadores móviles. Con `once: true` se
+  // desengancha solo después del primer toque de la sesión.
+  useEffect(() => {
+    const desbloquear = () => desbloquearSonido();
+    window.addEventListener("pointerdown", desbloquear, { once: true });
+    return () => window.removeEventListener("pointerdown", desbloquear);
+  }, []);
 
   useEffect(() => {
     if (profile.role !== "admin") return;

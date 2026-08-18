@@ -1,19 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import {
   BadgeCheck,
+  Check,
   Clock,
   Eye,
+  Facebook,
   FileUp,
+  Instagram,
+  LoaderCircle,
+  MessageCircle,
+  Music2,
   ShieldAlert,
   ShieldCheck,
   TriangleAlert,
-  LoaderCircle,
+  X as IconoX,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
-import { PageHeader, Card, Loading, inputCls } from "@/components/ui";
+import { PageHeader, Card, Field, Loading, inputCls } from "@/components/ui";
 import { reabrirPermisosTurno } from "@/components/PermisosTurno";
 import {
   COURIER_DOCS,
@@ -23,15 +30,132 @@ import {
   DOC_LABELS,
   DOC_STATUS_COLORS,
   DOC_STATUS_LABELS,
+  ROLE_LABELS,
+  SOCIAL_PLATFORMS,
 } from "@/lib/constants";
 import { signedDocUrl, uploadCourierDoc } from "@/lib/courierDocs";
 import { formatDateTime } from "@/lib/utils";
-import type { CourierDocument, CourierType, DocType } from "@/lib/types";
+import type { CourierDocument, CourierType, DocType, SocialPlatform } from "@/lib/types";
+
+const ICONO_RED: Record<SocialPlatform, typeof Instagram> = {
+  whatsapp: MessageCircle,
+  instagram: Instagram,
+  facebook: Facebook,
+  tiktok: Music2,
+  x: IconoX,
+};
+
+/**
+ * La red social, para cualquier rol — cliente, asesor, mensajero, CEDI,
+ * administrador. Aparte del resto de la pantalla, que sigue siendo solo del
+ * mensajero, porque esto no tiene nada que ver con documentos ni
+ * habilitación: es un dato de contacto que cada quien elige mostrar o no.
+ */
+function TuRedSocial() {
+  const profile = useProfile();
+  const [plataforma, setPlataforma] = useState<SocialPlatform | "">(
+    profile.social_platform ?? ""
+  );
+  const [handle, setHandle] = useState(profile.social_handle ?? "");
+  const [guardando, setGuardando] = useState(false);
+  const [guardado, setGuardado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const hint = plataforma ? SOCIAL_PLATFORMS.find((p) => p.value === plataforma)?.hint : null;
+
+  async function guardar(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setGuardando(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("at_profiles")
+        .update({
+          social_platform: plataforma || null,
+          social_handle: plataforma ? handle.trim() || null : null,
+        })
+        .eq("id", profile.id);
+      if (error) throw error;
+      setGuardado(true);
+      setTimeout(() => setGuardado(false), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Card className="mb-4">
+      <form onSubmit={guardar} className="p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#ff812c]/10 text-[#ff812c]">
+            {plataforma ? (() => {
+              const Icono = ICONO_RED[plataforma];
+              return <Icono className="size-5" />;
+            })() : (
+              <Instagram className="size-5" />
+            )}
+          </span>
+          <div>
+            <p className="font-semibold text-slate-900">Tu red social</p>
+            <p className="text-sm text-slate-500">
+              La que elijas queda en tu perfil. Es opcional.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Red">
+            <select
+              value={plataforma}
+              onChange={(e) => setPlataforma(e.target.value as SocialPlatform | "")}
+              className={`${inputCls} appearance-none cursor-pointer`}
+            >
+              <option value="">Ninguna</option>
+              {SOCIAL_PLATFORMS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label={plataforma ? (hint ?? "Usuario o enlace") : "Usuario o enlace"}>
+            <input
+              value={handle}
+              onChange={(e) => setHandle(e.target.value)}
+              disabled={!plataforma}
+              placeholder={hint ?? "Elige una red primero"}
+              className={`${inputCls} disabled:cursor-not-allowed disabled:opacity-50`}
+            />
+          </Field>
+        </div>
+
+        {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={guardando}
+          className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#ff812c] px-4 text-sm font-bold text-[#1C1C1E] active:scale-[0.98] disabled:opacity-60"
+        >
+          {guardando ? (
+            <LoaderCircle className="size-4 animate-spin" />
+          ) : guardado ? (
+            <Check className="size-4" />
+          ) : null}
+          {guardado ? "Guardado" : "Guardar"}
+        </button>
+      </form>
+    </Card>
+  );
+}
 
 export default function MyProfilePage() {
   const profile = useProfile();
+  const esMensajero = profile.role === "mensajero";
   const [docs, setDocs] = useState<CourierDocument[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(esMensajero);
   const [busy, setBusy] = useState<DocType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expiry, setExpiry] = useState<Record<string, string>>({});
@@ -52,9 +176,11 @@ export default function MyProfilePage() {
     setLoading(false);
   }, [profile.id]);
 
+  // Los documentos son solo del mensajero — nadie más los tiene, así que nadie
+  // más necesita esta consulta.
   useEffect(() => {
-    load();
-  }, [load]);
+    if (esMensajero) load();
+  }, [load, esMensajero]);
 
   async function handleFile(docType: DocType, file: File) {
     setError(null);
@@ -75,21 +201,6 @@ export default function MyProfilePage() {
     else setError("No se pudo abrir el documento");
   }
 
-  if (profile.role !== "mensajero") {
-    return (
-      <>
-        <PageHeader title="Mi perfil" />
-        <Card>
-          <p className="p-6 text-center text-slate-500">
-            Esta sección es para mensajeros.
-          </p>
-        </Card>
-      </>
-    );
-  }
-
-  if (loading) return <Loading />;
-
   const porTipo = new Map(docs.map((d) => [d.doc_type, d]));
   const faltantes = requeridos.filter((t) => porTipo.get(t)?.status !== "aprobado");
   const habilitado = Boolean(profile.verified_at);
@@ -105,9 +216,22 @@ export default function MyProfilePage() {
     <>
       <PageHeader
         title="Mi perfil"
-        subtitle={`${COURIER_TYPE_LABELS[tipo]} · ${COURIER_TYPE_HINTS[tipo]}`}
+        subtitle={
+          esMensajero
+            ? `${COURIER_TYPE_LABELS[tipo]} · ${COURIER_TYPE_HINTS[tipo]}`
+            : `${profile.full_name} · ${ROLE_LABELS[profile.role]}`
+        }
       />
 
+      <TuRedSocial />
+
+      {/* El resto de la pantalla —documentos, habilitación, permisos del
+          turno— es solo del mensajero: son cosas que no existen para los
+          demás roles. Quien no lo sea ya vio lo suyo arriba y termina aquí. */}
+      {!esMensajero ? null : loading ? (
+        <Loading />
+      ) : (
+        <>
       {habilitado ? (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
           <BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" />
@@ -266,6 +390,8 @@ export default function MyProfilePage() {
           );
         })}
       </div>
+        </>
+      )}
     </>
   );
 }

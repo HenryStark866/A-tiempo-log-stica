@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { escucharTabla } from "@/lib/realtime";
+import { reproducirSonidoNotificacion } from "@/lib/sonidoNotificacion";
 import type { AppNotification } from "@/lib/types";
 
 /**
@@ -91,6 +92,15 @@ export function NotificationsProvider({
         setItems((prev) =>
           prev.some((x) => x.id === n.id) ? prev : [n, ...prev].slice(0, 20)
         );
+
+        // Con la app delante, el punto naranja de la campana ya avisa sin
+        // interrumpir — pero sin ruido no se entera si no está mirando la
+        // pantalla justo ahí. El sonido propio de Yam es lo único que cubre
+        // ese hueco. Con la app en segundo plano el aviso del sistema (más
+        // abajo) ya trae su propio sonido: sonarían los dos a la vez.
+        if (document.visibilityState === "visible") {
+          reproducirSonidoNotificacion();
+        }
 
         // Solo si la persona no está mirando la app: si la tiene delante, el
         // punto naranja de la campana ya se lo dice sin interrumpir.

@@ -67,7 +67,12 @@ export interface Profile {
   verified_at: string | null;
   verified_by: string | null;
   vehicle_plate: string | null;
+  /** La red social que eligió mostrar en Mi perfil. Los dos van juntos: null los dos, o los dos con algo. */
+  social_platform: SocialPlatform | null;
+  social_handle: string | null;
 }
+
+export type SocialPlatform = "whatsapp" | "instagram" | "facebook" | "tiktok" | "x";
 
 export type CourierType = "corporativo" | "colaborativo";
 

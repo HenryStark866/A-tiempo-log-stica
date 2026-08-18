@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ShieldCheck, Loader2, Users, X, BellRing, Store, Bike, Check, Ban } from "lucide-react";
+import { ShieldCheck, Loader2, Users, X, BellRing, Store, Bike, Check, Ban, IdCard, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { Pill } from "@/components/StatusBadge";
+import { FichaUsuario } from "@/components/FichaUsuario";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
-import type { Profile, Role, Zone } from "@/lib/types";
+import type { EntradaDirectorio, Profile, Role, Zone } from "@/lib/types";
 
 /** Lo mínimo del comercio para poder elegirlo en una lista. */
 interface Comercio {
@@ -26,6 +27,12 @@ export default function UsersPage() {
   const [busy, setBusy] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [reqError, setReqError] = useState<string | null>(null);
+  // El correo no está en at_profiles —vive en auth.users— y es justo por donde
+  // la gente se identifica cuando escribe pidiendo ayuda. Lo trae un RPC que
+  // solo responde al admin.
+  const [directorio, setDirectorio] = useState<Map<string, EntradaDirectorio>>(new Map());
+  const [fichaDe, setFichaDe] = useState<string | null>(null);
+  const [buscador, setBuscador] = useState("");
 
   const esAdmin = yo.role === "admin";
   // El borrado pide escribir el nombre antes de habilitarse. Va en su propio
@@ -92,9 +99,25 @@ export default function UsersPage() {
       .eq("active", true)
       .order("business_name")
       .then(({ data }) => setComercios((data as Comercio[]) ?? []));
+    supabase.rpc("at_admin_directorio").then(({ data }) => {
+      const filas = (data as EntradaDirectorio[]) ?? [];
+      setDirectorio(new Map(filas.map((f) => [f.id, f])));
+    });
   }, [esAdmin, load]);
 
   const pending = (profiles ?? []).filter((p) => p.role === "pendiente" && p.requested_role);
+
+  // Se busca por lo que la persona diga cuando escribe pidiendo ayuda: su
+  // nombre, su correo o su teléfono. El correo sale del directorio.
+  const visibles = (profiles ?? []).filter((p) => {
+    const q = buscador.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (p.full_name ?? "").toLowerCase().includes(q) ||
+      (p.phone ?? "").toLowerCase().includes(q) ||
+      (directorio.get(p.id)?.email ?? "").toLowerCase().includes(q)
+    );
+  });
 
   function openEdit(p: Profile) {
     setConfirmandoBorrado(false);
@@ -308,6 +331,18 @@ export default function UsersPage() {
         </section>
       )}
 
+      {/* Con una sola persona sobra, pero el soporte empieza siempre igual:
+          alguien escribe desde un correo y hay que encontrarlo. */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
+        <input
+          value={buscador}
+          onChange={(e) => setBuscador(e.target.value)}
+          placeholder="Buscar por nombre, correo o teléfono…"
+          className="w-full min-h-[48px] pl-11 pr-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
+        />
+      </div>
+
       {/* Translúcida y con blur (probado en vivo: /90 sin blur no se notaba).
           El modal de edición de abajo se queda opaco a propósito, aísla una
           decisión de rol que no debe verse a medias. */}
@@ -322,12 +357,19 @@ export default function UsersPage() {
             <Users className="w-12 h-12 text-slate-300 dark:text-slate-600" />
             <p className="text-[16px] text-slate-500 dark:text-slate-400">No hay usuarios registrados</p>
           </div>
+        ) : visibles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 px-6 text-center">
+            <Users className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+            <p className="text-[16px] text-slate-500 dark:text-slate-400">
+              Nadie coincide con «{buscador}»
+            </p>
+          </div>
         ) : (
           <>
           {/* Versión apilada para teléfono: la tabla de 700 px obligaba a
               arrastrar de lado para llegar al botón de gestionar el rol. */}
           <ul className="divide-y divide-gray-100 dark:divide-gray-800 lg:hidden">
-            {profiles.map((p) => (
+            {visibles.map((p) => (
               <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div className="min-w-0 space-y-2">
                   <div>
@@ -337,6 +379,11 @@ export default function UsersPage() {
                     <p className="text-[13px] text-slate-500 dark:text-slate-400">
                       {p.phone ? `${p.phone} · ` : ""}{formatDate(p.created_at)}
                     </p>
+                    {directorio.get(p.id)?.email && (
+                      <p className="truncate text-[13px] text-slate-500 dark:text-slate-400">
+                        {directorio.get(p.id)?.email}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Pill
@@ -346,12 +393,20 @@ export default function UsersPage() {
                     <Pill label={p.active ? "Activo" : "Inactivo"} tone={p.active ? "green" : "red"} />
                   </div>
                 </div>
-                <button
-                  onClick={() => openEdit(p)}
-                  className="inline-flex shrink-0 items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
-                >
-                  <ShieldCheck className="w-4 h-4" /> Rol
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={() => setFichaDe(p.id)}
+                    className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
+                  >
+                    <IdCard className="w-4 h-4" /> Ficha
+                  </button>
+                  <button
+                    onClick={() => openEdit(p)}
+                    className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
+                  >
+                    <ShieldCheck className="w-4 h-4" /> Rol
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -368,11 +423,13 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {profiles.map((p) => (
+                {visibles.map((p) => (
                   <tr key={p.id} className="hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30 transition-colors group">
                     <td className="px-6 py-4">
                       <p className="font-bold text-[16px] text-slate-900 dark:text-white">{p.full_name || "(sin nombre)"}</p>
-                      <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">{p.phone ?? ""}</p>
+                      <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {[directorio.get(p.id)?.email, p.phone].filter(Boolean).join(" · ")}
+                      </p>
                     </td>
                     <td className="px-6 py-4">
                       <Pill
@@ -387,12 +444,20 @@ export default function UsersPage() {
                       {formatDate(p.created_at)}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => openEdit(p)}
-                        className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
-                      >
-                        <ShieldCheck className="w-4 h-4" /> Rol
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => setFichaDe(p.id)}
+                          className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                        >
+                          <IdCard className="w-4 h-4" /> Ficha
+                        </button>
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                        >
+                          <ShieldCheck className="w-4 h-4" /> Rol
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -618,6 +683,9 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* La ficha completa: todo lo del usuario junto, para soporte. */}
+      {fichaDe && <FichaUsuario userId={fichaDe} onClose={() => setFichaDe(null)} />}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   Music2,
   ShieldAlert,
   ShieldCheck,
+  SquareArrowOutUpRight,
   TriangleAlert,
   X as IconoX,
 } from "lucide-react";
@@ -336,6 +337,22 @@ export default function MyProfilePage() {
                       <Clock className="size-4 shrink-0" />
                       Subido el {formatDateTime(actual.uploaded_at)}
                     </p>
+                  )}
+
+                  {/* Papeles que no se tienen en el cajón: hay que ir a
+                      sacarlos. Sin el enlace, «certificado de medidas
+                      correctivas» es una tarea sin instrucciones, y el
+                      mensajero se queda esperando a que alguien le explique. */}
+                  {doc.tramite && !actual && (
+                    <a
+                      href={doc.tramite.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#ff812c] px-4 text-sm font-bold text-[#ff812c] active:scale-[0.98]"
+                    >
+                      <SquareArrowOutUpRight className="size-4" />
+                      {doc.tramite.label}
+                    </a>
                   )}
                 </div>
 

@@ -87,7 +87,41 @@ export type DocType =
   | "tecnomecanica"
   | "foto_vehiculo"
   | "certificado_eps"
-  | "antecedentes";
+  | "antecedentes"
+  | "certificado_medidas_correctivas";
+
+/**
+ * Lo que devuelve at_admin_ficha_usuario: todo lo que el admin necesita para
+ * dar soporte, junto en una sola respuesta.
+ *
+ * `cuenta` sale de auth.users, que las pantallas no pueden leer directamente.
+ * No incluye la contraseña porque no existe en ningún lado: auth.users guarda
+ * un hash bcrypt. Para eso está el botón que le manda a la persona un enlace
+ * para ponerse una nueva.
+ */
+export interface FichaUsuario {
+  perfil: Profile;
+  cuenta: {
+    email: string | null;
+    telefono_auth: string | null;
+    email_confirmado_en: string | null;
+    ultimo_acceso: string | null;
+    cuenta_creada_en: string | null;
+    tiene_clave: boolean;
+    proveedores: string[];
+    bloqueada_hasta: string | null;
+  };
+  comercio: { id: string; business_name: string; active: boolean } | null;
+  documentos: CourierDocument[];
+}
+
+/** Una fila de at_admin_directorio: el correo que at_profiles no tiene. */
+export interface EntradaDirectorio {
+  id: string;
+  email: string | null;
+  ultimo_acceso: string | null;
+  email_confirmado: boolean;
+}
 
 export interface CourierDocument {
   id: string;

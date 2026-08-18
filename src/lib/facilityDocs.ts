@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { prepararDocumento } from "@/lib/imagen";
 import type { FacilityDocType } from "./types";
 
 const BUCKET = "at-facility-docs";
@@ -10,6 +11,10 @@ const BUCKET = "at-facility-docs";
  * eso lo exigen tanto la política de storage como at_register_facility_doc.
  * No se guarda URL firmada — son documentos de identidad y de propiedad, se
  * firma al momento de verlos, no se deja una URL larga circulando.
+ *
+ * También pasa por `prepararDocumento`: aquí la foto la manda quien quiere
+ * afiliar una bodega, con el mismo teléfono y el mismo HEIC que bloqueaba al
+ * mensajero.
  */
 export async function uploadFacilityDoc(
   applicantId: string,
@@ -17,12 +22,14 @@ export async function uploadFacilityDoc(
   file: File
 ): Promise<void> {
   const supabase = createClient();
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const listo = await prepararDocumento(file);
+  const ext = listo.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${applicantId}/${docType}-${Date.now()}.${ext}`;
 
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
+  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, listo, {
     cacheControl: "3600",
     upsert: false,
+    contentType: listo.type || undefined,
   });
   if (uploadError) throw uploadError;
 

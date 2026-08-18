@@ -195,11 +195,28 @@ export const DOC_STATUS_COLORS: Record<DocStatus, string> = {
  *
  * Qué es obligatorio lo decide COURIER_REQUIRED_DOCS, no este catálogo.
  */
-export const COURIER_DOCS: { value: DocType; label: string; hint: string; expires: boolean }[] = [
+export const COURIER_DOCS: {
+  value: DocType;
+  label: string;
+  hint: string;
+  expires: boolean;
+  /** Trámite en línea para sacarlo, cuando lo hay. Se pinta como un botón. */
+  tramite?: { url: string; label: string };
+}[] = [
   { value: "cedula_frente",       label: "Cédula (frente)",      hint: "Foto legible por el lado de la foto.", expires: false },
   { value: "cedula_reverso",      label: "Cédula (reverso)",     hint: "El otro lado del documento.",          expires: false },
   { value: "licencia_conduccion", label: "Licencia de conducción", hint: "Vigente y de la categoría del vehículo.", expires: true },
   { value: "tarjeta_propiedad",   label: "Tarjeta de propiedad", hint: "Del vehículo con el que va a trabajar.", expires: false },
+  {
+    value: "certificado_medidas_correctivas",
+    label: "Certificado de medidas correctivas",
+    hint: "Lo saca gratis en la página de la Policía con la cédula. Descárgalo en PDF y súbelo aquí.",
+    expires: false,
+    tramite: {
+      url: "https://srvcnpc.policia.gov.co/PSC/frm_cnp_consulta.aspx",
+      label: "Sacarlo en la página de la Policía",
+    },
+  },
   { value: "soat",                label: "SOAT",                 hint: "Seguro obligatorio vigente.",          expires: true },
   { value: "tecnomecanica",       label: "Tecnomecánica",        hint: "Obligatoria si el vehículo tiene más de 2 años.", expires: true },
   { value: "foto_vehiculo",       label: "Foto del vehículo",    hint: "Donde se vea la placa.",               expires: false },
@@ -216,18 +233,22 @@ export const DOC_LABELS: Record<DocType, string> = Object.fromEntries(
  * aquí: la base es la que manda y rechaza la habilitación, esto solo evita que
  * la pantalla prometa algo distinto.
  *
- * El colaborativo pone su propio vehículo, así que responde con él ante un
- * siniestro y se le exigen los papeles del vehículo.
+ * Hoy es la misma lista para los dos tipos: sale a la calle con la marca
+ * encima quien sea, y se verifica igual. El SOAT dejó de ser obligatorio para
+ * habilitar —se puede subir, pero ya no frena a nadie— y entró el certificado
+ * de medidas correctivas.
  */
+const DOCS_OBLIGATORIOS: DocType[] = [
+  "cedula_frente",
+  "cedula_reverso",
+  "licencia_conduccion",
+  "tarjeta_propiedad",
+  "certificado_medidas_correctivas",
+];
+
 export const COURIER_REQUIRED_DOCS: Record<CourierType, DocType[]> = {
-  corporativo: ["cedula_frente", "cedula_reverso", "licencia_conduccion"],
-  colaborativo: [
-    "cedula_frente",
-    "cedula_reverso",
-    "licencia_conduccion",
-    "tarjeta_propiedad",
-    "soat",
-  ],
+  corporativo: DOCS_OBLIGATORIOS,
+  colaborativo: DOCS_OBLIGATORIOS,
 };
 
 /**

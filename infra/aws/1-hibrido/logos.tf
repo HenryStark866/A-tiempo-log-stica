@@ -134,8 +134,8 @@ resource "aws_cloudfront_distribution" "logos" {
 
 data "aws_iam_policy_document" "logos_desde_cloudfront" {
   statement {
-    sid     = "SoloCloudFront"
-    actions = ["s3:GetObject"]
+    sid       = "SoloCloudFront"
+    actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.logos.arn}/*"]
 
     principals {

@@ -37,10 +37,10 @@ provider "aws" {
   # mano por la consola.
   default_tags {
     tags = {
-      Proyecto  = "YAM"
-      Empresa   = "A Tiempo Logistica SAS"
-      Gestion   = "terraform"
-      Repo      = "HenryStark866/A-tiempo-log-stica"
+      Proyecto = "YAM"
+      Empresa  = "A Tiempo Logistica SAS"
+      Gestion  = "terraform"
+      Repo     = "HenryStark866/A-tiempo-log-stica"
     }
   }
 }

@@ -166,7 +166,7 @@ export default function EditGuidePage() {
         </button>
         {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
             Es la tarjeta de aviso de la pantalla, no un formulario. */}
-        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl p-10 text-center shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08]">
           <PackagePlus className="mx-auto mb-4 size-10 text-slate-400" />
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-white">
             Esta guía no se puede editar
@@ -228,9 +228,9 @@ export default function EditGuidePage() {
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
               Información de Envío
             </h3>
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
               {/* Comercio (solo lectura) */}
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                 <Store className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <div className="flex-1 min-w-0 py-3">
                   <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-none">
@@ -242,7 +242,7 @@ export default function EditGuidePage() {
                 </div>
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <User className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   required
@@ -253,7 +253,7 @@ export default function EditGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <Phone className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   value={form.recipient_phone}
@@ -263,7 +263,7 @@ export default function EditGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <MapPin className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   required
@@ -274,7 +274,7 @@ export default function EditGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">
                   Ciudad
                 </label>
@@ -335,9 +335,9 @@ export default function EditGuidePage() {
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
               Recaudo y Notas
             </h3>
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
               <div
-                className="flex items-center justify-between px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 transition-colors cursor-pointer"
+                className="flex items-center justify-between px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors cursor-pointer"
                 onClick={() => setForm((f) => ({ ...f, is_cod: !f.is_cod }))}
               >
                 <label className="text-[16px] text-slate-900 dark:text-white font-medium flex-1 cursor-pointer">
@@ -353,7 +353,7 @@ export default function EditGuidePage() {
               </div>
 
               {form.is_cod && (
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
+                <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
                   <Banknote className="w-5 h-5 text-[#ff812c] mr-4 shrink-0" />
                   <span className="text-slate-400 dark:text-slate-500 mr-2">$</span>
                   <input
@@ -391,13 +391,13 @@ export default function EditGuidePage() {
 
           {/* Igual que en «Nueva guía»: apoyada encima de las pestañas, que es
               lo único que impide que «Guardar cambios» quede debajo de ellas. */}
-          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
+          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-slate-900/[0.06] dark:border-white/[0.08] z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
             <div className="flex gap-3 max-w-2xl mx-auto">
               <button
                 type="button"
                 onClick={() => router.back()}
                 disabled={saving}
-                className="flex-1 flex items-center justify-center bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
+                className="flex-1 flex items-center justify-center atl-superficie text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
               >
                 Cancelar
               </button>

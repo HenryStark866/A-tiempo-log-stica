@@ -222,7 +222,7 @@ export function SedesDelComercio() {
             onSubmit={guardar}
             className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]"
           >
-            <div className="shrink-0 border-b border-gray-100 px-6 pt-6 pb-4 dark:border-gray-800">
+            <div className="shrink-0 border-b border-slate-900/[0.06] px-6 pt-6 pb-4 dark:border-white/[0.08]">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                 {editando === "nueva" ? "Nueva sede" : editando.name}
               </h3>
@@ -300,7 +300,7 @@ export function SedesDelComercio() {
               )}
             </div>
 
-            <div className="shrink-0 space-y-2 border-t border-gray-100 p-5 dark:border-gray-800">
+            <div className="shrink-0 space-y-2 border-t border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
               <button
                 type="submit"
                 disabled={busy}

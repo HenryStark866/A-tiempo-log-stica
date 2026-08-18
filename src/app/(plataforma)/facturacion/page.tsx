@@ -395,7 +395,7 @@ export default function BillingPage() {
               esta pantalla (nueva factura, detalle, rechazar pago) se quedan
               opacos: aíslan una decisión, y sus bloques internos no se tocan
               para no multiplicar la opacidad. */}
-          <ul className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm dark:bg-[#2C2C2E]/75 backdrop-blur-xl divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm dark:bg-[#2C2C2E]/75 backdrop-blur-xl divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {remesas.map((r) => (
               <li key={r.id} className="px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
@@ -414,7 +414,7 @@ export default function BillingPage() {
                   />
                 </div>
 
-                <dl className="mt-3 space-y-1 border-t border-gray-100 pt-3 text-[13px] dark:border-gray-800">
+                <dl className="mt-3 space-y-1 border-t border-slate-900/[0.06] pt-3 text-[13px] dark:border-white/[0.08]">
                   <div className="flex justify-between">
                     <dt className="text-slate-500 dark:text-slate-400">Recaudamos de tus compradores</dt>
                     <dd className="tabular-nums font-semibold text-slate-700 dark:text-slate-300">
@@ -441,7 +441,7 @@ export default function BillingPage() {
                       </dd>
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-gray-100 pt-1 dark:border-gray-800">
+                  <div className="flex justify-between border-t border-slate-900/[0.06] pt-1 dark:border-white/[0.08]">
                     <dt className="font-bold text-slate-900 dark:text-white">
                       {r.status === "pagada" ? "Te giramos" : "Te giramos"}
                     </dt>
@@ -499,7 +499,7 @@ export default function BillingPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 dark:border-gray-800 text-left">
+                  <tr className="border-b border-slate-900/[0.06] dark:border-white/[0.08] text-left">
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Factura</th>
                     {!esCliente && (
                       <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
@@ -514,7 +514,7 @@ export default function BillingPage() {
                   {invoices.map((inv) => (
                     <tr
                       key={inv.id}
-                      className="border-b border-gray-50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors"
+                      className="border-b border-slate-900/[0.04] dark:border-white/[0.04] last:border-0 hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors"
                     >
                       <td className="px-5 py-3.5">
                         <button
@@ -584,7 +584,7 @@ export default function BillingPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="md:hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
               {invoices.map((inv) => (
                 <div key={inv.id} className="px-4 py-4 space-y-2">
                   <div className="flex items-center justify-between">
@@ -659,7 +659,7 @@ export default function BillingPage() {
             className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
               <div>
                 <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">Reportar pago</h2>
                 <p className="text-[13px] text-slate-500 dark:text-slate-400">
@@ -683,7 +683,7 @@ export default function BillingPage() {
                   required
                   value={formPago.monto}
                   onChange={(e) => setFormPago((f) => ({ ...f, monto: e.target.value }))}
-                  className="w-full min-h-[52px] rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
+                  className="w-full min-h-[52px] rounded-2xl atl-superficie px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
                 />
               </div>
 
@@ -692,7 +692,7 @@ export default function BillingPage() {
                 <select
                   value={formPago.metodo}
                   onChange={(e) => setFormPago((f) => ({ ...f, metodo: e.target.value }))}
-                  className="w-full min-h-[52px] rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
+                  className="w-full min-h-[52px] rounded-2xl atl-superficie px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
                 >
                   {["Transferencia", "Nequi", "Daviplata", "Consignación", "Efectivo"].map((m) => (
                     <option key={m} value={m}>{m}</option>
@@ -708,7 +708,7 @@ export default function BillingPage() {
                   value={formPago.referencia}
                   onChange={(e) => setFormPago((f) => ({ ...f, referencia: e.target.value }))}
                   placeholder="Ej: 45789021"
-                  className="w-full min-h-[52px] rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
+                  className="w-full min-h-[52px] rounded-2xl atl-superficie px-4 text-[17px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c]"
                 />
               </div>
 
@@ -716,7 +716,7 @@ export default function BillingPage() {
                 <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
                   Comprobante
                 </label>
-                <label className="flex items-center gap-3 min-h-[52px] px-4 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] cursor-pointer active:opacity-80">
+                <label className="flex items-center gap-3 min-h-[52px] px-4 rounded-2xl atl-superficie cursor-pointer active:opacity-80">
                   <Upload className="w-5 h-5 text-[#ff812c] shrink-0" />
                   <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">
                     {comprobante ? comprobante.name : "Adjuntar foto o PDF del pago"}
@@ -753,7 +753,7 @@ export default function BillingPage() {
             className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">Generar factura del periodo</h2>
               <button
                 onClick={() => setShowNew(false)}
@@ -763,13 +763,13 @@ export default function BillingPage() {
               </button>
             </div>
             <form onSubmit={generate} className="min-h-0 overflow-y-auto p-5 space-y-5">
-              <p className="rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-3 text-[13px] text-slate-500 dark:text-slate-400">
+              <p className="rounded-xl atl-superficie px-4 py-3 text-[13px] text-slate-500 dark:text-slate-400">
                 Cada entrega ya entra sola a la cuenta del comercio apenas se completa. Esto es para
                 cerrar a mano un periodo con lo que haya quedado suelto.
               </p>
               <section>
                 <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Cliente</h3>
-                <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+                <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
                   <div className="flex items-center px-4 min-h-[52px]">
                     <select
                       required
@@ -789,8 +789,8 @@ export default function BillingPage() {
 
               <section>
                 <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Periodo</h3>
-                <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
-                  <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+                <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
+                  <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                     <label className="w-[60px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Desde</label>
                     <input
                       type="date"
@@ -817,7 +817,7 @@ export default function BillingPage() {
                 <button
                   type="button"
                   onClick={() => setShowNew(false)}
-                  className="flex-1 flex items-center justify-center bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
+                  className="flex-1 flex items-center justify-center atl-superficie text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>
@@ -842,7 +842,7 @@ export default function BillingPage() {
             className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
               <div>
                 <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">{detail.invoice.invoice_number}</h2>
                 <p className="text-[14px] text-slate-500 dark:text-slate-400">
@@ -860,7 +860,7 @@ export default function BillingPage() {
             <div className="min-h-0 overflow-y-auto p-5 space-y-3">
               {editingInvoice ? (
                 <div className="space-y-3">
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl p-4 shadow-sm space-y-3">
+                  <div className="atl-superficie rounded-2xl p-4 shadow-sm space-y-3">
                     {editableItems.map((it, idx) => (
                       <div key={it.id} className="flex gap-2 items-center">
                         <input
@@ -912,13 +912,13 @@ export default function BillingPage() {
                           },
                         ]);
                       }}
-                      className="w-full inline-flex items-center justify-center gap-1 py-2 text-[13px] font-semibold text-[#ff812c] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700"
+                      className="w-full inline-flex items-center justify-center gap-1 py-2 text-[13px] font-semibold text-[#ff812c] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl border border-dashed border-slate-900/[0.12] dark:border-white/[0.10]"
                     >
                       <Plus className="w-4 h-4" /> Agregar concepto
                     </button>
                   </div>
 
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
+                  <div className="atl-superficie rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
                     <span className="flex items-center gap-2 text-[16px] font-bold text-slate-900 dark:text-white">
                       <Receipt className="w-5 h-5 text-[#ff812c]" />
                       Nuevo Total
@@ -952,7 +952,7 @@ export default function BillingPage() {
                 </div>
               ) : (
                 <>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-100 dark:divide-gray-800">
+                  <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                     {detail.items.map((it) => (
                       <div key={it.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
                         <span className="text-[14px] text-slate-600 dark:text-slate-400">{it.description}</span>
@@ -969,7 +969,7 @@ export default function BillingPage() {
                     ))}
                   </div>
 
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
+                  <div className="atl-superficie rounded-2xl px-4 py-4 flex items-center justify-between shadow-sm">
                     <span className="flex items-center gap-2 text-[16px] font-bold text-slate-900 dark:text-white">
                       <Receipt className="w-5 h-5 text-[#ff812c]" />
                       Total
@@ -983,7 +983,7 @@ export default function BillingPage() {
                     <button
                       type="button"
                       onClick={() => setEditingInvoice(true)}
-                      className="w-full min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[14px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      className="w-full min-h-[46px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.08] text-slate-700 dark:text-slate-300 font-semibold text-[14px] hover:bg-gray-50 dark:hover:bg-gray-800/50"
                     >
                       <Edit className="w-4 h-4" /> Editar ítems de factura
                     </button>
@@ -993,11 +993,11 @@ export default function BillingPage() {
 
               {/* Pagos reportados */}
               {detail.pagos.length > 0 && (
-                <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+                <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
                   <p className="px-4 pt-4 pb-2 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Pagos reportados
                   </p>
-                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                     {detail.pagos.map((p) => (
                       <li key={p.id} className="px-4 py-3">
                         <div className="flex items-start justify-between gap-3">
@@ -1041,7 +1041,7 @@ export default function BillingPage() {
                           {p.receipt_path && (
                             <button
                               onClick={() => verComprobante(p.receipt_path!)}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 px-3 text-xs font-semibold text-slate-700 dark:text-slate-200"
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-900/[0.06] dark:border-white/[0.08] px-3 text-xs font-semibold text-slate-700 dark:text-slate-200"
                             >
                               <Eye className="w-3.5 h-3.5" /> Ver comprobante
                             </button>
@@ -1079,7 +1079,7 @@ export default function BillingPage() {
       {rechazando && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setRechazando(null)}>
           <div
-            className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 shadow-2xl"
+            className="w-full max-w-sm atl-superficie rounded-3xl p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">

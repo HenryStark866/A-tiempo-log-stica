@@ -371,7 +371,7 @@ export default function CediPage() {
               <p className="text-[15px] text-slate-500 dark:text-slate-400">No hay guías pendientes de ingreso</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800 -mx-2">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] -mx-2">
               {incoming.map((g) => (
                 <li key={g.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 px-2">
                   <div>
@@ -419,7 +419,7 @@ export default function CediPage() {
               <p className="text-[15px] text-slate-500 dark:text-slate-400">No hay novedades por procesar</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800 -mx-2">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] -mx-2">
               {returns.map((g) => (
                 <li key={g.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 px-2">
                   <div className="flex flex-col gap-1.5">

@@ -48,7 +48,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(siguiente)}
-      className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all hover:scale-105 active:scale-95"
+      className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-900/[0.06] dark:border-white/[0.08] transition-all hover:scale-105 active:scale-95"
       aria-label={SIGUIENTE[actual].etiqueta}
       title={SIGUIENTE[actual].etiqueta}
     >

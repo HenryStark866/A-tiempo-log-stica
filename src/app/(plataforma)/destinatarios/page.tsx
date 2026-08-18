@@ -333,7 +333,7 @@ export default function RecipientsPage() {
           {!esAsesor && (
             <button
               onClick={() => setImportAbierto((v) => !v)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 min-h-[48px] text-[15px] font-semibold text-slate-700 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
+              className="inline-flex items-center justify-center gap-2 rounded-xl atl-superficie px-4 min-h-[48px] text-[15px] font-semibold text-slate-700 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
             >
               <Upload className="w-4 h-4" /> Importar
               <ChevronDown className={`w-4 h-4 transition-transform ${importAbierto ? "rotate-180" : ""}`} />
@@ -376,7 +376,7 @@ export default function RecipientsPage() {
 
       {/* Importador: colapsado por defecto */}
       {importAbierto && !esAsesor && (
-        <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm p-5 space-y-4 transition-colors duration-300">
+        <section className="atl-superficie rounded-3xl shadow-sm p-5 space-y-4 transition-colors duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <input
               ref={fileRef}
@@ -396,7 +396,7 @@ export default function RecipientsPage() {
           </div>
 
           {headers.length > 0 && (
-            <div className="space-y-4 border-t border-gray-100 dark:border-gray-800 pt-4">
+            <div className="space-y-4 border-t border-slate-900/[0.06] dark:border-white/[0.08] pt-4">
               <p className="text-[14px] text-slate-600 dark:text-slate-400">
                 <strong className="text-slate-900 dark:text-white">{fileName}</strong> · {rows.length} fila(s).
                 Confirma a qué corresponde cada columna. Las que dejes sin asignar{" "}
@@ -472,7 +472,7 @@ export default function RecipientsPage() {
                       ` ${rows.length - filasValidas} fila(s) se omitirán por venir sin nombre o sin dirección.`}
                   </p>
 
-                  <div className="overflow-x-auto rounded-2xl border border-gray-100 dark:border-gray-800">
+                  <div className="overflow-x-auto rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.08]">
                     <table className="w-full text-left text-[14px] min-w-[620px]">
                       <thead className="bg-[#F2F2F7] dark:bg-[#1C1C1E]">
                         <tr>
@@ -482,7 +482,7 @@ export default function RecipientsPage() {
                           <th className="px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400">Ciudad</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      <tbody className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                         {rows.slice(0, 5).map((r, i) => (
                           <tr key={i}>
                             <td className="px-4 py-2.5 text-slate-900 dark:text-white">{mapping.full_name ? r[mapping.full_name] : "—"}</td>
@@ -520,7 +520,7 @@ export default function RecipientsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar por nombre, dirección o teléfono…"
-          className="w-full min-h-[48px] pl-11 pr-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
+          className="w-full min-h-[48px] pl-11 pr-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
         />
       </div>
 
@@ -552,7 +552,7 @@ export default function RecipientsPage() {
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {filtrados.map((r) => {
               const zr = resolveZone(zones, r.city, r.address);
               const zonaNombre = r.at_zones?.name ?? zr.zone?.name ?? null;
@@ -657,7 +657,7 @@ export default function RecipientsPage() {
             className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] shrink-0">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
                 {editing === "nuevo" ? "Nuevo cliente" : `Editar ${(editing as Recipient).full_name}`}
               </h2>
@@ -670,7 +670,7 @@ export default function RecipientsPage() {
             </div>
 
             <form onSubmit={guardar} className="overflow-y-auto flex-1 p-5 space-y-4">
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+              <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
                 <Campo label="Nombre" requerido>
                   <input
                     required
@@ -716,7 +716,7 @@ export default function RecipientsPage() {
               </div>
 
               {/* Zona resuelta en vivo, con su tarifa */}
-              <div className="rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-3 shadow-sm">
+              <div className="rounded-2xl atl-superficie px-4 py-3 shadow-sm">
                 {zonaDelForm.zone ? (
                   <p className="text-[14px]">
                     <span className="font-semibold text-[#ff812c]">{zonaDelForm.zone.name}</span>
@@ -746,7 +746,7 @@ export default function RecipientsPage() {
                 <button
                   type="button"
                   onClick={() => setEditing(null)}
-                  className="flex-1 flex items-center justify-center bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
+                  className="flex-1 flex items-center justify-center atl-superficie text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>
@@ -771,7 +771,7 @@ export default function RecipientsPage() {
           onClick={() => setBorrando(null)}
         >
           <div
-            className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 shadow-2xl text-center"
+            className="w-full max-w-sm atl-superficie rounded-3xl p-6 shadow-2xl text-center"
             onClick={(e) => e.stopPropagation()}
           >
             <Trash2 className="mx-auto mb-3 w-9 h-9 text-rose-500" />
@@ -816,7 +816,7 @@ function Campo({
   return (
     <div
       className={`flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors ${
-        ultimo ? "" : "border-b border-gray-100 dark:border-gray-800"
+        ultimo ? "" : "border-b border-slate-900/[0.06] dark:border-white/[0.08]"
       }`}
     >
       <label className="w-[95px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">

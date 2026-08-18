@@ -79,7 +79,7 @@ export function CediDestino({
       {onNavegar ? (
         <button
           onClick={() => onNavegar(sede.address, sede.city)}
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 border-t border-gray-100 text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-gray-800"
+          className="flex min-h-[48px] w-full items-center justify-center gap-2 border-t border-slate-900/[0.06] text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-white/[0.08]"
         >
           <Navigation2 className="h-4 w-4" /> Iniciar traslado al CEDI
         </button>
@@ -88,7 +88,7 @@ export function CediDestino({
           href={mapa}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex min-h-[48px] items-center justify-center gap-2 border-t border-gray-100 text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-gray-800"
+          className="flex min-h-[48px] items-center justify-center gap-2 border-t border-slate-900/[0.06] text-[15px] font-semibold text-[#ff812c] active:opacity-70 dark:border-white/[0.08]"
         >
           <Navigation2 className="h-4 w-4" /> Cómo llegar
         </a>

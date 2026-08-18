@@ -135,7 +135,7 @@ export default async function BienvenidoPage() {
               </p>
             </div>
 
-            <ul className="mt-6 divide-y divide-gray-100 overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:divide-gray-800 dark:bg-[#2C2C2E]">
+            <ul className="mt-6 divide-y divide-slate-900/[0.06] overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:divide-white/[0.08] dark:bg-[#2C2C2E]">
               {config.pasos.map((paso) => (
                 <li key={paso.titulo} className="flex items-start gap-3 px-4 py-4">
                   <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ff812c]/10">
@@ -222,7 +222,7 @@ export default async function BienvenidoPage() {
             ))}
           </ul>
 
-          <p className="mt-5 border-t border-gray-100 pt-4 text-[15px] leading-relaxed text-slate-600 dark:border-gray-800 dark:text-slate-300">
+          <p className="mt-5 border-t border-slate-900/[0.06] pt-4 text-[15px] leading-relaxed text-slate-600 dark:border-white/[0.08] dark:text-slate-300">
             El oficio no cambió tanto; nosotros solo le pusimos pantalla.{" "}
             <strong className="font-semibold text-slate-900 dark:text-white">
               Desde hoy eres parte de esa cadena de relevos.

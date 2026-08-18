@@ -119,7 +119,7 @@ export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
       <div className="overflow-x-auto rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-gray-100 dark:border-gray-800">
+            <tr className="border-b border-slate-900/[0.06] dark:border-white/[0.08]">
               <th className="sticky left-0 z-10 bg-[#FFFFFF] px-4 py-3 text-left text-[12px] font-medium uppercase tracking-wide text-slate-500 dark:bg-[#2C2C2E] dark:text-slate-400">
                 Desde ↓ / Hacia →
               </th>
@@ -135,7 +135,7 @@ export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
           </thead>
           <tbody>
             {zonas.map((o) => (
-              <tr key={o.id} className="border-b border-gray-50 last:border-0 dark:border-gray-800/50">
+              <tr key={o.id} className="border-b border-slate-900/[0.04] last:border-0 dark:border-white/[0.04]">
                 <td className="sticky left-0 z-10 max-w-[180px] truncate bg-[#FFFFFF] px-4 py-2 text-[14px] font-semibold text-slate-900 dark:bg-[#2C2C2E] dark:text-white">
                   {o.name}
                 </td>

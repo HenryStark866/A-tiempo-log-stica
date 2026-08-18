@@ -200,7 +200,7 @@ function Collections() {
               <p className="text-[15px] text-slate-500 dark:text-slate-400">Todo el recaudo está consignado</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800 -mx-2">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] -mx-2">
               {pendingCod.map((g) => (
                 <li key={g.id} className="flex items-center justify-between py-3 px-2">
                   <div>
@@ -246,7 +246,7 @@ function Collections() {
               <p className="text-[15px] text-slate-500 dark:text-slate-400">No hay cierres de caja</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800 -mx-2">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] -mx-2">
               {settlements.map((s) => (
                 <li key={s.id} className="py-4 px-2">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -304,9 +304,9 @@ function Collections() {
           {/* Con tope de alto y cuerpo desplazable: el mensajero lo abre en la
               calle, con el teclado tapando media pantalla, y «Reportar» tiene
               que seguir alcanzable. */}
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[90dvh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+          <div className="atl-superficie w-full max-w-md max-h-[90dvh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
 
-            <div className="shrink-0 px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+            <div className="shrink-0 px-6 pt-6 pb-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex items-start justify-between">
               <div>
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate">Reportar consignación</h3>
                 <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-1">Esperados: <span className="font-bold text-amber-600 dark:text-amber-500">{formatCOP(deposit.expected_amount)}</span></p>

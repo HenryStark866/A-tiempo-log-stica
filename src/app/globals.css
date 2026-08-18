@@ -487,3 +487,39 @@ textarea:-webkit-autofill:focus {
 .tema-multicolor .atl-fondo {
   --atl-centro: rgba(12, 10, 28, 0.86);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LA SUPERFICIE
+
+   Todo lo que se eleva sobre el fondo —tarjetas, listas, cabeceras, hojas—
+   comparte esta superficie. Estaba escrita a mano como `bg-[#FFFFFF]
+   dark:bg-[#2C2C2E]` en unas sesenta partes repartidas por quince pantallas,
+   con lo que cualquier ajuste había que hacerlo sesenta veces y en la práctica
+   nunca se hacía en todas: unas quedaban opacas, otras translúcidas y otras a
+   medias. Ahora es una sola regla.
+
+   Es translúcida y desenfocada a propósito. Debajo vive el valle de Medellín
+   dibujado en el fondo, y esto lo deja insinuarse sin que estorbe la lectura:
+   el desenfoque aplana el contraste de lo que hay detrás, así que el texto
+   sigue apoyado sobre un tono plano aunque el fondo tenga líneas.
+
+   Solo define fondo y desenfoque. Ni bordes ni sombras ni radios: eso lo pone
+   cada sitio, y así esta clase nunca pisa lo que ya tenía escrito.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.atl-superficie {
+  background-color: rgb(255 255 255 / 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.dark .atl-superficie,
+.tema-multicolor .atl-superficie {
+  background-color: rgb(44 44 46 / 0.72);
+}
+
+/* El tercer tema tiene un fondo de colores mucho más vivo, y sobre él una
+   superficie gris se ve sucia. Se oscurece y se desatura un poco más para que
+   el color quede detrás del vidrio y no atravesándolo. */
+.tema-multicolor .atl-superficie {
+  background-color: rgb(18, 16, 34, 0.78);
+}

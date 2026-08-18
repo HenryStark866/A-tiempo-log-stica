@@ -102,7 +102,7 @@ export default function SecurityPage() {
         <select
           value={tipo}
           onChange={(e) => setTipo(e.target.value as SecurityEventType | "")}
-          className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-[#2C2C2E] px-3 py-2 text-[14px] text-slate-700 dark:text-slate-200"
+          className="rounded-xl border border-slate-200 dark:border-white/[0.10] bg-white dark:bg-[#2C2C2E] px-3 py-2 text-[14px] text-slate-700 dark:text-slate-200"
         >
           <option value="">Todos los tipos</option>
           {Object.entries(SECURITY_EVENT_LABELS).map(([value, label]) => (
@@ -115,7 +115,7 @@ export default function SecurityPage() {
         <select
           value={severidad}
           onChange={(e) => setSeveridad(e.target.value as SecuritySeverity | "")}
-          className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-[#2C2C2E] px-3 py-2 text-[14px] text-slate-700 dark:text-slate-200"
+          className="rounded-xl border border-slate-200 dark:border-white/[0.10] bg-white dark:bg-[#2C2C2E] px-3 py-2 text-[14px] text-slate-700 dark:text-slate-200"
         >
           <option value="">Toda severidad</option>
           {Object.entries(SECURITY_SEVERITY_LABELS).map(([value, label]) => (
@@ -145,7 +145,7 @@ export default function SecurityPage() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-gray-800">
+          <div className="divide-y divide-slate-100 dark:divide-white/[0.08]">
             {(events ?? []).map((ev) => (
               <div key={ev.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">

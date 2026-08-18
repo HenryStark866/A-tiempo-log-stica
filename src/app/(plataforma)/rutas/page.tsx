@@ -255,7 +255,7 @@ export default function RoutingPage() {
                   </div>
 
                   {faltaCupo && (
-                    <p className="flex items-start gap-2 border-t border-gray-100 px-5 py-3 text-[13px] font-medium text-amber-600 dark:border-gray-800 dark:text-amber-400">
+                    <p className="flex items-start gap-2 border-t border-slate-900/[0.06] px-5 py-3 text-[13px] font-medium text-amber-600 dark:border-white/[0.08] dark:text-amber-400">
                       <TriangleAlert className="mt-0.5 size-4 shrink-0" />
                       A {elegido!.full_name} solo le caben {cupo} más. Se le asignarán esas y
                       quedarán {Number(z.pendientes) - cupo!} para otro mensajero.
@@ -263,7 +263,7 @@ export default function RoutingPage() {
                   )}
 
                   {expandida && (
-                    <ul className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800 dark:border-gray-800">
+                    <ul className="divide-y divide-slate-900/[0.06] border-t border-slate-900/[0.06] dark:divide-white/[0.08] dark:border-white/[0.08]">
                       {z.guias.map((g) => (
                         <li key={g.id} className="flex items-center justify-between gap-3 px-5 py-3">
                           <div className="min-w-0">
@@ -353,7 +353,7 @@ export default function RoutingPage() {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
               {active.map((g) => (
                 <li
                   key={g.id}

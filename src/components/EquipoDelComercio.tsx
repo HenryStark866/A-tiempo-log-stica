@@ -218,7 +218,7 @@ export function EquipoDelComercio() {
                   </p>
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                   {dentro.map((a) => (
                     <li key={a.id} className="px-5 py-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -288,7 +288,7 @@ export function EquipoDelComercio() {
       {eligiendoSede && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
           <div className="w-full max-w-md overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
-            <div className="border-b border-gray-100 px-6 pt-6 pb-4 dark:border-gray-800">
+            <div className="border-b border-slate-900/[0.06] px-6 pt-6 pb-4 dark:border-white/[0.08]">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                 ¿En qué sede trabaja?
               </h3>
@@ -313,7 +313,7 @@ export function EquipoDelComercio() {
               </select>
             </div>
 
-            <div className="space-y-2 border-t border-gray-100 p-5 dark:border-gray-800">
+            <div className="space-y-2 border-t border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
               <button
                 onClick={() =>
                   eligiendoSede.estado === "por_aprobar"

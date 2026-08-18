@@ -300,7 +300,7 @@ export default function ProductsPage() {
           {!esAsesor && (
             <button
               onClick={() => setImportAbierto((v) => !v)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 min-h-[48px] text-[15px] font-semibold text-slate-700 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
+              className="inline-flex items-center justify-center gap-2 rounded-xl atl-superficie px-4 min-h-[48px] text-[15px] font-semibold text-slate-700 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
             >
               <Upload className="w-4 h-4" /> Importar
               <ChevronDown className={`w-4 h-4 transition-transform ${importAbierto ? "rotate-180" : ""}`} />
@@ -332,7 +332,7 @@ export default function ProductsPage() {
       )}
 
       {importAbierto && !esAsesor && (
-        <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm p-5 space-y-4">
+        <section className="atl-superficie rounded-3xl shadow-sm p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <input
               ref={fileRef}
@@ -352,7 +352,7 @@ export default function ProductsPage() {
           </div>
 
           {headers.length > 0 && (
-            <div className="space-y-4 border-t border-gray-100 dark:border-gray-800 pt-4">
+            <div className="space-y-4 border-t border-slate-900/[0.06] dark:border-white/[0.08] pt-4">
               <p className="text-[14px] text-slate-600 dark:text-slate-400">
                 <strong className="text-slate-900 dark:text-white">{fileName}</strong> · {rows.length} fila(s).
                 Las columnas que no asignes se guardan igual, no se pierde nada.
@@ -412,7 +412,7 @@ export default function ProductsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar por nombre, SKU o descripción…"
-          className="w-full min-h-[48px] pl-11 pr-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
+          className="w-full min-h-[48px] pl-11 pr-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
         />
       </div>
 
@@ -438,7 +438,7 @@ export default function ProductsPage() {
             )}
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {filtrados.map((p) => (
               <li
                 key={p.id}
@@ -506,7 +506,7 @@ export default function ProductsPage() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setEditing(null)}>
           <div className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] shrink-0">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
                 {editing === "nuevo" ? "Nuevo producto" : `Editar ${(editing as Product).name}`}
               </h2>
@@ -516,8 +516,8 @@ export default function ProductsPage() {
             </div>
 
             <form onSubmit={guardar} className="overflow-y-auto flex-1 p-5 space-y-4">
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+              <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                   <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">
                     Producto <span className="text-[#ff812c]">*</span>
                   </label>
@@ -529,7 +529,7 @@ export default function ProductsPage() {
                     className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 text-slate-900 dark:text-white"
                   />
                 </div>
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+                <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                   <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">SKU</label>
                   <input
                     value={form.sku}
@@ -538,7 +538,7 @@ export default function ProductsPage() {
                     className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 text-slate-900 dark:text-white"
                   />
                 </div>
-                <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+                <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                   <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Precio</label>
                   <span className="text-slate-400 mr-1">$</span>
                   <input
@@ -569,7 +569,7 @@ export default function ProductsPage() {
               )}
 
               <div className="flex gap-3">
-                <button type="button" onClick={() => setEditing(null)} className="flex-1 flex items-center justify-center bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform">
+                <button type="button" onClick={() => setEditing(null)} className="flex-1 flex items-center justify-center atl-superficie text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform">
                   Cancelar
                 </button>
                 <button type="submit" disabled={guardando} className="flex-[2] flex items-center justify-center gap-2 bg-[#ff812c] hover:bg-[#ff812c]/90 text-[#1C1C1E] font-bold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-60">
@@ -584,7 +584,7 @@ export default function ProductsPage() {
 
       {borrando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setBorrando(null)}>
-          <div className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-sm atl-superficie rounded-3xl p-6 shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
             <Trash2 className="mx-auto mb-3 w-9 h-9 text-rose-500" />
             <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">¿Borrar {borrando.name}?</h3>
             <p className="mt-2 text-[14px] text-slate-500 dark:text-slate-400">

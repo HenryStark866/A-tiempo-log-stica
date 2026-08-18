@@ -116,7 +116,7 @@ export function InstalarApp({ enPagina = false }: { enPagina?: boolean }) {
     <div
       role="dialog"
       aria-label={`Instalar ${MARCA.app}`}
-      className={`fixed left-4 right-4 z-40 md:left-auto md:right-6 md:bottom-6 md:w-[21rem] rounded-3xl border border-gray-200 dark:border-gray-800 bg-[#FFFFFF] dark:bg-[#2C2C2E] p-4 shadow-lg ${
+      className={`fixed left-4 right-4 z-40 md:left-auto md:right-6 md:bottom-6 md:w-[21rem] rounded-3xl border border-slate-900/[0.06] dark:border-white/[0.08] atl-superficie p-4 shadow-lg ${
         // bottom-nav deja el hueco de la barra de pestañas del móvil, que
         // solo existe dentro de la plataforma (AppShell). En una pantalla
         // pública no hay nada debajo: sin esto quedaría flotando separado

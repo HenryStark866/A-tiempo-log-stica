@@ -61,7 +61,7 @@ export default function AdminDashboardPage() {
         <input
           type="text"
           placeholder="Buscar solicitudes, IDs…"
-          className="w-full min-h-[48px] bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-xl pl-11 pr-4 py-2 text-[16px] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c] transition-all placeholder-slate-400 dark:placeholder-slate-500 border border-transparent dark:border-slate-700"
+          className="w-full min-h-[48px] atl-superficie rounded-xl pl-11 pr-4 py-2 text-[16px] text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c] transition-all placeholder-slate-400 dark:placeholder-slate-500 border border-transparent dark:border-slate-700"
         />
       </div>
 
@@ -80,7 +80,7 @@ export default function AdminDashboardPage() {
             <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
               {/* En teléfono la tabla de 4 columnas obligaba a arrastrar de lado;
                   ahí se muestra la misma información apilada en tarjetas. */}
-              <ul className="divide-y divide-gray-100 dark:divide-gray-800 md:hidden">
+              <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] md:hidden">
                 {requests.map((req) => (
                   <li key={req.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
@@ -121,14 +121,14 @@ export default function AdminDashboardPage() {
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-100 dark:border-gray-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
+                    <tr className="border-b border-slate-900/[0.06] dark:border-white/[0.08] bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
                       <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">ID & Cliente</th>
                       <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dirección</th>
                       <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
                       <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Asignar</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                     {requests.map((req) => (
                       <tr key={req.id} className="hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30 transition-colors group">
                         <td className="px-6 py-5">
@@ -201,7 +201,7 @@ export default function AdminDashboardPage() {
                 {inWarehouse.map((item) => (
                   <div key={item.id} className="bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-2xl p-4 flex flex-wrap justify-between items-center gap-3 transition-colors">
                     <div className="flex min-w-0 items-center gap-4">
-                      <div className="w-10 h-10 bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                      <div className="w-10 h-10 atl-superficie rounded-full flex items-center justify-center shrink-0 shadow-sm">
                         <Truck className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                       </div>
                       <div className="min-w-0">

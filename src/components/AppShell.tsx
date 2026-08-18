@@ -92,7 +92,7 @@ export function AppShell({
     return (
       <div className="relative grid min-h-screen place-items-center px-4 transition-colors duration-300">
           <FondoPlataforma />
-          <div className="max-w-md rounded-3xl border border-gray-200 dark:border-gray-800 bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm transition-colors duration-300">
+          <div className="max-w-md rounded-3xl border border-slate-900/[0.06] dark:border-white/[0.08] atl-superficie p-10 text-center shadow-sm transition-colors duration-300">
             <Hourglass className="mx-auto mb-4 size-10 text-[#ff812c]" />
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">
               Cuenta pendiente de activación
@@ -137,7 +137,7 @@ export function AppShell({
               cabecera, por encima la barra lateral. NotificationBell usa ese
               mismo ancho para decidir si abre una hoja o un desplegable; si
               cambia uno, cambia el otro. */}
-          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sticky top-0 z-30 border-b border-gray-200/60 dark:border-gray-800/60">
+          <header className="md:hidden flex items-center justify-between gap-2 px-4 sm:px-6 py-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] sticky top-0 z-30 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
             {/* El fondo esmerilado va en su propia capa, sin hijos. Un
                 backdrop-blur en el <header> mismo crea un containing block
                 nuevo para cualquier descendiente `position: fixed`, que
@@ -169,7 +169,7 @@ export function AppShell({
 
           {/* Desktop Left Sidebar — algo más angosta en tablet, donde 256 px se
               comían un tercio del ancho útil de la pantalla. */}
-          <aside className="hidden md:flex flex-col w-56 lg:w-64 fixed inset-y-0 left-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-gray-800 z-30 transition-colors duration-300">
+          <aside className="hidden md:flex flex-col w-56 lg:w-64 fixed inset-y-0 left-0 atl-superficie border-r border-slate-900/[0.06] dark:border-white/[0.08] z-30 transition-colors duration-300">
             {/* Arriba solo marca y campana. El logo ocupa 147 px y los controles
                 40 cada uno: los tres juntos no caben en una barra de 224-256 px,
                 y antes la campana se salía por el borde. El cambio de tema se
@@ -238,16 +238,21 @@ export function AppShell({
               })}
             </nav>
 
-            <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:p-4 lg:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-gray-200 dark:border-gray-800">
-              <div className="mb-3 flex items-center justify-between gap-2 px-1">
-                <div className="min-w-0">
+            <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:p-4 lg:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-slate-900/[0.06] dark:border-white/[0.08]">
+              {/* Tocar tu propio nombre lleva a tu perfil: es donde todo el
+                  mundo lo busca antes que en el menú. */}
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <Link
+                  href="/mi-perfil"
+                  className="min-w-0 flex-1 rounded-xl px-1 py-1 transition-colors hover:bg-slate-900/[0.04] dark:hover:bg-white/[0.06]"
+                >
                   <p className="truncate text-[14px] font-semibold text-slate-900 dark:text-white">
                     {profile.full_name || email}
                   </p>
                   <p className="truncate text-[12px] text-slate-500 dark:text-slate-400">
                     {ROLE_LABELS[profile.role]}
                   </p>
-                </div>
+                </Link>
                 <div className="shrink-0">
                   <ThemeToggle />
                 </div>
@@ -275,7 +280,7 @@ export function AppShell({
               orden del DOM: la barra se dibuja después de <main>, así que tapaba
               los botones de cada hoja que sube desde abajo. Su alto sale de
               --atl-nav, el mismo que usan `pb-nav` y `bottom-nav`. */}
-          <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-gray-200/60 dark:border-gray-800/60 pb-safe px-safe z-30">
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t border-slate-900/[0.06] dark:border-white/[0.08] pb-safe px-safe z-30">
             {/* Misma separación que en el header móvil: el fondo esmerilado
                 no debe envolver nada position:fixed que se agregue aquí más
                 adelante. */}

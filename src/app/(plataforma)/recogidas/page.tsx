@@ -521,7 +521,7 @@ function Pickups() {
           por batería. Los modales de abajo (nueva solicitud, asignar,
           editar, cancelar, QR) se quedan opacos: existen para aislar una
           decisión, y dejar ver el fondo ahí resta foco en vez de sumarlo. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
+      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors">
         {pickups === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -540,7 +540,7 @@ function Pickups() {
           <>
           {/* Teléfono: la misma solicitud apilada. La tabla de 800 px dejaba las
               acciones fuera de pantalla hasta arrastrarla toda hacia el lado. */}
-          <ul className="divide-y divide-gray-100 dark:divide-slate-800 lg:hidden">
+          <ul className="divide-y divide-slate-900/[0.06] dark:divide-slate-800 lg:hidden">
             {pickups.map((p) => (
               <li key={p.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -596,7 +596,7 @@ function Pickups() {
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-slate-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
+                <tr className="border-b border-slate-900/[0.06] dark:border-slate-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Fecha</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dirección</th>
@@ -605,7 +605,7 @@ function Pickups() {
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-900/[0.06] dark:divide-slate-700">
                 {pickups.map((p) => (
                   <tr key={p.id} className="hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30 transition-colors group">
                     <td className="px-6 py-4">
@@ -668,9 +668,9 @@ function Pickups() {
       {/* New Pickup Modal */}
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90dvh] overflow-y-auto">
+          <div className="atl-superficie w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 max-h-[90dvh] overflow-y-auto">
 
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between sticky top-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] z-10">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex items-start justify-between sticky top-0 atl-superficie z-10">
               <div className="pr-4">
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">Solicitar recogida</h3>
                 <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-slate-500 dark:text-slate-400">
@@ -798,7 +798,7 @@ function Pickups() {
                   </div>
                 ) : (
                   <>
-                    <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                    <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-900/[0.06] dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-slate-800">
                       {pendientes.map((g) => (
                         <label
                           key={g.id}
@@ -868,7 +868,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => setShowNew(false)}
-                  className="flex-1 min-h-[52px] rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform border border-slate-200 dark:border-slate-700"
+                  className="flex-1 min-h-[52px] rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform border border-slate-900/[0.06] dark:border-white/[0.08]"
                 >
                   Cancelar
                 </button>
@@ -889,8 +889,8 @@ function Pickups() {
       {/* Assign Pickup Modal */}
       {assigningPickup && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in fade-in duration-200">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+          <div className="atl-superficie w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in fade-in duration-200">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex items-start justify-between">
               <div>
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                   Asignar recogida a mensajero
@@ -964,8 +964,8 @@ function Pickups() {
       {/* Editar solicitud — solo mientras el mensajero no haya arrancado */}
       {editando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300 max-h-[90dvh] overflow-y-auto">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between sticky top-0 bg-[#FFFFFF] dark:bg-[#2C2C2E] z-10">
+          <div className="atl-superficie w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300 max-h-[90dvh] overflow-y-auto">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex items-start justify-between sticky top-0 atl-superficie z-10">
               <div className="pr-4">
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">Corregir la solicitud</h3>
                 <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">
@@ -1137,7 +1137,7 @@ function Pickups() {
       {/* Cancelar solicitud */}
       {cancelando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+          <div className="atl-superficie w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
             <div className="p-6 space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
                 <Ban className="w-6 h-6 text-rose-600 dark:text-rose-400" />
@@ -1206,10 +1206,10 @@ function Pickups() {
           onClick={() => setQrDe(null)}
         >
           <div
-            className="w-full max-w-sm max-h-[90dvh] flex flex-col rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] shadow-2xl overflow-hidden print:max-h-none print:shadow-none"
+            className="w-full max-w-sm max-h-[90dvh] flex flex-col rounded-3xl atl-superficie shadow-2xl overflow-hidden print:max-h-none print:shadow-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="shrink-0 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-5 py-4 print:hidden">
+            <div className="shrink-0 flex items-center justify-between border-b border-slate-900/[0.06] dark:border-white/[0.08] px-5 py-4 print:hidden">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
                 QR de la recogida
               </h2>

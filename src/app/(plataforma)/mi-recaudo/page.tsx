@@ -226,7 +226,7 @@ export default function MiRecaudoPage() {
               Todavía no te hemos hecho ningún giro.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
               {datos?.remesas.map((m) => (
                 <li key={m.remittance_number} className="px-5 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -276,7 +276,7 @@ export default function MiRecaudoPage() {
                           <span>−{formatCOP(m.invoice_offset)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between border-t border-gray-200 pt-1 font-semibold text-slate-900 dark:border-gray-700 dark:text-white">
+                      <div className="flex justify-between border-t border-slate-900/[0.06] pt-1 font-semibold text-slate-900 dark:border-white/[0.10] dark:text-white">
                         <span>Te giramos</span>
                         <span>{formatCOP(m.net_amount)}</span>
                       </div>
@@ -311,7 +311,7 @@ export default function MiRecaudoPage() {
               Todavía no tienes pedidos contraentrega entregados.
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
               {datos?.pedidos.map((p) => {
                 const et = ETIQUETA_CORTA[p.estado_dinero];
                 return (

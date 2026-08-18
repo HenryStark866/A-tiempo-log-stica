@@ -305,7 +305,7 @@ export default function MyRoutePage() {
       {profile.role === "mensajero" && <PositionReporter />}
 
       {NAV_HANDOFF_ENABLED && (
-        <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-4 sm:p-5 shadow-sm transition-colors duration-300 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="atl-superficie rounded-3xl p-4 sm:p-5 shadow-sm transition-colors duration-300 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1">
             <p className="text-[15px] font-semibold text-slate-900 dark:text-white">Navegador preferido</p>
             <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -482,9 +482,9 @@ export default function MyRoutePage() {
               Sin alto máximo el botón «Confirmar» se salía de la pantalla del
               teléfono y el mensajero no podía cerrar la entrega. `dvh` y no
               `vh`: en el móvil `vh` ignora la barra del navegador y recorta. */}
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[90dvh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+          <div className="atl-superficie w-full max-w-md max-h-[90dvh] flex flex-col rounded-[32px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
 
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex shrink-0 items-center justify-between">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex shrink-0 items-center justify-between">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate pr-4">
                 {modal.action === "entregada" ? "Confirmar entrega" : "Reportar novedad"}
               </h3>

@@ -42,7 +42,7 @@ export function GuiaQR({
   const urlPago = origin ? `${origin}/pagar/${paymentToken}` : null;
 
   return (
-    <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm p-5 print:shadow-none print:border print:border-gray-300">
+    <section className="atl-superficie rounded-2xl shadow-sm p-5 print:shadow-none print:border print:border-gray-300">
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-bold text-slate-900 dark:text-white">Códigos QR</h2>
         <button
@@ -92,7 +92,7 @@ function QRTarjeta({
 }) {
   return (
     <div
-      className={`rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col items-center text-center ${
+      className={`rounded-xl border border-slate-900/[0.06] dark:border-white/[0.08] p-4 flex flex-col items-center text-center ${
         atenuado ? "opacity-50" : ""
       }`}
     >

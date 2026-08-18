@@ -146,7 +146,7 @@ export default function TrackingPage() {
         </div>
         <button
           onClick={cargar}
-          className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 min-h-[44px] text-[14px] font-semibold text-slate-600 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
+          className="shrink-0 inline-flex items-center gap-2 rounded-xl atl-superficie px-4 min-h-[44px] text-[14px] font-semibold text-slate-600 dark:text-slate-300 shadow-sm active:scale-[0.98] transition-transform"
         >
           <RefreshCw className={`w-4 h-4 ${refrescando ? "animate-spin text-[#ff812c]" : ""}`} />
           {ultimo ? `Actualizado ${haceCuanto(ultimo.toISOString())}` : "Actualizar"}
@@ -170,7 +170,7 @@ export default function TrackingPage() {
             onChange={(ev) => setBuscarCliente(ev.target.value)}
             placeholder="Buscar por comercio…"
             aria-label="Buscar por comercio"
-            className="w-full rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] pl-11 pr-12 min-h-[48px] text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 shadow-sm outline-none focus:ring-2 focus:ring-[#ff812c]/40 [&::-webkit-search-cancel-button]:appearance-none"
+            className="w-full rounded-2xl atl-superficie pl-11 pr-12 min-h-[48px] text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 shadow-sm outline-none focus:ring-2 focus:ring-[#ff812c]/40 [&::-webkit-search-cancel-button]:appearance-none"
           />
           {buscarCliente && (
             <button
@@ -192,14 +192,14 @@ export default function TrackingPage() {
             <Radio className="w-4 h-4 text-[#ff812c] shrink-0" />
             <span className="text-[14px] font-bold text-[#ff812c]">{enRuta.length} en ruta</span>
           </div>
-          <div className="flex items-center gap-2 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-2.5 shadow-sm">
+          <div className="flex items-center gap-2 rounded-2xl atl-superficie px-4 py-2.5 shadow-sm">
             <PackageSearch className="w-4 h-4 text-slate-400 shrink-0" />
             <span className="text-[14px] font-semibold text-slate-600 dark:text-slate-300">
               {visibles.length} envío(s) activo(s)
             </span>
           </div>
           {!esCliente && (
-            <div className="flex items-center gap-2 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-2.5 shadow-sm">
+            <div className="flex items-center gap-2 rounded-2xl atl-superficie px-4 py-2.5 shadow-sm">
               <Store className="w-4 h-4 text-slate-400 shrink-0" />
               <span className="text-[14px] font-semibold text-slate-600 dark:text-slate-300">
                 {comercios} comercio(s)
@@ -336,7 +336,7 @@ export default function TrackingPage() {
 
                 {/* Ubicación del mensajero: solo mientras va en ruta */}
                 {e.status === "en_ruta" && (
-                  <div className="border-t border-gray-100 dark:border-gray-800">
+                  <div className="border-t border-slate-900/[0.06] dark:border-white/[0.08]">
                     {tienePos ? (
                       <>
                         <MiniMap lat={e.courier_lat!} lng={e.courier_lng!} />

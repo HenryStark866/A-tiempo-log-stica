@@ -19,7 +19,7 @@ export function PriceList({ zones, activeZoneId }: { zones: Zone[]; activeZoneId
       </h3>
       {/* Translucida y con blur (patron probado en vivo). Es solo lectura del tarifario, sin campos ni modal debajo. */}
       <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
-        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+        <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
           {zones.map((z) => {
             const activa = z.id === activeZoneId;
             return (

@@ -231,7 +231,7 @@ export function RemesasRecaudo() {
         </div>
       ) : (
         remesas.length > 0 && (
-          <ul className="-mx-2 divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="-mx-2 divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {remesas.map((r) => (
               <li key={r.id} className="px-2 py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">

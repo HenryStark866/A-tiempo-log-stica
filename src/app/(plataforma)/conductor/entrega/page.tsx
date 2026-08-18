@@ -57,7 +57,7 @@ export default function EntregaActivaPage() {
     <div className="min-h-screen pb-32 font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300">
 
       {/* Navigation Bar */}
-      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">
+      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors duration-300">
         <div className="relative flex items-center justify-between px-4 h-12">
           <Link href="#" className="flex items-center text-[#ff812c] active:opacity-70 transition-opacity">
             <ChevronLeft className="w-6 h-6 -ml-2" />
@@ -85,7 +85,7 @@ export default function EntregaActivaPage() {
         </div>
 
         {/* Map Placeholder */}
-        <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl h-32 overflow-hidden relative shadow-sm flex items-center justify-center transition-colors duration-300">
+        <div className="atl-superficie rounded-2xl h-32 overflow-hidden relative shadow-sm flex items-center justify-center transition-colors duration-300">
           <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
           <div className="z-10 flex flex-col items-center gap-2">
             <div className="bg-[#ff812c] text-[#1C1C1E] p-2.5 rounded-full shadow-md">
@@ -99,14 +99,14 @@ export default function EntregaActivaPage() {
         {/* Translucida y con blur (patron probado en vivo: /90 sin blur no se notaba).
             Es texto de solo lectura, sin campos de formulario dentro. */}
         <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
-          <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center transition-colors">
+          <div className="px-4 py-2.5 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex justify-between items-center transition-colors">
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Info del Paquete</h3>
             <span className="text-[13px] font-bold text-slate-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md">
               #ATL-9023
             </span>
           </div>
 
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             <div className="flex items-center px-4 min-h-[56px] gap-4">
               <div className="w-9 h-9 rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] flex items-center justify-center shrink-0 transition-colors">
                 <User className="w-5 h-5 text-slate-400 dark:text-slate-500" />

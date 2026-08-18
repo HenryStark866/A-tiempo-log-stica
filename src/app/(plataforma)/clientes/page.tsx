@@ -187,7 +187,7 @@ export default function ClientsPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 dark:border-gray-800 text-left">
+                  <tr className="border-b border-slate-900/[0.06] dark:border-white/[0.08] text-left">
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Comercio</th>
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Contacto</th>
                     <th className="px-5 py-3 text-[12px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ciclo</th>
@@ -203,7 +203,7 @@ export default function ClientsPage() {
                   {clients.map((c) => (
                     <tr
                       key={c.id}
-                      className="border-b border-gray-50 dark:border-gray-800/50 last:border-0 hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors"
+                      className="border-b border-slate-900/[0.04] dark:border-white/[0.04] last:border-0 hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors"
                     >
                       <td className="px-5 py-3.5">
                         <p className="text-[15px] font-semibold text-slate-900 dark:text-white">{c.business_name}</p>
@@ -244,7 +244,7 @@ export default function ClientsPage() {
             </div>
 
             {/* Mobile Cards */}
-            <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+            <div className="md:hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
               {clients.map((c) => (
                 <div key={c.id} className="px-4 py-4 space-y-2">
                   <div className="flex items-start justify-between gap-3">
@@ -305,7 +305,7 @@ export default function ClientsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800 shrink-0">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] shrink-0">
               <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white">
                 Editar {editing.business_name}
               </h2>
@@ -323,8 +323,8 @@ export default function ClientsPage() {
 
                 <section>
                   <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Información del Comercio</h3>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Comercio</label>
                       <input
                         required
@@ -365,8 +365,8 @@ export default function ClientsPage() {
 
                 <section>
                   <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Datos de Contacto</h3>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Contacto</label>
                       <input
                         value={form.contact_name}
@@ -375,7 +375,7 @@ export default function ClientsPage() {
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
                     </div>
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Correo</label>
                       <input
                         type="email"
@@ -385,7 +385,7 @@ export default function ClientsPage() {
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
                     </div>
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Teléfono</label>
                       <input
                         value={form.phone}
@@ -394,7 +394,7 @@ export default function ClientsPage() {
                         className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                       />
                     </div>
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[90px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Dirección</label>
                       <input
                         value={form.address}
@@ -421,11 +421,11 @@ export default function ClientsPage() {
 
                 <section>
                   <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">Tarifas y Facturación</h3>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+                  <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
                     {/* De aquí sale el precio real de cada domicilio: la tarifa
                         se calcula entre esta zona y la del destinatario. Sin
                         ella se le cobra la tarifa completa desde el CEDI. */}
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Zona origen</label>
                       <select
                         value={form.zone_id}
@@ -438,7 +438,7 @@ export default function ClientsPage() {
                         ))}
                       </select>
                     </div>
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">Ciclo</label>
                       <select
                         value={form.billing_cycle}
@@ -449,7 +449,7 @@ export default function ClientsPage() {
                         <option value="mensual">Mensual</option>
                       </select>
                     </div>
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">T. Entrega</label>
                       <span className="text-slate-400 dark:text-slate-500 mr-1">$</span>
                       <input
@@ -464,7 +464,7 @@ export default function ClientsPage() {
                     <p className="px-4 py-2 text-[12px] text-slate-400 dark:text-slate-500 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
                       * El valor del domicilio se calcula automáticamente según la zona del comercio y la zona del destinatario. La tarifa anterior actúa únicamente como valor base de contingencia.
                     </p>
-                    <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                    <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                       <label className="w-[110px] text-[15px] text-slate-500 dark:text-slate-400 shrink-0">T. Devolución</label>
                       <span className="text-slate-400 dark:text-slate-500 mr-1">$</span>
                       <input
@@ -498,7 +498,7 @@ export default function ClientsPage() {
                   <button
                     type="button"
                     onClick={() => setEditing(null)}
-                    className="flex-1 flex items-center justify-center bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
+                    className="flex-1 flex items-center justify-center atl-superficie text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
                   >
                     Cancelar
                   </button>
@@ -524,7 +524,7 @@ export default function ClientsPage() {
                     y con facturación detrás esa diferencia es cara. La base lo
                     exige también, así que no se puede saltar desde fuera. */}
                 {esAdmin && (
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
+                  <div className="border-t border-slate-900/[0.06] dark:border-white/[0.10] pt-5">
                     {!borrando ? (
                       <button
                         type="button"
@@ -546,7 +546,7 @@ export default function ClientsPage() {
                           value={textoBorrado}
                           onChange={(e) => setTextoBorrado(e.target.value)}
                           placeholder={editing.business_name}
-                          className="w-full rounded-xl bg-[#FFFFFF] dark:bg-[#2C2C2E] px-4 py-3 text-[16px] text-slate-900 dark:text-white focus:outline-none"
+                          className="w-full rounded-xl atl-superficie px-4 py-3 text-[16px] text-slate-900 dark:text-white focus:outline-none"
                         />
                         <div className="flex gap-3">
                           <button
@@ -555,7 +555,7 @@ export default function ClientsPage() {
                               setBorrando(false);
                               setTextoBorrado("");
                             }}
-                            className="flex-1 min-h-[46px] rounded-xl font-semibold bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-700 dark:text-slate-300"
+                            className="flex-1 min-h-[46px] rounded-xl font-semibold atl-superficie text-slate-700 dark:text-slate-300"
                           >
                             Mejor no
                           </button>

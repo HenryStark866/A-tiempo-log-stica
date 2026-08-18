@@ -167,7 +167,7 @@ function Guides() {
               target="_blank"
               className="shrink-0"
             >
-              <button className="min-h-[48px] w-full px-5 rounded-xl font-semibold flex items-center justify-center gap-2 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white active:scale-[0.98] transition-transform md:w-auto">
+              <button className="min-h-[48px] w-full px-5 rounded-xl font-semibold flex items-center justify-center gap-2 atl-superficie border border-slate-900/[0.06] dark:border-white/[0.08] text-slate-900 dark:text-white active:scale-[0.98] transition-transform md:w-auto">
                 <Printer className="w-5 h-5" />
                 <span>
                   Rótulos ({Math.min(filtered.length, 100)})
@@ -188,7 +188,7 @@ function Guides() {
       </div>
 
       {/* Filter Card */}
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 flex flex-col md:flex-row gap-4 transition-colors duration-300">
+      <div className="atl-superficie rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] p-4 flex flex-col md:flex-row gap-4 transition-colors duration-300">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
           <input
@@ -239,7 +239,7 @@ function Guides() {
           La tarjeta de filtros de arriba y el modal de eliminar se quedan
           opacos: una envuelve el input y el select de búsqueda, el otro
           aísla una decisión irreversible. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">
+      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors duration-300">
         {guides === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -383,7 +383,7 @@ function Guides() {
       {/* Modal confirmación eliminar */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700">
+          <div className="atl-superficie rounded-3xl shadow-xl p-6 max-w-sm w-full border border-slate-900/[0.06] dark:border-white/[0.08]">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />

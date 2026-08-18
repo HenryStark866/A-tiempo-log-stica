@@ -339,7 +339,7 @@ export default function UsersPage() {
           value={buscador}
           onChange={(e) => setBuscador(e.target.value)}
           placeholder="Buscar por nombre, correo o teléfono…"
-          className="w-full min-h-[48px] pl-11 pr-4 bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
+          className="w-full min-h-[48px] pl-11 pr-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
         />
       </div>
 
@@ -368,7 +368,7 @@ export default function UsersPage() {
           <>
           {/* Versión apilada para teléfono: la tabla de 700 px obligaba a
               arrastrar de lado para llegar al botón de gestionar el rol. */}
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800 lg:hidden">
+          <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] lg:hidden">
             {visibles.map((p) => (
               <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div className="min-w-0 space-y-2">
@@ -414,7 +414,7 @@ export default function UsersPage() {
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
+                <tr className="border-b border-slate-900/[0.06] dark:border-white/[0.08] bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nombre</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Rol</th>
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
@@ -422,7 +422,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Gestionar</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              <tbody className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                 {visibles.map((p) => (
                   <tr key={p.id} className="hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30 transition-colors group">
                     <td className="px-6 py-4">
@@ -471,9 +471,9 @@ export default function UsersPage() {
       {/* Action Modal (Apple HIG Style Bottom Sheet/Alert) */}
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity p-4 sm:p-0">
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-[32px] shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
+          <div className="atl-superficie w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-[32px] shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
 
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+            <div className="px-6 pt-6 pb-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] flex items-start justify-between">
               <div>
                 <h3 className="text-[19px] font-bold text-slate-900 dark:text-white truncate pr-4">Gestionar usuario</h3>
                 <p className="text-[15px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{editing.full_name || "Usuario"}</p>
@@ -588,7 +588,7 @@ export default function UsersPage() {
                   type="checkbox"
                   checked={form.active}
                   onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
-                  className="w-5 h-5 rounded border-gray-300 text-[#ff812c] focus:ring-[#ff812c] bg-white dark:bg-black dark:border-gray-700"
+                  className="w-5 h-5 rounded border-slate-900/[0.12] text-[#ff812c] focus:ring-[#ff812c] bg-white dark:bg-black dark:border-white/[0.10]"
                 />
                 <span className="text-[16px] font-semibold text-slate-900 dark:text-white select-none">
                   Cuenta activa
@@ -626,7 +626,7 @@ export default function UsersPage() {
                   fila». La base además se niega sola en los casos que dejarían
                   cuentas descuadradas; aquí no se duplica esa lógica. */}
               {esAdmin && editing.id !== yo.id && (
-                <div className="mt-6 border-t border-gray-100 dark:border-gray-800 pt-5">
+                <div className="mt-6 border-t border-slate-900/[0.06] dark:border-white/[0.08] pt-5">
                   {!confirmandoBorrado ? (
                     <button
                       type="button"

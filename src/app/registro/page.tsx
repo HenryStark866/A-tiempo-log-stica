@@ -119,7 +119,7 @@ export default function RegisterPage() {
   }
 
   const fieldRow =
-    "flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors";
+    "flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors";
   const fieldInput =
     "flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white";
   const fieldLabel = "w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0";
@@ -216,7 +216,7 @@ export default function RegisterPage() {
                         className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-3 py-4 border transition-all active:scale-[0.98] ${
                           selected
                             ? "border-[#ff812c] bg-[#ff812c]/10 text-[#ff812c]"
-                            : "border-transparent bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-600 dark:text-slate-300 shadow-sm"
+                            : "border-transparent atl-superficie text-slate-600 dark:text-slate-300 shadow-sm"
                         }`}
                       >
                         <opt.icon className="w-6 h-6" />
@@ -230,7 +230,7 @@ export default function RegisterPage() {
               </div>
 
               {/* Datos de la persona */}
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+              <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
                 <div className={fieldRow}>
                   <label className={fieldLabel}>Nombre</label>
                   <input
@@ -290,7 +290,7 @@ export default function RegisterPage() {
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                     Datos de tu negocio
                   </p>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                  <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
                     <div className={fieldRow}>
                       <label className={fieldLabel}>Tipo</label>
                       <select
@@ -372,7 +372,7 @@ export default function RegisterPage() {
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                     ¿Para qué comercio trabajas?
                   </p>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+                  <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
                     {comercioElegido ? (
                       <div className="flex items-center gap-3 px-4 py-4">
                         <Store className="w-5 h-5 shrink-0 text-[#ff812c]" />
@@ -393,7 +393,7 @@ export default function RegisterPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                           <Search className="w-5 h-5 shrink-0 text-slate-400 mr-2" />
                           <input
                             value={buscaComercio}
@@ -427,7 +427,7 @@ export default function RegisterPage() {
                         )}
 
                         {comercios.length > 0 && (
-                          <ul className="max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
+                          <ul className="max-h-56 overflow-y-auto divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
                             {comercios.map((c) => (
                               <li key={c.id}>
                                 <button
@@ -464,7 +464,7 @@ export default function RegisterPage() {
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                     Datos del CEDI
                   </p>
-                  <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                  <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
                     <div className={fieldRow}>
                       <label className={fieldLabel}>Nombre</label>
                       <input

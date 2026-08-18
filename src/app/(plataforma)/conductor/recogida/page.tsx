@@ -401,7 +401,7 @@ export default function CourierPickupPage() {
                 key={p.pickup_id}
                 className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
               >
-                <div className="border-b border-gray-100 p-5 dark:border-gray-800">
+                <div className="border-b border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
                   <p className="text-[19px] font-bold text-slate-900 dark:text-white">
                     {p.business_name}
                   </p>
@@ -496,7 +496,7 @@ export default function CourierPickupPage() {
                     de entregarte los paquetes.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-800 dark:border-gray-800">
+                  <ul className="divide-y divide-slate-900/[0.06] border-t border-slate-900/[0.06] dark:divide-white/[0.08] dark:border-white/[0.08]">
                     {p.guias.map((g) => {
                       const ok = set.has(g.id);
                       return (
@@ -533,7 +533,7 @@ export default function CourierPickupPage() {
                 )}
 
                 <div
-                  className={`space-y-3 border-t border-gray-100 p-5 dark:border-gray-800 ${
+                  className={`space-y-3 border-t border-slate-900/[0.06] p-5 dark:border-white/[0.08] ${
                     arrancada ? "" : "hidden"
                   }`}
                 >
@@ -578,7 +578,7 @@ export default function CourierPickupPage() {
                     también aquí significa que en el muelle siempre hay algo que
                     escanear. Aparece cuando ya arrancó: antes no hay lote. */}
                 {arrancada && (
-                  <div className="border-t border-gray-100 p-5 dark:border-gray-800">
+                  <div className="border-t border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
                     <p className="mb-4 text-center text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       Muéstralo al llegar al CEDI
                     </p>
@@ -642,7 +642,7 @@ export default function CourierPickupPage() {
       {directa && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
           <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
-            <div className="shrink-0 border-b border-gray-100 px-6 pt-6 pb-4 dark:border-gray-800">
+            <div className="shrink-0 border-b border-slate-900/[0.06] px-6 pt-6 pb-4 dark:border-white/[0.08]">
               <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff812c]/10">
                 <Navigation2 className="h-5 w-5 text-[#ff812c]" />
               </div>
@@ -665,7 +665,7 @@ export default function CourierPickupPage() {
               </p>
             </div>
 
-            <ul className="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-800">
+            <ul className="min-h-0 flex-1 divide-y divide-slate-900/[0.06] overflow-y-auto dark:divide-white/[0.08]">
               {directa.guias.map((g) => {
                 const marcada = elegidas.has(g.id);
                 return (
@@ -717,7 +717,7 @@ export default function CourierPickupPage() {
               })}
             </ul>
 
-            <div className="shrink-0 space-y-2 border-t border-gray-100 p-5 dark:border-gray-800">
+            <div className="shrink-0 space-y-2 border-t border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
               <button
                 onClick={entregarDirecto}
                 disabled={busy !== null || elegidas.size === 0}

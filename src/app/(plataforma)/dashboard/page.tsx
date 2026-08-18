@@ -131,7 +131,7 @@ function Kpi({
      `translate`: en Tailwind 4 esos dos se apoyan en propiedades registradas
      (@property) que aquí no llegan a computarse. */
   const base =
-    "bg-[#FFFFFF] dark:bg-[#2C2C2E] border border-transparent rounded-3xl p-5 sm:p-6 shadow-sm transition-all duration-200 flex flex-col justify-between h-full";
+    "atl-superficie border border-transparent rounded-3xl p-5 sm:p-6 shadow-sm transition-all duration-200 flex flex-col justify-between h-full";
 
   if (!href) return <div className={base}>{cuerpo}</div>;
 

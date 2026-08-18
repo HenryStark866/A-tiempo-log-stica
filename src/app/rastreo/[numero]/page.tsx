@@ -46,7 +46,7 @@ export default function TrackingPage() {
     <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
       <FondoRastreo />
       {/* Navigation Header */}
-      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">
+      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors duration-300">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 h-14">
           <Link href="/" className="active:opacity-70 transition-opacity">
             <Logo />
@@ -61,7 +61,7 @@ export default function TrackingPage() {
       </div>
 
       <main className="mx-auto max-w-md px-4 pt-6 space-y-6">
-        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm transition-colors duration-300">
+        <div className="rounded-3xl atl-superficie p-6 shadow-sm transition-colors duration-300">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500 dark:text-slate-400">
               <LoaderCircle className="w-8 h-8 animate-spin text-[#ff812c]" />
@@ -91,7 +91,7 @@ export default function TrackingPage() {
             </div>
           ) : (
             <>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 transition-colors">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-900/[0.06] dark:border-white/[0.08] pb-4 transition-colors">
                 <div>
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Pedido
@@ -122,7 +122,7 @@ export default function TrackingPage() {
                       <span className="absolute left-[11px] top-6 h-full w-[2px] bg-gray-200 dark:bg-gray-700 transition-colors" />
                     )}
                     {i === 0 ? (
-                      <CheckCircle2 className="relative z-10 w-6 h-6 shrink-0 text-[#ff812c] bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-full transition-colors" />
+                      <CheckCircle2 className="relative z-10 w-6 h-6 shrink-0 text-[#ff812c] atl-superficie rounded-full transition-colors" />
                     ) : (
                       <Circle className="relative z-10 w-6 h-6 shrink-0 text-slate-300 dark:text-slate-600 fill-white dark:fill-[#2C2C2E] transition-colors" />
                     )}

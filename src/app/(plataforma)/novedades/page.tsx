@@ -199,7 +199,7 @@ function GuideNovedadCard({
 
       {/* Expandable detail */}
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 px-5 pb-5 pt-4 space-y-5 animate-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-slate-900/[0.06] dark:border-white/[0.08] px-5 pb-5 pt-4 space-y-5 animate-in slide-in-from-top-2 duration-200">
           {/* Notes */}
           {guide.notes && (
             <div className="flex gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
@@ -327,7 +327,7 @@ function ActionModal({
                 className={`text-[12px] font-medium px-3 py-1.5 rounded-full border transition-all ${
                   reason === r
                     ? "bg-amber-500 border-amber-500 text-white"
-                    : "border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
+                    : "border-slate-900/[0.06] dark:border-white/[0.10] text-slate-600 dark:text-slate-400 hover:border-amber-400 hover:text-amber-600"
                 }`}
               >
                 {r}
@@ -346,7 +346,7 @@ function ActionModal({
             onChange={(e) => setExtra(e.target.value)}
             rows={2}
             placeholder={isReprogramar ? "Ej: Cliente disponible a partir de las 3pm..." : "Ej: Paquete en buen estado, sin abrir..."}
-            className="w-full text-[13px] px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+            className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.10] bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
           />
         </div>
 
@@ -358,7 +358,7 @@ function ActionModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-[14px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            className="flex-1 py-3 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.10] text-[14px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           >
             Cancelar
           </button>
@@ -497,7 +497,7 @@ export default function NovedadesPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 hover:border-[#ff812c] hover:text-[#ff812c] rounded-2xl px-4 py-2.5 transition-all active:scale-95 self-start sm:self-end"
+          className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] border border-slate-900/[0.06] dark:border-white/[0.10] hover:border-[#ff812c] hover:text-[#ff812c] rounded-2xl px-4 py-2.5 transition-all active:scale-95 self-start sm:self-end"
         >
           <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Actualizar
@@ -566,7 +566,7 @@ export default function NovedadesPage() {
                 className={`flex items-center gap-1.5 whitespace-nowrap text-[12px] font-semibold px-3.5 py-2 rounded-full border transition-all ${
                   filterStatus === f.value
                     ? "bg-amber-500 border-amber-500 text-white"
-                    : "border-gray-200 dark:border-gray-700 text-slate-500 dark:text-slate-400 hover:border-amber-400 bg-white dark:bg-[#2C2C2E]"
+                    : "border-slate-900/[0.06] dark:border-white/[0.10] text-slate-500 dark:text-slate-400 hover:border-amber-400 bg-white dark:bg-[#2C2C2E]"
                 }`}
               >
                 {f.label}
@@ -588,7 +588,7 @@ export default function NovedadesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar guía, destinatario, dirección…"
-          className="w-full sm:w-72 sm:shrink-0 text-[13px] px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#2C2C2E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+          className="w-full sm:w-72 sm:shrink-0 text-[13px] px-4 py-2.5 rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.10] bg-white dark:bg-[#2C2C2E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
         />
       </div>
 

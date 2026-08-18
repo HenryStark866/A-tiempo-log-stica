@@ -305,7 +305,7 @@ export default function MiComercioPage() {
   }
 
   const fieldRow =
-    "flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors";
+    "flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors";
   const fieldInput =
     "flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white";
   const fieldLabel =
@@ -339,7 +339,7 @@ export default function MiComercioPage() {
         </div>
 
         <form onSubmit={guardarNegocio}>
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+          <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
             <div className={fieldRow}>
               <label className={fieldLabel}>Comercio</label>
               <input
@@ -463,7 +463,7 @@ export default function MiComercioPage() {
           </p>
 
           {/* Translucida y con blur: es la lista de lectura de precios, sin campos de formulario dentro. */}
-          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {tarifario.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
                 <div className="min-w-0">
@@ -520,7 +520,7 @@ export default function MiComercioPage() {
         </p>
 
         <form onSubmit={guardarEnlaces}>
-          <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+          <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
             <div className={fieldRow}>
               <Globe className="w-4 h-4 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
               <input
@@ -637,7 +637,7 @@ export default function MiComercioPage() {
             </button>
           </div>
         ) : (
-          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {medios.map((m) => (
               <li key={m.id} className={`px-4 py-4 ${m.active ? "" : "opacity-50"}`}>
                 <div className="flex items-start gap-3">
@@ -728,7 +728,7 @@ export default function MiComercioPage() {
             </div>
 
             <form onSubmit={guardarMedio}>
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm">
+              <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
                 <div className={fieldRow}>
                   <label className={fieldLabel}>Medio</label>
                   <select
@@ -804,7 +804,7 @@ export default function MiComercioPage() {
       {/* ── Confirmación de borrado ── */}
       {borrando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl p-5 text-center">
+          <div className="w-full max-w-sm atl-superficie rounded-2xl p-5 text-center">
             <p className="text-[17px] font-bold text-slate-900 dark:text-white">
               ¿Eliminar {PAYMENT_KIND_LABELS[borrando.kind] ?? borrando.kind}?
             </p>

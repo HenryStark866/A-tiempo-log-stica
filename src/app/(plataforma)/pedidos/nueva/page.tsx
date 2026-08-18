@@ -434,7 +434,7 @@ export default function NewGuidePage() {
           <ChevronLeft className="w-6 h-6 -ml-2" />
           <span className="text-[17px]">Atrás</span>
         </button>
-        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl p-10 text-center shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08]">
           <PackagePlus className="mx-auto mb-4 size-10 text-slate-400" />
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-white">Creación de guías reservada a comercios</h2>
           <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
@@ -493,7 +493,7 @@ export default function NewGuidePage() {
               <Boxes className="w-3.5 h-3.5 text-[#ff812c]" />
               Contenido del paquete
             </h3>
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
 
               {products.length > 0 ? (
                 <div className="p-4 space-y-3">
@@ -544,7 +544,7 @@ export default function NewGuidePage() {
                               "flex flex-col rounded-xl border p-3 transition-colors",
                               qty > 0
                                 ? "border-[#ff812c] bg-[#ff812c]/5"
-                                : "border-slate-200 dark:border-slate-700 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50"
+                                : "border-slate-900/[0.06] dark:border-white/[0.08] bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50"
                             )}
                           >
                             <div className="flex items-start justify-between gap-2">
@@ -623,7 +623,7 @@ export default function NewGuidePage() {
                   que la cuadrícula de arriba muestra: solo el total, que es lo
                   único que no se ve de un vistazo ahí arriba. */}
               {items.length > 0 && (
-                <div className="flex items-center justify-between gap-3 border-t border-gray-100 dark:border-gray-800 bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3">
+                <div className="flex items-center justify-between gap-3 border-t border-slate-900/[0.06] dark:border-white/[0.08] bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3">
                   <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400">
                     {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
                   </p>
@@ -643,9 +643,9 @@ export default function NewGuidePage() {
               <PackagePlus className="w-3.5 h-3.5 text-[#ff812c]" />
               Cómo viene el paquete
             </h3>
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
 
-              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="px-4 py-3 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                 <label className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
                   Empaque
                 </label>
@@ -682,7 +682,7 @@ export default function NewGuidePage() {
                 )}
               </div>
 
-              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+              <div className="px-4 py-3 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                 <label className="text-[13px] font-medium text-slate-500 dark:text-slate-400">
                   Tamaño
                 </label>
@@ -718,7 +718,7 @@ export default function NewGuidePage() {
                 )}
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <Scale className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   type="number"
@@ -734,7 +734,7 @@ export default function NewGuidePage() {
               </div>
 
               <div
-                className="flex items-center gap-3 px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 cursor-pointer transition-colors"
+                className="flex items-center gap-3 px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] cursor-pointer transition-colors"
                 onClick={() => setForm((f) => ({ ...f, is_fragile: !f.is_fragile }))}
               >
                 <TriangleAlert
@@ -785,7 +785,7 @@ export default function NewGuidePage() {
               <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">
                 Mis clientes
               </h3>
-              <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+              <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
                 {recipients.length === 0 ? (
                   <div className="px-4 py-4 space-y-3">
                     <p className="text-[14px] text-slate-500 dark:text-slate-400">
@@ -860,10 +860,10 @@ export default function NewGuidePage() {
 
           <section>
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">Información de Envío</h3>
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
 
               {/* El comercio que crea la guía se carga solo; el cliente no lo elige. */}
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
                 <Store className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 {esDelComercio ? (
                   <div className="flex-1 min-w-0 py-3">
@@ -887,7 +887,7 @@ export default function NewGuidePage() {
                 )}
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <User className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   required
@@ -898,7 +898,7 @@ export default function NewGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <Phone className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   value={form.recipient_phone}
@@ -908,7 +908,7 @@ export default function NewGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <MapPin className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
                 <input
                   required
@@ -919,7 +919,7 @@ export default function NewGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Ciudad</label>
                 <div className="flex-1 flex items-center gap-2">
                   <select
@@ -951,7 +951,7 @@ export default function NewGuidePage() {
                 </div>
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Zona</label>
                 <select
                   value={form.zone_id}
@@ -1056,9 +1056,9 @@ export default function NewGuidePage() {
 
           <section>
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">Recaudo e instrucciones</h3>
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
 
-              <div className="flex items-center justify-between px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 transition-colors cursor-pointer" onClick={() => setForm((f) => ({ ...f, is_cod: !f.is_cod }))}>
+              <div className="flex items-center justify-between px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors cursor-pointer" onClick={() => setForm((f) => ({ ...f, is_cod: !f.is_cod }))}>
                 <label className="text-[16px] text-slate-900 dark:text-white font-medium flex-1 cursor-pointer">Pago Contraentrega (COD)</label>
                 <input
                   type="checkbox"
@@ -1071,7 +1071,7 @@ export default function NewGuidePage() {
 
               {form.is_cod && (
                 <>
-                  <div className="flex items-center px-4 min-h-[52px] border-b border-gray-100 dark:border-gray-800 focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
+                  <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
                     <Banknote className="w-5 h-5 text-[#ff812c] mr-4 shrink-0" />
                     <span className="text-slate-400 dark:text-slate-500 mr-2">$</span>
                     <input
@@ -1095,7 +1095,7 @@ export default function NewGuidePage() {
                       es como se cobra de menos por equivocación. Se avisa sin
                       bloquear, y se ofrece cuadrarlo de un toque. */}
                   {items.length > 0 && Number(form.cod_amount || 0) !== totalContenido && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-900/[0.06] dark:border-white/[0.08] bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
                       <p className="text-[13px] text-amber-700 dark:text-amber-400">
                         El contenido suma {formatCOP(totalContenido)}.
                       </p>
@@ -1115,7 +1115,7 @@ export default function NewGuidePage() {
                   {/* Quién paga el domicilio. Es la diferencia entre que la
                       entrega te llegue a la factura o que ya venga saldada. */}
                   <div
-                    className="flex items-start justify-between gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800 cursor-pointer"
+                    className="flex items-start justify-between gap-3 px-4 py-3 border-b border-slate-900/[0.06] dark:border-white/[0.08] cursor-pointer"
                     onClick={() =>
                       setForm((f) => ({ ...f, cod_includes_shipping: !f.cod_includes_shipping }))
                     }
@@ -1172,13 +1172,13 @@ export default function NewGuidePage() {
           {/* En el teléfono se apoya encima de la barra de pestañas, no en el
               borde de la pantalla: con `bottom-0` el botón «Crear guía» caía
               dentro de los 68 px de las pestañas y quedaba tapado a medias. */}
-          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
+          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-slate-900/[0.06] dark:border-white/[0.08] z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
             <div className="flex gap-3 max-w-2xl mx-auto">
               <button
                 type="button"
                 onClick={() => router.back()}
                 disabled={saving}
-                className="flex-1 flex items-center justify-center bg-[#FFFFFF] dark:bg-[#2C2C2E] text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
+                className="flex-1 flex items-center justify-center atl-superficie text-slate-900 dark:text-white font-semibold rounded-xl min-h-[52px] shadow-sm active:scale-[0.98] transition-transform"
               >
                 Cancelar
               </button>

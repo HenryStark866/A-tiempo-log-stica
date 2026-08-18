@@ -113,7 +113,7 @@ export function NotificationBell({
     <>
       {/* Cabecera fija: el título puede recortarse, pero «Marcar leídas»
           nunca se encoge ni se monta encima — es la única acción del panel. */}
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-900/[0.06] px-4 py-3 dark:border-white/[0.08]">
         <p className="min-w-0 truncate text-[15px] font-semibold text-slate-900 dark:text-white">
           Notificaciones
         </p>
@@ -134,7 +134,7 @@ export function NotificationBell({
       ) : (
         /* La lista es la que se desplaza, no el panel entero: así la
            cabecera con «Marcar leídas» queda siempre a la vista. */
-        <ul className="min-h-0 flex-1 divide-y divide-gray-100 overflow-y-auto overscroll-contain dark:divide-gray-800">
+        <ul className="min-h-0 flex-1 divide-y divide-slate-900/[0.06] overflow-y-auto overscroll-contain dark:divide-white/[0.08]">
           {items.map((n) => (
             <li key={n.id}>
               <button
@@ -199,7 +199,7 @@ export function NotificationBell({
           campana— y no hay nada que capturarlo. */}
       {abierto && esEscritorio && (
         <div
-          className={`absolute z-[60] mt-2 flex max-h-[min(28rem,calc(100dvh-6rem))] w-[320px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-[#FFFFFF] shadow-2xl dark:border-gray-800 dark:bg-[#2C2C2E] ${
+          className={`absolute z-[60] mt-2 flex max-h-[min(28rem,calc(100dvh-6rem))] w-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900/[0.06] bg-[#FFFFFF] shadow-2xl dark:border-white/[0.08] dark:bg-[#2C2C2E] ${
             align === "left" ? "left-0" : "right-0"
           }`}
         >
@@ -221,7 +221,7 @@ export function NotificationBell({
             />
             <div
               ref={hoja}
-              className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t border-gray-100 bg-[#FFFFFF] pb-safe shadow-2xl dark:border-gray-800 dark:bg-[#2C2C2E]"
+              className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t border-slate-900/[0.06] bg-[#FFFFFF] pb-safe shadow-2xl dark:border-white/[0.08] dark:bg-[#2C2C2E]"
             >
               {/* Asa: indica que la hoja se puede cerrar deslizando. */}
               <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600" />

@@ -75,7 +75,7 @@ export default function TrackingByTokenPage() {
   return (
     <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
       <FondoRastreo />
-      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-300">
+      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors duration-300">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 h-14">
           <Link href="/" className="active:opacity-70 transition-opacity">
             <Logo />
@@ -85,18 +85,18 @@ export default function TrackingByTokenPage() {
 
       <main className="mx-auto max-w-md px-4 pt-6 space-y-4">
         {loading ? (
-          <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm">
+          <div className="rounded-3xl atl-superficie p-6 shadow-sm">
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500 dark:text-slate-400">
               <LoaderCircle className="w-8 h-8 animate-spin text-[#ff812c]" />
               <p className="text-[16px] font-medium">Consultando tu pedido…</p>
             </div>
           </div>
         ) : frenado && !result ? (
-          <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm">
+          <div className="rounded-3xl atl-superficie p-6 shadow-sm">
             <DemasiadasSolicitudes onReintentar={load} />
           </div>
         ) : notFound || !result ? (
-          <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm py-12 text-center">
+          <div className="rounded-3xl atl-superficie p-6 shadow-sm py-12 text-center">
             <PackageX className="mx-auto mb-4 w-12 h-12 text-slate-400 dark:text-slate-500" />
             <h1 className="text-[22px] font-bold">Este enlace no corresponde a ningún envío</h1>
             <p className="mt-2 text-[15px] text-slate-500 dark:text-slate-400 mb-8">
@@ -113,7 +113,7 @@ export default function TrackingByTokenPage() {
           <>
             {/* En ruta: es lo que el comprador abrió a mirar, va primero. */}
             {hayPosicion && (
-              <div className="overflow-hidden rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] shadow-sm">
+              <div className="overflow-hidden rounded-3xl atl-superficie shadow-sm">
                 <div className="flex items-center gap-3 px-5 pt-5 pb-3">
                   <div className="rounded-full bg-[#ff812c] p-2.5 shrink-0">
                     <Truck className="w-5 h-5 text-[#1C1C1E]" />
@@ -144,15 +144,15 @@ export default function TrackingByTokenPage() {
                   href={`https://www.google.com/maps/search/?api=1&query=${result.courier_lat},${result.courier_lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 border-t border-gray-100 dark:border-gray-800 py-3.5 text-[15px] font-semibold text-[#ff812c] active:opacity-70"
+                  className="flex items-center justify-center gap-2 border-t border-slate-900/[0.06] dark:border-white/[0.08] py-3.5 text-[15px] font-semibold text-[#ff812c] active:opacity-70"
                 >
                   Abrir en el mapa <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
             )}
 
-            <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-6 shadow-sm">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-800 pb-4">
+            <div className="rounded-3xl atl-superficie p-6 shadow-sm">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-900/[0.06] dark:border-white/[0.08] pb-4">
                 <div className="min-w-0">
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Pedido
@@ -186,7 +186,7 @@ export default function TrackingByTokenPage() {
                       <span className="absolute left-[11px] top-6 h-full w-[2px] bg-gray-200 dark:bg-gray-700" />
                     )}
                     {i === 0 ? (
-                      <CheckCircle2 className="relative z-10 w-6 h-6 shrink-0 text-[#ff812c] bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-full" />
+                      <CheckCircle2 className="relative z-10 w-6 h-6 shrink-0 text-[#ff812c] atl-superficie rounded-full" />
                     ) : (
                       <Circle className="relative z-10 w-6 h-6 shrink-0 text-slate-300 dark:text-slate-600 fill-white dark:fill-[#2C2C2E]" />
                     )}

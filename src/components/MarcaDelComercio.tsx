@@ -143,7 +143,7 @@ export function MarcaDelComercio({
       </div>
 
       {/* ── Permiso de portada ── */}
-      <div className="flex items-center gap-4 border-t border-gray-100 p-4 dark:border-gray-800">
+      <div className="flex items-center gap-4 border-t border-slate-900/[0.06] p-4 dark:border-white/[0.08]">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#ff812c]/10">
           <Sparkles className="h-[18px] w-[18px] text-[#ff812c]" />
         </div>
@@ -182,7 +182,7 @@ export function MarcaDelComercio({
       </div>
 
       {error && (
-        <p className="flex items-start gap-1.5 border-t border-gray-100 px-4 py-3 text-[13px] text-rose-600 dark:border-gray-800 dark:text-rose-400">
+        <p className="flex items-start gap-1.5 border-t border-slate-900/[0.06] px-4 py-3 text-[13px] text-rose-600 dark:border-white/[0.08] dark:text-rose-400">
           <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {error}
         </p>

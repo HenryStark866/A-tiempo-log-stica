@@ -110,7 +110,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pillars / Features Section */}
-        <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
+        <section className="pt-8 border-t border-slate-900/[0.06] dark:border-white/[0.08]">
           <h2 className="text-[14px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest text-center mb-8">Nuestros Pilares Operativos</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {PILLARS.map((p, idx) => (
@@ -132,7 +132,7 @@ export default function LandingPage() {
         {/* De dónde sale el nombre. Va después de los pilares y antes del pie:
             quien vino a rastrear un paquete ya resolvió lo suyo arriba, y a
             quien se quedó leyendo le explica por qué la app se llama así. */}
-        <section className="pt-8 border-t border-gray-200 dark:border-gray-800">
+        <section className="pt-8 border-t border-slate-900/[0.06] dark:border-white/[0.08]">
           <div className="bg-white/15 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-sm">
             <h2 className="text-[14px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-5">
               Por qué {MARCA.app}
@@ -172,7 +172,7 @@ export default function LandingPage() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-gray-200 dark:border-gray-800">
+        <footer className="border-t border-slate-900/[0.06] dark:border-white/[0.08]">
           <PieMarca className="py-6" />
         </footer>
 

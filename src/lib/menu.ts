@@ -83,7 +83,13 @@ export const NAV: NavItem[] = [
   { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
   { href: "/conductor/recogida", label: "Mis recogidas", icon: PackageOpen, roles: ["mensajero"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
-  { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["mensajero"] },
+  // Mi perfil es de TODOS, no solo del mensajero. La pantalla se abrió a todos
+  // los roles —cada quien edita sus datos y su red social— pero este menú se
+  // quedó atrás, así que para un admin o un comercio la pantalla existía sin
+  // que hubiera manera de llegar a ella. En escritorio se llega además tocando
+  // tu nombre abajo en la barra; en el teléfono ese bloque no existe y esta
+  // fila es el único camino.
+  { href: "/mi-perfil", label: "Mi perfil", icon: IdCard, roles: ["admin", "coordinador", "operario", "mensajero", "cliente", "admin_cedi", "asesor"] },
   { href: "/mensajeros", label: "Mensajeros", icon: BadgeCheck, roles: ["admin", "coordinador", "admin_cedi"] },
   { href: "/recaudo", label: "Recaudo", icon: Banknote, roles: ["admin", "coordinador", "mensajero", "admin_cedi"] },
   // El comercio ve SU recaudo aparte: la plata que le cobramos a sus

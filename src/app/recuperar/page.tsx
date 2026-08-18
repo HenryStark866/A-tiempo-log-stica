@@ -72,7 +72,7 @@ export default function RecuperarPage() {
         </div>
 
         {enviado ? (
-          <div className="mt-8 rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-8 text-center shadow-sm transition-colors duration-300">
+          <div className="mt-8 rounded-2xl atl-superficie p-8 text-center shadow-sm transition-colors duration-300">
             <MailCheck className="mx-auto mb-4 w-12 h-12 text-[#ff812c]" />
             <p className="text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
               Abre el enlace desde este mismo teléfono o computador. Si no llega
@@ -88,7 +88,7 @@ export default function RecuperarPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6 mt-8">
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+            <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
               <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
                 <label className="w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0">
                   Correo

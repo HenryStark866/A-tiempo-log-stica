@@ -99,9 +99,19 @@ function buildCsp(nonce: string): string {
     // La regla se rompió sola cuando alguien cambió el proveedor de teselas sin
     // que nada obligara a actualizar esta línea. Si mañana se cambia otra vez,
     // hay que volver aquí.
-    `img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com https://server.arcgisonline.com ${SUPABASE_ORIGIN}`,
+    `img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://tiles.openfreemap.org https://s3.amazonaws.com ${SUPABASE_ORIGIN}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${SUPABASE_ORIGIN} ${SUPABASE_WS_ORIGIN}`,
+    // El mapa de la flota (MapLibre) pide por fetch lo que antes eran solo
+    // imágenes: el estilo, las teselas vectoriales, las tipografías de las
+    // etiquetas y el modelo de elevación del terreno. Todo eso viaja por
+    // connect-src, no por img-src, así que hace falta abrir los tres
+    // proveedores aquí además de arriba. Ver FleetMap.tsx.
+    `connect-src 'self' https://tiles.openfreemap.org https://s3.amazonaws.com https://server.arcgisonline.com ${SUPABASE_ORIGIN} ${SUPABASE_WS_ORIGIN}`,
+    // MapLibre descarga y dibuja las teselas en un worker que crea desde un
+    // blob. Sin esto el mapa no llega ni a aparecer: el navegador bloquea el
+    // worker y la librería se cae al arrancar.
+    "worker-src 'self' blob:",
+    "child-src 'self' blob:",
     // /seguimiento embebe el mapa de OpenStreetMap en un iframe mientras el
     // mensajero va en ruta: sin frame-src explícito, cae en default-src
     // 'self' y lo bloquea.

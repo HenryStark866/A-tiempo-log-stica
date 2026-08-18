@@ -3,6 +3,38 @@
 import { LoaderCircle, SearchX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LAS PIEZAS COMUNES
+ *
+ * Once pantallas se dibujan con esto: Pedidos, Recogidas, Recaudo, CEDI,
+ * Mensajeros, Sedes, Códigos, Mapa, Seguridad, Mi perfil y el detalle del
+ * pedido. Cambiar algo aquí las cambia todas a la vez, que es justamente para
+ * lo que existen.
+ *
+ * Nacieron cuando la app era clara y se quedaron ahí: tarjeta blanca, título
+ * navy, modal blanco. Al llegar el tema oscuro —que es el que usa casi todo el
+ * mundo— esas once pantallas quedaron con tarjetas blancas encima del fondo
+ * oscuro y títulos azul marino sobre negro, ilegibles. No era un detalle de
+ * gusto: había texto que no se podía leer.
+ *
+ * ── El lenguaje visual ──────────────────────────────────────────────────
+ * · Superficie de vidrio: translúcida y desenfocada, para que el fondo de la
+ *   app (el valle de Medellín) se insinúe debajo sin estorbar la lectura.
+ * · Borde de un pelo, más claro que la superficie en oscuro y más oscuro en
+ *   claro: define el borde sin dibujar una caja.
+ * · Naranja de marca solo donde hay que actuar o mirar. Si todo brilla, nada
+ *   resalta.
+ * · Radios generosos y números tabulares: las cifras de una tabla tienen que
+ *   quedar alineadas en columna aunque cambien.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/** La superficie base. Se reutiliza para que todo lo elevado se vea igual. */
+export const superficie =
+  "border border-slate-900/[0.06] bg-white/80 backdrop-blur-xl " +
+  "dark:border-white/[0.08] dark:bg-[#2C2C2E]/70";
+
 export function PageHeader({
   title,
   subtitle,
@@ -14,13 +46,17 @@ export function PageHeader({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-navy-900">
+      <div className="min-w-0">
+        <h1 className="text-[26px] sm:text-[30px] font-bold leading-tight tracking-tight text-slate-900 dark:text-white">
           {title}
         </h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+        {subtitle && (
+          <p className="mt-1.5 text-[15px] leading-snug text-slate-500 dark:text-slate-400">
+            {subtitle}
+          </p>
+        )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -32,32 +68,23 @@ export function Card({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border border-slate-200 bg-white shadow-sm",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn("rounded-3xl shadow-sm", superficie, className)}>{children}</div>;
 }
 
 export function Loading({ label = "Cargando…" }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 py-16 text-slate-400">
-      <LoaderCircle className="size-6 animate-spin" />
-      {label}
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500 dark:text-slate-400">
+      <LoaderCircle className="size-7 animate-spin text-[#ff812c]" />
+      <p className="text-[15px]">{label}</p>
     </div>
   );
 }
 
 export function Empty({ label }: { label: string }) {
   return (
-    <div className="py-14 text-center text-slate-400">
+    <div className="py-14 text-center text-slate-400 dark:text-slate-500">
       <SearchX className="mx-auto mb-3 size-9" />
-      <p className="text-sm">{label}</p>
+      <p className="mx-auto max-w-[38ch] text-[15px] leading-snug">{label}</p>
     </div>
   );
 }
@@ -77,7 +104,7 @@ export function FiltroActivo({
   onClear: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[#ff812c]/10 py-1.5 pl-3.5 pr-1.5 text-[13px] font-semibold text-[#ff812c]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[#ff812c]/10 py-1.5 pl-3.5 pr-1.5 text-[13px] font-semibold text-[#ff812c] ring-1 ring-inset ring-[#ff812c]/20">
       {label}
       <button
         type="button"
@@ -99,18 +126,27 @@ export function Button({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "danger" | "ghost";
 }) {
+  // El primario es el naranja de marca con texto oscuro, igual que los botones
+  // escritos a mano en el resto de la app. Antes era `brand-500` con texto
+  // blanco: parecido de lejos, distinto al lado, y se notaba en las pantallas
+  // que mezclan los dos.
   const variants = {
     primary:
-      "bg-brand-500 text-white hover:bg-brand-600 shadow-sm disabled:opacity-50",
+      "bg-[#ff812c] text-[#1C1C1E] font-bold hover:bg-[#ff812c]/90 shadow-sm shadow-[#ff812c]/20 disabled:opacity-50",
     secondary:
-      "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50",
-    danger: "bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50",
-    ghost: "text-slate-600 hover:bg-slate-100 disabled:opacity-50",
+      "border border-slate-900/[0.08] bg-white/70 text-slate-700 backdrop-blur hover:bg-white " +
+      "dark:border-white/[0.10] dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.12] disabled:opacity-50",
+    danger: "bg-rose-600 text-white hover:bg-rose-700 shadow-sm disabled:opacity-50",
+    ghost:
+      "text-slate-600 hover:bg-slate-900/[0.05] dark:text-slate-300 dark:hover:bg-white/[0.08] disabled:opacity-50",
   };
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
+        // 44 px de alto mínimo: es lo que se puede tocar con el dedo en la
+        // calle, que es donde se usa esta app.
+        "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold",
+        "transition-all active:scale-[0.98] disabled:pointer-events-none",
         variants[variant],
         className
       )}
@@ -122,7 +158,9 @@ export function Button({
 }
 
 export const inputCls =
-  "w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 bg-white";
+  "w-full min-h-[44px] rounded-xl border border-slate-900/[0.10] bg-white/80 px-3.5 text-sm text-slate-900 outline-none transition " +
+  "placeholder:text-slate-400 focus:border-[#ff812c] focus:ring-2 focus:ring-[#ff812c]/25 " +
+  "dark:border-white/[0.10] dark:bg-white/[0.06] dark:text-white dark:placeholder:text-slate-500";
 
 export function Field({
   label,
@@ -133,7 +171,7 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-slate-700">
+      <span className="mb-1.5 block text-[13px] font-medium text-slate-600 dark:text-slate-400">
         {label}
       </span>
       {children}
@@ -151,11 +189,31 @@ export function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-navy-950/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
-        <h2 className="mb-4 text-lg font-bold text-navy-900">{title}</h2>
-        {children}
+    // En el teléfono sube desde abajo y se pega al borde inferior, que es donde
+    // está el pulgar; en escritorio se centra.
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className={cn(
+          "relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:rounded-3xl",
+          "border-slate-900/[0.06] bg-[#F2F2F7]/95 backdrop-blur-2xl",
+          "dark:border-white/[0.08] dark:bg-[#1C1C1E]/95 border"
+        )}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-900/[0.06] px-5 py-4 dark:border-white/[0.08]">
+          <h2 className="min-w-0 truncate text-[17px] font-semibold text-slate-900 dark:text-white">
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-900/[0.06] text-slate-500 transition-colors hover:bg-slate-900/[0.12] dark:bg-white/[0.08] dark:text-slate-400 dark:hover:bg-white/[0.16]"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );

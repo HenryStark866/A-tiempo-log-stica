@@ -157,9 +157,11 @@ export function SedesDelComercio() {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {sedes.map((s) => (
+            /* Translucida y con blur (patron probado en vivo: /90 sin blur no se
+               notaba). El modal de edicion de abajo se queda opaco a proposito. */
             <div
               key={s.id}
-              className="rounded-2xl bg-[#FFFFFF] p-5 shadow-sm dark:bg-[#2C2C2E]"
+              className="rounded-2xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">

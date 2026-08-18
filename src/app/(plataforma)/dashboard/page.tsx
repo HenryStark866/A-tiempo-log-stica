@@ -252,7 +252,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">
+      {/* Translúcida y con blur (patrón probado en vivo). Es la tarjeta
+          principal de lectura del panel; las tarjetas KPI de arriba se
+          quedan opacas por ser tiles repetidos, no la tarjeta única. */}
+      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">
         <h2 className="text-[20px] font-bold text-slate-900 dark:text-white">Pedidos por estado</h2>
         <p className="mt-1 mb-8 text-[15px] text-slate-500 dark:text-slate-400 font-medium">
           {total} guías en total

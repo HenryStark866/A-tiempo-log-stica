@@ -109,7 +109,9 @@ export function RemesasRecaudo() {
   const conRecaudo = clientes.filter((c) => porGirar[c.id]);
 
   return (
-    <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+    /* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+       El modal de "Marcar girada" se queda opaco a propósito. */
+    <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
       <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
         <div className="rounded-xl bg-[#ff812c]/10 p-2 text-[#ff812c] dark:bg-[#ff812c]/20">
           <Send className="h-5 w-5" />

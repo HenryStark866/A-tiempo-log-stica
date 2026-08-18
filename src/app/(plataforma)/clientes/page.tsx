@@ -165,7 +165,9 @@ export default function ClientsPage() {
       </div>
 
       {/* Clients List */}
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+      {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+          El modal de edición de abajo se queda opaco a propósito. */}
+      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
         {clients === null ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-7 h-7 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />

@@ -164,7 +164,9 @@ export default function EditGuidePage() {
           <ChevronLeft className="w-6 h-6 -ml-2" />
           <span className="text-[17px]">Atrás</span>
         </button>
-        <div className="rounded-3xl bg-[#FFFFFF] dark:bg-[#2C2C2E] p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
+        {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+            Es la tarjeta de aviso de la pantalla, no un formulario. */}
+        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl p-10 text-center shadow-sm border border-slate-200 dark:border-slate-800">
           <PackagePlus className="mx-auto mb-4 size-10 text-slate-400" />
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-white">
             Esta guía no se puede editar

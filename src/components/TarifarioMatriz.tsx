@@ -92,7 +92,9 @@ export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
 
   if (zonas.length === 0) {
     return (
-      <p className="rounded-2xl bg-[#FFFFFF] p-5 text-center text-sm text-slate-500 dark:bg-[#2C2C2E]">
+      // Translucida y con blur (patron probado en produccion: /90 sin blur no se
+      // notaba). Es el estado vacío, hace las veces de tarjeta principal aquí.
+      <p className="rounded-2xl bg-[#FFFFFF]/75 p-5 text-center text-sm text-slate-500 backdrop-blur-xl dark:bg-[#2C2C2E]/75">
         Este CEDI todavía no tiene zonas.
       </p>
     );
@@ -112,7 +114,9 @@ export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+      {/* Translucida y con blur (patron probado en produccion). La cabecera y la
+          columna sticky de la tabla se quedan opacas: son tabla anidada, no tarjeta. */}
+      <div className="overflow-x-auto rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800">

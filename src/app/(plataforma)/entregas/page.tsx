@@ -358,7 +358,8 @@ export default function MyRoutePage() {
           <p className="text-[15px]">Cargando tu ruta…</p>
         </div>
       ) : guides.length === 0 ? (
-        <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-8 flex flex-col items-center justify-center gap-3 shadow-sm transition-colors duration-300">
+        // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+        <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-8 flex flex-col items-center justify-center gap-3 shadow-sm transition-colors duration-300">
           <Package className="w-12 h-12 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400 text-center max-w-sm">No tienes paquetes asignados. El CEDI te cargará guías zonificadas.</p>
         </div>
@@ -375,7 +376,8 @@ export default function MyRoutePage() {
                   <h2 className="text-[17px] font-semibold text-slate-900 dark:text-white px-1">{sec.title}</h2>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {sec.list.map((g, i) => (
-                      <div key={g.id} className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 shadow-sm transition-colors duration-300 flex flex-col">
+                      // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+                      <div key={g.id} className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 shadow-sm transition-colors duration-300 flex flex-col">
                         <div className="mb-3 flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             {NAV_HANDOFF_ENABLED && g.status === "en_ruta" && (

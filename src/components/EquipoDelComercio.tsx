@@ -137,10 +137,12 @@ export function EquipoDelComercio() {
                 Esperan que los habilites
               </h2>
               <div className="space-y-3">
+                {/* Translucida y con blur (patron probado en produccion). Cada tarjeta es la
+                    superficie de lectura del asesor pendiente; los botones de abajo no se tocan. */}
                 {porAprobar.map((a) => (
                   <div
                     key={a.id}
-                    className="rounded-2xl border-l-4 border-[#ff812c] bg-[#FFFFFF] p-5 shadow-sm dark:bg-[#2C2C2E]"
+                    className="rounded-2xl border-l-4 border-[#ff812c] bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ff812c]/10">
@@ -201,7 +203,9 @@ export function EquipoDelComercio() {
             <h2 className="mb-2 ml-1 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Tu equipo
             </h2>
-            <div className="overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+            {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+                El modal de elegir sede de abajo se queda opaco a proposito. */}
+            <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
               {dentro.length === 0 ? (
                 <div className="px-5 py-12 text-center">
                   <ShieldCheck className="mx-auto mb-3 h-9 w-9 text-slate-300 dark:text-slate-600" />

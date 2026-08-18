@@ -182,7 +182,8 @@ function Collections() {
       <div className={`grid gap-6 ${vista ? "" : "xl:grid-cols-2"}`}>
         {/* Pending Collections Card */}
         {verSinConsignar && (
-        <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 text-[19px] font-bold text-slate-900 dark:text-white">Recaudos sin consignar</h2>
           <p className="mb-5 text-[14px] text-slate-500 dark:text-slate-400">
             Entregas contraentrega aún no incluidas en un cierre de caja
@@ -220,7 +221,8 @@ function Collections() {
 
         {/* Settlements Card */}
         {verCierres && (
-        <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-[#ff812c]/10 dark:bg-[#ff812c]/20 p-2 rounded-xl text-[#ff812c]">
               <Landmark className="w-5 h-5" />

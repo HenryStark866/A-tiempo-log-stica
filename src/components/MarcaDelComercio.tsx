@@ -84,7 +84,10 @@ export function MarcaDelComercio({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+    // Translucida y con blur (patron probado en produccion). Es tarjeta unica
+    // de esta ficha, sin nada anidado; el input de archivo va oculto y no
+    // hereda este fondo como superficie visible.
+    <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
       <div className="flex items-center gap-4 p-4">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E]">
           {logoUrl ? (

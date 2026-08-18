@@ -372,12 +372,14 @@ export default function CourierPickupPage() {
       {profile.role === "mensajero" && <PositionReporter />}
 
       {pickups === null ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-16 text-slate-500 shadow-sm dark:bg-[#2C2C2E] dark:text-slate-400">
+        // Translucida y con blur (patron probado en vivo: /90 sin blur no se notaba).
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#ff812c]" />
           <p className="text-[15px]">Cargando tus recogidas…</p>
         </div>
       ) : pickups.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-16 shadow-sm dark:bg-[#2C2C2E]">
+        // Translucida y con blur, mismo motivo que arriba.
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
           <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400">
             No tienes recogidas asignadas ahora mismo
@@ -392,9 +394,12 @@ export default function CourierPickupPage() {
             const arrancada = p.status === "en_curso";
 
             return (
+              // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+              // Los modales de mas abajo (elegir app de navegacion, que hacer con lo
+              // recogido) se quedan opacos a proposito.
               <section
                 key={p.pickup_id}
-                className="overflow-hidden rounded-3xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]"
+                className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
               >
                 <div className="border-b border-gray-100 p-5 dark:border-gray-800">
                   <p className="text-[19px] font-bold text-slate-900 dark:text-white">

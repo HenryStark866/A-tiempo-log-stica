@@ -96,7 +96,9 @@ export default function EntregaActivaPage() {
         </div>
 
         {/* Package Info Card */}
-        <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+        {/* Translucida y con blur (patron probado en vivo: /90 sin blur no se notaba).
+            Es texto de solo lectura, sin campos de formulario dentro. */}
+        <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
           <div className="px-4 py-2.5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center transition-colors">
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Info del Paquete</h3>
             <span className="text-[13px] font-bold text-slate-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md">

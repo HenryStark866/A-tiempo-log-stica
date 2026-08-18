@@ -311,7 +311,9 @@ export default function CediPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Reception Card */}
-        <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        {/* Translúcida y con blur (probado en vivo: /90 sin blur no se notaba).
+            El input de abajo lleva su propio fondo opaco, sigue legible. */}
+        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-[#ff812c]/10 dark:bg-[#ff812c]/20 p-2 rounded-xl text-[#ff812c]">
               <ScanBarcode className="w-5 h-5" />
@@ -394,7 +396,8 @@ export default function CediPage() {
         </section>
 
         {/* Returns / Novedades Card */}
-        <section className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        {/* Translúcida y con blur, mismo patrón que la tarjeta de recepción. */}
+        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-amber-50 dark:bg-amber-500/10 p-2 rounded-xl text-amber-500">
               <Undo2 className="w-5 h-5" />

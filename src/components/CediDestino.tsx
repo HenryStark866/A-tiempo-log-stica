@@ -55,7 +55,8 @@ export function CediDestino({
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+    /* Translucida y con blur (probado en vivo: /90 sin blur no se notaba). */
+    <section className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
       <div className="flex items-start gap-3 p-5">
         <div className="rounded-xl bg-[#ff812c]/10 p-2.5 text-[#ff812c]">
           <Warehouse className="h-5 w-5" />

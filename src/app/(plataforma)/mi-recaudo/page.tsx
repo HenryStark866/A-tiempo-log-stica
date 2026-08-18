@@ -152,7 +152,8 @@ export default function MiRecaudoPage() {
 
       {/* El titular: lo que le falta por recibir. Es la pregunta que trae a
           alguien a esta pantalla, así que va primero y en grande. */}
-      <div className="rounded-3xl bg-[#FFFFFF] p-6 shadow-sm dark:bg-[#2C2C2E]">
+      {/* Translucida y con blur (patrón probado en vivo: /90 sin blur no se notaba). */}
+      <div className="rounded-3xl bg-[#FFFFFF]/75 p-6 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff812c]/10">
             <Banknote className="h-6 w-6 text-[#ff812c]" />
@@ -182,12 +183,13 @@ export default function MiRecaudoPage() {
       </div>
 
       {/* Los cuatro estados */}
+      {/* Translucidas y con blur, mismo patrón que la tarjeta del titular. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {ESTADOS.map((e) => {
           const dato = r?.[e.clave];
           const Icono = e.icono;
           return (
-            <div key={e.clave} className="rounded-2xl bg-[#FFFFFF] p-5 shadow-sm dark:bg-[#2C2C2E]">
+            <div key={e.clave} className="rounded-2xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${e.fondo}`}>
                   <Icono className={`h-5 w-5 ${e.color}`} />
@@ -217,7 +219,8 @@ export default function MiRecaudoPage() {
         <h2 className="mb-2 ml-1 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Giros
         </h2>
-        <div className="overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+        {/* Translucida y con blur; el desglose interno (fondo gris) se queda opaco. */}
+        <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
           {(datos?.remesas.length ?? 0) === 0 ? (
             <p className="px-5 py-10 text-center text-[15px] text-slate-400">
               Todavía no te hemos hecho ningún giro.
@@ -301,7 +304,8 @@ export default function MiRecaudoPage() {
         <h2 className="mb-2 ml-1 text-[13px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Pedido por pedido
         </h2>
-        <div className="overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+        {/* Translucida y con blur, mismo patrón que el resto de la pantalla. */}
+        <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
           {(datos?.pedidos.length ?? 0) === 0 ? (
             <p className="px-5 py-10 text-center text-[15px] text-slate-400">
               Todavía no tienes pedidos contraentrega entregados.

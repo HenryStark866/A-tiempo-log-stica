@@ -1,4 +1,4 @@
-import { Fondo, Vinneta } from "@/components/fondos/Fondo";
+import { Fondo, Rejilla, Resplandor, Vinneta } from "@/components/fondos/Fondo";
 import { MapaAburra } from "@/components/fondos/MapaAburra";
 
 /**
@@ -32,13 +32,38 @@ import { MapaAburra } from "@/components/fondos/MapaAburra";
  * aparte para SMIL que `animation: none` no cubre).
  *
  * Más opaco que la primera versión, también a propósito: 0.16 quedaba casi
- * invisible detrás de tarjetas al 90%. En 0.30 el valle se nota en los
+ * invisible detrás de tarjetas al 90%. En 0.34 el valle se nota en los
  * márgenes y se asoma por los bordes translúcidos sin competir con el texto.
+ *
+ * ── La capa cinematográfica ──────────────────────────────────────────────
+ *
+ * Con las tarjetas principales ya translúcidas (`bg-…/75 backdrop-blur-xl`)
+ * en el resto de la plataforma, un solo punto recorriendo el río se quedaba
+ * corto: el fondo por fin se ve, y lo que se veía era poco. Se le suman tres
+ * capas de profundidad, cada una a su propio ritmo — el desfase entre
+ * velocidades es lo que lee como movimiento de cámara y no como un GIF:
+ *
+ *   · `Rejilla`, casi invisible (7-12 % de opacidad ya de fábrica), deriva
+ *     despacio detrás de todo — el piso de la ciudad.
+ *   · `Resplandor`, un respiro de marca muy tenue en una esquina, con su
+ *     propio período (18 s) para no acompasarse con nada más.
+ *   · `MapaAburra` con `rutas`: tramos cortos entre municipios vecinos
+ *     dibujándose y un paquete viajando por cada uno, más el latido del
+ *     nodo de Medellín. Aparte de `animado` a propósito — ver el porqué en
+ *     `MapaAburra.tsx` — para que las otras cinco pantallas que comparten
+ *     este mapa (login, pago, rastreo, bienvenida, portada) no cambien.
+ *
+ * Todo transform/opacity/stroke-dashoffset — nada de JavaScript, nada que
+ * dispare layout — así que el costo de horas con la app abierta sigue
+ * siendo el de antes: casi nada. Y `prefers-reduced-motion` sigue apagando
+ * las tres capas igual que apagaba la primera (`.atl-fondo`, en globals.css).
  */
 export function FondoPlataforma() {
   return (
     <Fondo>
-      <MapaAburra animado opacidad={0.3} />
+      <Rejilla paso={84} opacidad={0.35} duracion={15} />
+      <Resplandor x="82%" y="18%" tamano={560} fuerza={0.06} duracion={18} />
+      <MapaAburra animado rutas opacidad={0.34} />
       <Vinneta />
     </Fondo>
   );

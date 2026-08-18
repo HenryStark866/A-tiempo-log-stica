@@ -129,7 +129,9 @@ export function ShopifyConnect() {
 
       {estado ? (
         <>
-          <div className="rounded-2xl bg-[#FFFFFF] p-5 shadow-sm dark:bg-[#2C2C2E]">
+          {/* Translucida y con blur (patron probado en vivo). El formulario de
+              conexion, mas abajo en el otro estado, se queda opaco a proposito. */}
+          <div className="rounded-2xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-500/10">
                 <CircleCheck className="h-5 w-5" />

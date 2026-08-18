@@ -298,7 +298,9 @@ function Fleet() {
       )}
 
       {couriers === null ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-24 text-slate-500 shadow-sm dark:bg-[#2C2C2E] dark:text-slate-400">
+        // Translucida y con blur (patron probado en vivo: /90 sin blur no se nota).
+        // Tarjeta de carga, sin campos ni decisiones dentro.
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-24 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#ff812c]" />
           <p className="text-[15px]">Cargando el mapa…</p>
         </div>
@@ -317,9 +319,11 @@ function Fleet() {
               const min = minutosDesde(c.last_position_at);
               const rancio = (min ?? 999) > MINUTOS_RANCIO;
               return (
+                // Translucida y con blur (patron probado en vivo). Tarjeta de lectura por
+                // mensajero, sin campos de formulario dentro.
                 <div
                   key={c.id}
-                  className="flex flex-col gap-3 rounded-2xl bg-[#FFFFFF] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:bg-[#2C2C2E]"
+                  className="flex flex-col gap-3 rounded-2xl bg-[#FFFFFF]/75 p-4 shadow-sm backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between dark:bg-[#2C2C2E]/75"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

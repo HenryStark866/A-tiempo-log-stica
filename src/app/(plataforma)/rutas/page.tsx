@@ -160,12 +160,15 @@ export default function RoutingPage() {
         </h2>
 
         {board === null ? (
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-16 text-slate-500 shadow-sm dark:bg-[#2C2C2E] dark:text-slate-400">
+          // Translúcida y con blur (patrón probado en vivo). Solo estado de
+          // carga, sin controles de decisión de por medio.
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#ff812c] border-t-transparent" />
             <p className="text-[15px]">Cargando tablero…</p>
           </div>
         ) : board.zonas.length === 0 && board.sin_zona.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF] py-16 shadow-sm dark:bg-[#2C2C2E]">
+          // Translúcida y con blur: mismo estado vacío, solo mensaje de lectura.
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
             <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
             <p className="text-[16px] text-slate-500 dark:text-slate-400">
               Todo despachado. No hay guías esperando en el CEDI.
@@ -334,7 +337,9 @@ export default function RoutingPage() {
             ({active?.length ?? "…"})
           </span>
         </h2>
-        <div className="overflow-hidden rounded-3xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]">
+        {/* Translúcida y con blur (patrón probado en vivo). Tarjeta de
+            lectura de "en operación"; no hay campos ni decisiones dentro. */}
+        <div className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
           {active === null ? (
             <div className="flex flex-col items-center gap-3 py-16 text-slate-500 dark:text-slate-400">
               <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#ff812c] border-t-transparent" />

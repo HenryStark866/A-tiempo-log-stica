@@ -74,7 +74,10 @@ export default function AdminDashboardPage() {
               <button className="text-[16px] text-[#ff812c] font-semibold hover:underline active:opacity-70 transition-opacity">Ver todas</button>
             </div>
 
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
+            {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
+                Los selects de abajo tienen su propio fondo solido (#F2F2F7/#1C1C1E),
+                no heredan esta transparencia. */}
+            <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
               {/* En teléfono la tabla de 4 columnas obligaba a arrastrar de lado;
                   ahí se muestra la misma información apilada en tarjetas. */}
               <ul className="divide-y divide-gray-100 dark:divide-gray-800 md:hidden">
@@ -175,7 +178,9 @@ export default function AdminDashboardPage() {
             <h2 className="text-[22px] sm:text-[28px] font-bold tracking-tight text-slate-900 dark:text-white px-1">Estado en Bodega</h2>
 
             {/* SLA Alert Card */}
-            <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden transition-colors border border-rose-100 dark:border-rose-500/20">
+            {/* Translucida y con blur, mismo patron probado en produccion.
+                El avatar circular de abajo se queda opaco (bg-blanco anidado). */}
+            <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden transition-colors border border-rose-100 dark:border-rose-500/20">
               <div className="absolute top-0 right-0 w-40 h-40 bg-rose-500/10 dark:bg-rose-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
               
               <div className="flex items-center space-x-3 text-rose-600 dark:text-rose-500 mb-4">

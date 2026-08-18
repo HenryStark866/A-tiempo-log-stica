@@ -462,7 +462,8 @@ export default function MiComercioPage() {
               : "Elige tu zona arriba y guarda para ver tus precios reales."}
           </p>
 
-          <ul className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+          {/* Translucida y con blur: es la lista de lectura de precios, sin campos de formulario dentro. */}
+          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
             {tarifario.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
                 <div className="min-w-0">
@@ -619,7 +620,7 @@ export default function MiComercioPage() {
             <Loader2 className="w-6 h-6 animate-spin text-[#ff812c]" />
           </div>
         ) : medios.length === 0 ? (
-          <div className="rounded-2xl bg-[#FFFFFF] dark:bg-[#2C2C2E] shadow-sm px-5 py-10 text-center">
+          <div className="rounded-2xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl shadow-sm px-5 py-10 text-center">
             <Wallet className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
             <p className="mt-3 text-[15px] font-semibold text-slate-900 dark:text-white">
               Todavía no tienes medios de pago
@@ -636,7 +637,7 @@ export default function MiComercioPage() {
             </button>
           </div>
         ) : (
-          <ul className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
             {medios.map((m) => (
               <li key={m.id} className={`px-4 py-4 ${m.active ? "" : "opacity-50"}`}>
                 <div className="flex items-start gap-3">

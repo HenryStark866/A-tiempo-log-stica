@@ -64,6 +64,19 @@ const MUNICIPIOS = [
   { n: "BARBOSA", x: 1420, y: 140, r: 3 },
 ];
 
+/**
+ * Tramos cortos entre municipios vecinos, para la vista `rutas` — la red
+ * viva detrás de las pantallas de trabajo, no solo un punto en el río. Cada
+ * uno con su propio ritmo, como una flota real que no se mueve en bloque.
+ * Mismo mecanismo que la portada (`FondoInicio`): stroke-dashoffset dibuja
+ * el trazo, offset-path mueve el paquete sobre esa misma curva.
+ */
+const RUTAS_LOCALES = [
+  { d: "M 355,700 C 420,660 480,610 520,600", dur: 19, retraso: 0 },
+  { d: "M 520,600 C 590,565 660,510 720,470", dur: 21, retraso: 3.5 },
+  { d: "M 720,470 C 780,435 840,400 900,372", dur: 23, retraso: 7 },
+];
+
 export function MapaAburra({
   /**
    * El pulso que recorre el valle. Se apaga en las pantallas de trabajo: una
@@ -71,9 +84,19 @@ export function MapaAburra({
    * teléfono del mensajero tiene que llegar vivo al final del turno.
    */
   animado = true,
+  /**
+   * La red local (tramos + paquetes + el latido de Medellín) — aparte de
+   * `animado` a propósito. Es CSS puro (transform/opacity/stroke-dashoffset,
+   * nada de JavaScript ni de red), así que el costo de mantenerla despierta
+   * es real pero mínimo; aun así solo la pide `FondoPlataforma`, para no
+   * cambiarle la cara a las cinco pantallas que ya usan este mapa (login,
+   * pago, rastreo, bienvenida, portada) sin que nadie lo haya pedido ahí.
+   */
+  rutas = false,
   opacidad = 1,
 }: {
   animado?: boolean;
+  rutas?: boolean;
   opacidad?: number;
 }) {
   return (
@@ -150,6 +173,19 @@ export function MapaAburra({
               className="opacity-[0.14] dark:opacity-25"
             />
           )}
+          {/* El latido de Medellín, el nodo que más pesa: el mismo halo de
+              arriba, otra vez encima, expandiéndose y apagándose despacio.
+              Solo el más grande — un valle entero latiendo sería ruido. */}
+          {rutas && m.n === "MEDELLÍN" && (
+            <circle
+              cx={m.x}
+              cy={m.y}
+              r={m.r * 3.2}
+              stroke={NARANJA}
+              strokeWidth="1.5"
+              style={{ opacity: 0, animation: "atl-onda 9s ease-out infinite" }}
+            />
+          )}
           {/* El nombre, diminuto. A esta opacidad se lee como textura de lejos
               y como dato de cerca: quien se fije reconoce su municipio. */}
           <text
@@ -165,6 +201,41 @@ export function MapaAburra({
           </text>
         </g>
       ))}
+
+      {/* La red local: tramos entre vecinos dibujándose solos, con su propio
+          paquete viajando encima. Muy por debajo de las rutas de la portada
+          en opacidad — esto vive detrás de horas de trabajo, no de una
+          primera impresión de segundos. */}
+      {rutas &&
+        RUTAS_LOCALES.map((r, i) => (
+          <path
+            key={`ruta-local-${i}`}
+            d={r.d}
+            stroke={NARANJA}
+            strokeWidth="1.25"
+            strokeLinecap="round"
+            className="opacity-[0.12] dark:opacity-20"
+            style={{
+              strokeDasharray: 260,
+              strokeDashoffset: 260,
+              animation: `atl-recorre ${r.dur}s ease-in-out ${r.retraso}s infinite`,
+              ["--atl-largo" as string]: "260",
+            }}
+          />
+        ))}
+      {rutas &&
+        RUTAS_LOCALES.map((r, i) => (
+          <circle
+            key={`paquete-local-${i}`}
+            r="3"
+            fill={NARANJA}
+            style={{
+              opacity: 0,
+              offsetPath: `path("${r.d}")`,
+              animation: `atl-avanza ${r.dur}s linear ${r.retraso + 0.8}s infinite`,
+            }}
+          />
+        ))}
 
       {/* El pulso: un paquete subiendo el valle. Recorre el mismo trazo del río
           porque es por donde se mueve todo aquí. */}

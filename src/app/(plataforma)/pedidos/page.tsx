@@ -235,7 +235,11 @@ function Guides() {
       )}
 
       {/* Table Card */}
-      <div className="bg-[#FFFFFF] dark:bg-[#2C2C2E] rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">
+      {/* Translúcida y con blur (probado en vivo: /90 sin blur no se notaba).
+          La tarjeta de filtros de arriba y el modal de eliminar se quedan
+          opacos: una envuelve el input y el select de búsqueda, el otro
+          aísla una decisión irreversible. */}
+      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-300">
         {guides === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />

@@ -36,7 +36,9 @@ export function PantallaError({
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-4 font-sans">
-      <div className="w-full max-w-md rounded-3xl bg-[#FFFFFF] p-8 text-center shadow-sm dark:bg-[#2C2C2E]">
+      {/* Translucida y con blur (patron probado en vivo). No hay modal ni
+          formulario debajo: es texto y dos botones de color propio. */}
+      <div className="w-full max-w-md rounded-3xl bg-[#FFFFFF]/75 p-8 text-center shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff812c]/10">
           <TriangleAlert className="h-6 w-6 text-[#ff812c]" />
         </div>

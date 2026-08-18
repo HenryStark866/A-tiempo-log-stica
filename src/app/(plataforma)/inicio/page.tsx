@@ -61,10 +61,14 @@ export default function InicioPage() {
         </p>
       </div>
 
+      {/* Translúcida: es la tarjeta principal de la pantalla (resumen del
+          día), sola, sin campos ni nada anidado adentro. La reja de accesos
+          de abajo se queda opaca a propósito: son botones de navegación, no
+          una tarjeta de contenido. */}
       {panel && (
         <Link
           href={panel.href}
-          className="flex items-center gap-4 rounded-3xl bg-[#FFFFFF] p-5 shadow-sm transition-transform active:scale-[0.98] dark:bg-[#2C2C2E]"
+          className="flex items-center gap-4 rounded-3xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl transition-transform active:scale-[0.98] dark:bg-[#2C2C2E]/75"
         >
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff812c]/10">
             <LayoutDashboard className="h-6 w-6 text-[#ff812c]" />

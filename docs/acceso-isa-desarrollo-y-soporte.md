@@ -36,15 +36,22 @@ puede *leerlo* sin que nadie le dé permiso. Lo que necesita permiso es para
 **escribir**: subir commits o abrir Pull Requests directamente sobre el repo
 en vez de desde un fork.
 
-Se la agrega como colaboradora:
+Se la agrega como colaboradora (`gh repo add-collaborator` no existe como
+subcomando; es la API REST directa):
 
 ```bash
-gh repo add-collaborator HenryStark866/A-tiempo-log-stica <usuario-de-isa> --permission write
+gh api --method PUT "repos/HenryStark866/A-tiempo-log-stica/collaborators/<usuario-de-isa>" -f permission=push
 ```
 
-(`write` alcanza para desarrollo normal; `admin` solo si además va a
-administrar el repo — ajustes, otros colaboradores). Yo tengo `gh` autenticado
-en esta sesión — dime su usuario de GitHub y lo hago yo mismo si prefieres.
+(`push` es el nombre que usa la API para el permiso de escritura normal;
+`admin` solo si además va a administrar el repo — ajustes, otros
+colaboradores).
+
+**Hecho:** invitación enviada a [`mariaiae`](https://github.com/mariaiae) con
+permiso de escritura el 2026-08-18. Isa la acepta desde
+`https://github.com/HenryStark866/A-tiempo-log-stica/invitations` o desde el
+correo/notificación que le llegó de GitHub — hasta que la acepte, no tiene
+acceso todavía.
 
 **Su propia identidad en los commits.** Ahora mismo todos mis commits quedan
 firmados como tú (`henrytaborda57@gmail.com`), por instrucción tuya. Isa

@@ -1,9 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronRight, LayoutDashboard } from "lucide-react";
 import { useProfile } from "@/components/ProfileContext";
-import { NAV } from "@/lib/menu";
 import { ROLE_LABELS } from "@/lib/constants";
 import { horaDelDiaEnColombia } from "@/lib/tiempo";
 import { EncuestaSatisfaccion } from "@/components/EncuestaSatisfaccion";
@@ -11,18 +8,15 @@ import { EncuestaSatisfaccion } from "@/components/EncuestaSatisfaccion";
 /**
  * La pantalla que se ve al entrar.
  *
- * Antes se caía directo en «Mi panel», un tablero de métricas. Sirve para
- * mirar cómo va el día, pero no es lo que alguien viene a hacer: quien abre la
- * app viene a crear un pedido, a ver su ruta o a revisar su plata. El menú
- * estaba escondido detrás de un botón en el teléfono, así que la primera
- * pantalla contestaba una pregunta que nadie había hecho.
+ * Llegó a tener una reja con cada destino del menú, copiada de la barra
+ * lateral — con la idea de que en el teléfono el menú quedaba escondido. Ya
+ * no: la barra inferior móvil muestra la misma lista completa (con scroll
+ * horizontal) y la barra lateral de escritorio también, así que la reja no
+ * abría ningún camino que no estuviera ya a un toque. Solo eran los mismos
+ * doce botones, dos veces, en la misma pantalla.
  *
- * Ahora lo primero es a dónde puedes ir. «Mi panel» sigue existiendo y es la
- * primera tarjeta: quien lo quiera lo tiene a un toque.
- *
- * El menú NO se copia aquí: sale de la misma lista que dibuja la barra lateral
- * (src/lib/menu.ts). Si mañana se agrega una pantalla, aparece en los dos
- * sitios sin que nadie se acuerde de nada.
+ * Lo que queda es el saludo y la encuesta de satisfacción, que sí es propio
+ * de esta pantalla y de ninguna otra.
  */
 
 /** Un saludo que depende de la hora REAL de la operación, no la del equipo. */
@@ -35,15 +29,6 @@ function saludo(): string {
 
 export default function InicioPage() {
   const profile = useProfile();
-  const items = NAV.filter((i) => i.roles.includes(profile.role));
-
-  // «Mi panel» se saca de la reja para ponerlo arriba, ancho: es lo que estaba
-  // antes en esta pantalla y no se le quita a nadie, solo deja de imponerse.
-  const panel = items.find((i) => i.href === "/dashboard");
-  // Sin «Mi panel», que ya va arriba, y sin ella misma: una tarjeta que
-  // lleva a donde ya estás no ayuda a nadie.
-  const resto = items.filter((i) => i.href !== "/dashboard" && i.href !== "/inicio");
-
   const nombre = profile.full_name?.trim().split(" ")[0] ?? "";
 
   return (
@@ -61,54 +46,8 @@ export default function InicioPage() {
         </p>
       </div>
 
-      {/* Translúcida: es la tarjeta principal de la pantalla (resumen del
-          día), sola, sin campos ni nada anidado adentro. La reja de accesos
-          de abajo se queda opaca a propósito: son botones de navegación, no
-          una tarjeta de contenido. */}
-      {panel && (
-        <Link
-          href={panel.href}
-          className="flex items-center gap-4 rounded-3xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl transition-transform active:scale-[0.98] dark:bg-[#2C2C2E]/75"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff812c]/10">
-            <LayoutDashboard className="h-6 w-6 text-[#ff812c]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[17px] font-bold text-slate-900 dark:text-white">Mi panel</p>
-            <p className="text-[13px] leading-snug text-slate-500 dark:text-slate-400">
-              Cómo va el día en números
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-slate-300 dark:text-slate-600" />
-        </Link>
-      )}
-
-      {/* Dos columnas desde el teléfono: con una sola, un rol con doce opciones
-          obliga a desplazarse para ver si existe la que busca, que es
-          exactamente lo que esta pantalla venía a evitar. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        {resto.map((item) => {
-          const Icono = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group flex min-h-[112px] flex-col justify-between rounded-3xl bg-[#FFFFFF] p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] dark:bg-[#2C2C2E]"
-            >
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F2F2F7] transition-colors group-hover:bg-[#ff812c]/10 dark:bg-[#1C1C1E]">
-                <Icono className="h-5 w-5 text-slate-600 transition-colors group-hover:text-[#ff812c] dark:text-slate-300" />
-              </div>
-              <p className="mt-3 text-[15px] font-semibold leading-tight text-slate-900 dark:text-white">
-                {item.label}
-              </p>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Al final y no arriba: quien abre la app viene a hacer algo. La
-          encuesta se le cruza cuando ya vio sus opciones, no antes de
-          dejarlo trabajar. Se oculta sola si no toca mostrarla. */}
+      {/* Se le cruza a quien ya vio el saludo, no antes de dejarlo trabajar.
+          Se oculta sola si no toca mostrarla. */}
       <EncuestaSatisfaccion />
     </div>
   );

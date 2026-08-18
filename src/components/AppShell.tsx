@@ -201,13 +201,32 @@ export function AppShell({
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-2xl px-3 lg:px-4 py-3 text-[15px] font-medium transition-all",
+                      "flex items-center gap-3 rounded-2xl px-3 lg:px-4 py-2.5 text-[15px] font-medium transition-all",
                       active
                         ? "bg-[#ff812c]/10 text-[#ff812c]"
                         : "text-slate-500 hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-slate-400"
                     )}
                   >
-                    <item.icon className={cn("w-5 h-5 shrink-0", active && "text-[#ff812c]")} />
+                    {/* El relieve: un degradado + una luz arriba (dentro) y una
+                        sombra abajo (dentro) simulan un bisel, más una sombra
+                        afuera que lo levanta de la fila. Nada de esto se anima
+                        —es un solo repintado al cambiar de pantalla, no un
+                        bucle— así que no pesa nada tenerlo en cada ítem. */}
+                    <span
+                      className={cn(
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-all",
+                        active
+                          ? "bg-gradient-to-b from-[#ffa557] to-[#ff812c] shadow-[0_3px_7px_rgba(255,129,44,0.45),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-2px_2px_rgba(0,0,0,0.15)]"
+                          : "bg-gradient-to-b from-white to-[#ECECF1] shadow-[0_1px_2px_rgba(0,0,0,0.07),inset_0_1px_0_rgba(255,255,255,0.8),inset_0_-1px_1px_rgba(0,0,0,0.04)] dark:from-[#3A3A3D] dark:to-[#1C1C1E] dark:shadow-[0_1px_2px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-1px_1px_rgba(0,0,0,0.3)]"
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          "w-[18px] h-[18px]",
+                          active ? "text-white drop-shadow-sm" : "text-slate-500 dark:text-slate-300"
+                        )}
+                      />
+                    </span>
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
                     {item.href === "/usuarios" && pendingRequests > 0 && (
                       <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#ff812c] text-white text-[11px] font-bold">
@@ -282,15 +301,17 @@ export function AppShell({
                   >
                     <span
                       className={cn(
-                        "relative flex h-9 w-[52px] items-center justify-center rounded-2xl transition-colors",
-                        active ? "bg-[#ff812c]/15" : "bg-transparent"
+                        "relative flex h-9 w-[52px] items-center justify-center rounded-2xl transition-all",
+                        active
+                          ? "bg-gradient-to-b from-[#ffa557] to-[#ff812c] shadow-[0_3px_7px_rgba(255,129,44,0.45),inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-2px_2px_rgba(0,0,0,0.15)]"
+                          : "bg-transparent"
                       )}
                     >
                       <item.icon
                         strokeWidth={active ? 2.4 : 2}
                         className={cn(
                           "w-[26px] h-[26px]",
-                          active ? "text-[#ff812c]" : "text-slate-500 dark:text-slate-400"
+                          active ? "text-white drop-shadow-sm" : "text-slate-500 dark:text-slate-400"
                         )}
                       />
                       {item.href === "/usuarios" && pendingRequests > 0 && (

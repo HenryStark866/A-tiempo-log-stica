@@ -1,14 +1,57 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import L from "leaflet";
-// Del paquete instalado, no de un CDN
-import "leaflet/dist/leaflet.css";
-import "leaflet.markercluster";
-import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import type { Marker } from "leaflet";
+import { useEffect, useRef, useState } from "react";
+import {
+  Map as MapaGL,
+  Marker,
+  Popup,
+  NavigationControl,
+  ScaleControl,
+  FullscreenControl,
+  LngLatBounds,
+  type StyleSpecification,
+  type LayerSpecification,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import type { CourierType } from "@/lib/types";
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * EL MAPA DE LA FLOTA, EN TRES DIMENSIONES
+ *
+ * Antes esto era Leaflet con teselas planas: una lámina de calles vista desde
+ * arriba, sin relieve y sin volumen. Para Medellín eso se queda especialmente
+ * corto, porque la ciudad es un valle: un mensajero en Robledo y otro en El
+ * Poblado pueden verse a dos centímetros en un plano y tener trescientos
+ * metros de montaña entre ellos. En plano, quien despacha no ve esa montaña.
+ *
+ * Ahora el mapa es vectorial y con volumen de verdad (MapLibre GL, WebGL):
+ *
+ *   · El terreno tiene la elevación real, sacada de un modelo digital de
+ *     alturas. Las laderas del valle se ven como laderas.
+ *   · Los edificios se levantan con su altura real donde el mapa la conoce.
+ *   · La cámara se inclina y gira, así que se mira el valle desde dentro y no
+ *     desde el cenit.
+ *   · Por defecto entra en satélite: imagen real, que es lo más parecido a
+ *     mirar por la ventana. Además evita el problema que tenían las teselas
+ *     claras, que en una pantalla oscura eran un rectángulo deslumbrante.
+ *
+ * ── Por qué aquí sí y en el teléfono del mensajero no ──────────────────
+ * WebGL gasta más batería que un mapa de imágenes. Esta pantalla es del CEDI
+ * y de coordinación (ver menu.ts: admin, coordinador, operario, admin_cedi),
+ * gente que trabaja sentada y enchufada. El mensajero NO entra aquí: él lleva
+ * MiniMap, que sigue siendo Leaflet plano y barato, y así se queda.
+ *
+ * ── De dónde salen los datos del mapa ──────────────────────────────────
+ * Todo de fuentes abiertas y sin clave de API, para no atar la operación a una
+ * factura ni a una cuota:
+ *   · Relieve   → modelo de elevación público de AWS (formato terrarium).
+ *   · Vectores  → OpenFreeMap, que sirve OpenStreetMap ya tesela­do.
+ *   · Satélite  → imágenes de Esri World Imagery.
+ * Los tres dominios están abiertos a mano en la CSP del middleware. Si se
+ * cambia un proveedor aquí, hay que abrirlo allá o el mapa se queda en negro.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
 
 export interface MapPoint {
   id: string;
@@ -28,10 +71,19 @@ export interface MapPoint {
   max_capacity?: number;
 }
 
-const CENTRO_VALLE: [number, number] = [6.2442, -75.5812];
+const CENTRO_VALLE: [number, number] = [-75.5812, 6.2442]; // MapLibre va [lng, lat]
 const MINUTOS_RANCIO = 10;
 
-// SVG icons for couriers
+const FUENTE_VECTORES = "https://tiles.openfreemap.org/planet";
+const ESTILO_CALLES = "https://tiles.openfreemap.org/styles/liberty";
+const TESELAS_SATELITE =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const TERRENO = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+
+const ATRIBUCION_SAT =
+  'Imágenes &copy; <a href="https://www.esri.com/">Esri</a> · Relieve: <a href="https://registry.opendata.aws/terrain-tiles/">Terrain Tiles</a>';
+
+// ── Iconos ────────────────────────────────────────────────────────────────
 const ICON_MOTO = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11.5 17 3.5-3.5"/><path d="m14 14.5-3.5-3.5"/><path d="M14 16a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/><path d="M22 16a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/><path d="M12 7h5l1.5 4"/><path d="M17 11h2.5"/><path d="m5 13-2-2.5 1-1"/></svg>`;
 const ICON_BICI = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>`;
 const ICON_PIE = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4v16"/><path d="M14 15l-4 5"/><path d="M10 15l4 5"/><circle cx="12" cy="4" r="1"/></svg>`;
@@ -41,30 +93,37 @@ function getIconSvg(tipo: string, courier_type?: string | null) {
   if (tipo === "sede") return ICON_SEDE;
   if (courier_type === "bici") return ICON_BICI;
   if (courier_type === "a_pie") return ICON_PIE;
-  return ICON_MOTO; // Default to moto
+  return ICON_MOTO;
 }
 
-function icono(p: MapPoint): string {
+/**
+ * El elemento del marcador.
+ *
+ * Se devuelve un nodo del DOM y no una cadena porque MapLibre ancla marcadores
+ * a elementos reales: así el mismo nodo se puede reutilizar cuando el punto se
+ * mueve, en vez de crear uno nuevo en cada latido del realtime.
+ */
+function nodoMarcador(p: MapPoint): HTMLDivElement {
   const rancio = p.tipo === "mensajero" && (p.minutos ?? 0) > MINUTOS_RANCIO;
   const colorBg = p.tipo === "sede" ? "#334155" : rancio ? "#94a3b8" : "#ff812c";
-  
-  const animacion = !rancio && p.tipo === "mensajero" 
-    ? `<div style="position:absolute;inset:-4px;border-radius:50%;background:#ff812c;opacity:0.4;animation:pulse 2s infinite;"></div>
-       <style>@keyframes pulse { 0% { transform: scale(0.95); opacity: 0.5; } 50% { transform: scale(1.3); opacity: 0; } 100% { transform: scale(0.95); opacity: 0; } }</style>`
-    : "";
 
-  return `
-    <div style="position:relative; width:34px; height:34px;">
-      ${animacion}
-      <div style="
-        position:absolute;inset:0;
-        background:${colorBg};color:#fff;border-radius:50%;
-        display:flex;align-items:center;justify-content:center;
-        border:3px solid #fff;
-        box-shadow:0 2px 6px rgba(0,0,0,.35);z-index:10;">
-        ${getIconSvg(p.tipo, p.courier_type)}
-      </div>
+  const el = document.createElement("div");
+  el.style.cssText = "position:relative;width:34px;height:34px;cursor:pointer;";
+  el.innerHTML = `
+    ${
+      !rancio && p.tipo === "mensajero"
+        ? `<div style="position:absolute;inset:-4px;border-radius:50%;background:#ff812c;opacity:.4;animation:atl-latido 2s infinite;"></div>`
+        : ""
+    }
+    <div style="
+      position:absolute;inset:0;
+      background:${colorBg};color:#fff;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      border:3px solid #fff;
+      box-shadow:0 2px 8px rgba(0,0,0,.45);z-index:10;">
+      ${getIconSvg(p.tipo, p.courier_type)}
     </div>`;
+  return el;
 }
 
 function popupHtml(p: MapPoint): string {
@@ -73,15 +132,14 @@ function popupHtml(p: MapPoint): string {
       <div style="font-family:system-ui,sans-serif;padding:4px;">
         <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;">${p.titulo}</h3>
         <p style="margin:0;font-size:14px;color:#64748b;">${p.detalle}</p>
-      </div>
-    `;
+      </div>`;
   }
 
   const letra = p.titulo.trim().charAt(0).toUpperCase();
   const entregadas = p.entregadas_hoy || 0;
   const capacidad = p.max_capacity || 10;
   const porcentaje = Math.min(100, Math.round((entregadas / Math.max(capacidad, 1)) * 100));
-  
+
   let html = `
     <div style="font-family:system-ui,sans-serif;min-width:220px;padding:2px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -93,7 +151,6 @@ function popupHtml(p: MapPoint): string {
           <p style="margin:2px 0 0;font-size:13px;color:#64748b;line-height:1.3;">${p.detalle}</p>
         </div>
       </div>
-      
       <div style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:4px;">
           <span>Carga completada</span>
@@ -103,317 +160,350 @@ function popupHtml(p: MapPoint): string {
           <div style="height:100%;background:#10b981;width:${porcentaje}%;"></div>
         </div>
       </div>
-      
       <div style="display:flex;gap:8px;">
-        <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#f1f5f9;color:#334155;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Maps
-        </a>
-  `;
-  
+        <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#f1f5f9;color:#334155;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Maps</a>`;
+
   if (p.phone) {
-    html += `
-        <a href="tel:${p.phone}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#ff812c;color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Llamar
-        </a>
-    `;
+    html += `<a href="tel:${p.phone}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#ff812c;color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Llamar</a>`;
   }
-  
-  html += `
-      </div>
-    </div>
-  `;
-  
-  return html;
+
+  return html + `</div></div>`;
 }
 
-function slideTo(marker: L.Marker, dest: [number, number], durationMs = 1000) {
-  const start = marker.getLatLng();
-  const end = L.latLng(dest);
-  
-  // Si está a más de 10km (salto gigante), teleportar
-  if (start.distanceTo(end) > 10000) {
-    marker.setLatLng(end);
+/** El estilo de satélite se arma a mano: imagen real + edificios + relieve. */
+function estiloSatelite(): StyleSpecification {
+  return {
+    version: 8,
+    // Las etiquetas del estilo vectorial necesitan sus tipografías, y salen
+    // del mismo servidor que las teselas.
+    glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources: {
+      satelite: {
+        type: "raster",
+        tiles: [TESELAS_SATELITE],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: ATRIBUCION_SAT,
+      },
+      vectores: { type: "vector", url: FUENTE_VECTORES },
+      relieve: {
+        type: "raster-dem",
+        tiles: [TERRENO],
+        tileSize: 256,
+        maxzoom: 15,
+        encoding: "terrarium",
+      },
+    },
+    layers: [
+      { id: "satelite", type: "raster", source: "satelite" },
+      capaEdificios(),
+      capaNombres(),
+    ],
+    sky: {
+      "sky-color": "#0b1a33",
+      "horizon-color": "#7796b8",
+      "fog-color": "#c8d6e8",
+      "sky-horizon-blend": 0.6,
+      "horizon-fog-blend": 0.6,
+      "fog-ground-blend": 0.2,
+    },
+  } as StyleSpecification;
+}
+
+/**
+ * Los edificios, levantados con su altura real.
+ *
+ * `render_height` viene en los datos de OpenStreetMap para los edificios que
+ * alguien se tomó el trabajo de medir. Los que no la tienen se quedan en la
+ * altura por defecto del dato, no en cero: un bloque bajo es más parecido a la
+ * realidad que un solar vacío.
+ */
+function capaEdificios(): LayerSpecification {
+  return {
+    id: "edificios-3d",
+    type: "fill-extrusion",
+    source: "vectores",
+    "source-layer": "building",
+    minzoom: 14,
+    paint: {
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["coalesce", ["get", "render_height"], 8],
+        0, "#8f9aa8",
+        40, "#b9c2cd",
+        120, "#e6ebf1",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["zoom"],
+        14, 0,
+        // Sube desde el suelo al entrar: aparecer de golpe se ve como un salto.
+        16, ["coalesce", ["get", "render_height"], 8],
+      ],
+      "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+      "fill-extrusion-opacity": 0.9,
+    },
+  } as LayerSpecification;
+}
+
+/** Nombres de barrios y municipios sobre el satélite, que si no es adivinar. */
+function capaNombres(): LayerSpecification {
+  return {
+    id: "nombres",
+    type: "symbol",
+    source: "vectores",
+    "source-layer": "place",
+    minzoom: 9,
+    layout: {
+      "text-field": ["get", "name"],
+      "text-font": ["Noto Sans Regular"],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 9, 11, 16, 15],
+      "text-anchor": "center",
+    },
+    paint: {
+      "text-color": "#ffffff",
+      "text-halo-color": "rgba(0,0,0,.85)",
+      "text-halo-width": 1.6,
+    },
+  } as LayerSpecification;
+}
+
+function interpolarMarcador(
+  marcador: Marker,
+  destino: [number, number],
+  duracionMs = 1200
+) {
+  const inicio = marcador.getLngLat();
+  const dLng = destino[0] - inicio.lng;
+  const dLat = destino[1] - inicio.lat;
+
+  // Un salto enorme es un dato nuevo, no un movimiento: se teletransporta en
+  // vez de dibujar un viaje que nadie hizo.
+  if (Math.abs(dLng) > 0.15 || Math.abs(dLat) > 0.15) {
+    marcador.setLngLat(destino);
     return;
   }
 
-  const startTime = performance.now();
-
-  function step(time: number) {
-    const elapsed = time - startTime;
-    const progress = Math.min(elapsed / durationMs, 1);
-    
-    // Ease-out cubic
-    const ease = 1 - Math.pow(1 - progress, 3);
-    
-    const lat = start.lat + (end.lat - start.lat) * ease;
-    const lng = start.lng + (end.lng - start.lng) * ease;
-    
-    marker.setLatLng([lat, lng]);
-    
-    if (progress < 1) {
-      requestAnimationFrame(step);
-    }
-  }
-  
-  requestAnimationFrame(step);
+  const t0 = performance.now();
+  const paso = (t: number) => {
+    const avance = Math.min((t - t0) / duracionMs, 1);
+    const suave = 1 - Math.pow(1 - avance, 3);
+    marcador.setLngLat([inicio.lng + dLng * suave, inicio.lat + dLat * suave]);
+    if (avance < 1) requestAnimationFrame(paso);
+  };
+  requestAnimationFrame(paso);
 }
 
 export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: number }) {
   const contenedor = useRef<HTMLDivElement>(null);
-  const mapa = useRef<L.Map | null>(null);
+  const mapa = useRef<MapaGL | null>(null);
   const marcadores = useRef<Record<string, Marker>>({});
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clusterGroup = useRef<any>(null);
   const encuadrado = useRef(false);
-  const observadorTema = useRef<MutationObserver | null>(null);
+  const [vista, setVista] = useState<"satelite" | "calles">("satelite");
+  const [listo, setListo] = useState(false);
+  // Si el mapa no arranca, hay que decirlo. Un WebGL que falla no lanza
+  // ningun error: simplemente no carga, y sin esto la pantalla se queda con
+  // el aviso de "cargando" puesto para siempre y nadie sabe por que.
+  const [tardando, setTardando] = useState(false);
 
-  /**
-   * El tamaño del mapa, y su limpieza.
-   *
-   * Va en su propio efecto —sin dependencias— porque no tiene nada que ver con
-   * los datos: solo importa cuando el contenedor cambia de tamaño. Leaflet
-   * calcula el suyo al crearse, y si en ese momento el contenedor todavía no
-   * tiene alto definitivo, el mapa queda con las medidas equivocadas y las
-   * teselas salen cortadas.
-   *
-   * Con ResizeObserver se entera del cambio real en vez de adivinarlo con un
-   * temporizador, que es lo que antes provocaba los tirones.
-   */
+  // ── Crear el mapa una sola vez ──────────────────────────────────────────
   useEffect(() => {
-    const nodo = contenedor.current;
-    if (!nodo) return;
+    if (!contenedor.current || mapa.current) return;
 
-    const ro = new ResizeObserver(() => {
-      // `pan: false` para que ajustar el tamaño no mueva el centro: si alguien
-      // está mirando una esquina del valle, se queda donde estaba.
-      mapa.current?.invalidateSize({ pan: false });
+    const m = new MapaGL({
+      container: contenedor.current,
+      style: estiloSatelite(),
+      center: CENTRO_VALLE,
+      zoom: 12.5,
+      // Inclinada de entrada: si arranca plana, nadie descubre que se puede
+      // inclinar y el 3D no existe para quien lo mira.
+      pitch: 55,
+      bearing: -18,
+      maxPitch: 80,
+      attributionControl: { compact: true },
+      // La rueda mueve la página, no el mapa, hasta que se toca el mapa: es
+      // una pantalla que se desplaza y el zoom accidental la dejaba clavada.
+      scrollZoom: false,
     });
-    ro.observe(nodo);
+
+    m.addControl(new NavigationControl({ visualizePitch: true }), "top-right");
+    m.addControl(new ScaleControl({ unit: "metric" }), "bottom-left");
+    m.addControl(new FullscreenControl(), "top-right");
+
+    // Un mapa que no carga se veia como un rectangulo con el aviso puesto para
+    // siempre, sin una sola pista de por que. Ahora dice que paso.
+    m.on("error", (e) => {
+      console.error("[mapa] ", e?.error?.message ?? e);
+    });
+
+    m.on("load", () => {
+      m.setTerrain({ source: "relieve", exaggeration: 1.15 });
+      setListo(true);
+    });
+
+    // Doce segundos es mucho mas de lo que tarda en cargar con una conexion
+    // mala; si a esas alturas no arranco, es que no va a arrancar.
+    const rescate = window.setTimeout(() => setTardando(true), 12000);
+    m.on("load", () => window.clearTimeout(rescate));
+
+    if (process.env.NODE_ENV !== "production") {
+      (window as unknown as { __mapaYam?: MapaGL }).__mapaYam = m;
+    }
+
+    // Sin esto la rueda hace zoom mientras alguien solo quería bajar por la
+    // página; se enciende al entrar con un clic y se apaga al salir.
+    const nodo = contenedor.current;
+    const encender = () => m.scrollZoom.enable();
+    const apagar = () => m.scrollZoom.disable();
+    nodo.addEventListener("click", encender);
+    nodo.addEventListener("mouseleave", apagar);
+
+    mapa.current = m;
 
     return () => {
-      ro.disconnect();
-      observadorTema.current?.disconnect();
-      observadorTema.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelado = false;
-
-    const pintar = () => {
-      if (cancelado || !contenedor.current) return;
-
-      if (!mapa.current) {
-        mapa.current = L.map(contenedor.current, {
-          center: CENTRO_VALLE,
-          zoom: 12,
-          // La rueda NO hace zoom hasta que se toca el mapa.
-          //
-          // El mapa vive dentro de una página que se desplaza. Con la rueda
-          // activa desde el principio, bajar por la pantalla con el puntero
-          // encima del mapa hacía zoom en vez de desplazar: la página se
-          // quedaba clavada y el mapa se iba a un zoom que nadie pidió. Se
-          // enciende al hacer clic dentro y se apaga al salir el puntero, que
-          // es el patrón que la gente ya conoce de otros mapas embebidos.
-          scrollWheelZoom: false,
-        });
-
-        // Se escucha en el CONTENEDOR y no con el `mouseout` de Leaflet: ese
-        // también salta al pasar el puntero sobre un marcador, y apagaría el
-        // zoom sin que nadie se haya ido a ninguna parte.
-        contenedor.current.addEventListener("click", () =>
-          mapa.current?.scrollWheelZoom.enable()
-        );
-        contenedor.current.addEventListener("mouseleave", () =>
-          mapa.current?.scrollWheelZoom.disable()
-        );
-
-        // Capas gratuitas
-        const cartoLight = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 20,
-        });
-
-        const cartoDark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          subdomains: "abcd",
-          maxZoom: 20,
-        });
-
-        const esriSat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-          attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
-          maxZoom: 19,
-        });
-
-        /**
-         * Qué teselas tocan según el tema.
-         *
-         * Se miraba solo la clase `dark`, así que con el tema multicolor
-         * —que también es oscuro— el mapa cargaba las teselas CLARAS: un
-         * rectángulo blanco deslumbrante en medio de una pantalla oscura.
-         *
-         * Y se decidía una sola vez, al crear el mapa: quien cambiaba de tema
-         * se quedaba con las teselas del tema anterior hasta recargar.
-         */
-        const esOscuro = () => {
-          const c = document.documentElement.classList;
-          return c.contains("dark") || c.contains("tema-multicolor");
-        };
-
-        const aplicarTema = () => {
-          if (!mapa.current) return;
-          // Si el usuario eligió satélite a mano, no se le cambia por debajo.
-          if (mapa.current.hasLayer(esriSat)) return;
-          const quiero = esOscuro() ? cartoDark : cartoLight;
-          const sobra = esOscuro() ? cartoLight : cartoDark;
-          if (mapa.current.hasLayer(sobra)) mapa.current.removeLayer(sobra);
-          if (!mapa.current.hasLayer(quiero)) quiero.addTo(mapa.current);
-        };
-
-        aplicarTema();
-
-        // El tema se cambia en <html>, así que se vigila esa clase.
-        observadorTema.current = new MutationObserver(aplicarTema);
-        observadorTema.current.observe(document.documentElement, {
-          attributes: true,
-          attributeFilter: ["class"],
-        });
-
-        // Control de capas
-        const baseMaps = {
-          "Plano (Claro)": cartoLight,
-          "Plano (Oscuro)": cartoDark,
-          "Satélite": esriSat,
-        };
-        L.control.layers(baseMaps, undefined, { position: 'bottomright' }).addTo(mapa.current);
-
-        // Escala
-        L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(mapa.current);
-
-        // Control Center
-        const CenterControl = L.Control.extend({
-          options: { position: 'topleft' },
-          onAdd: function () {
-            const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-            container.style.backgroundColor = 'white';
-            container.style.width = '34px';
-            container.style.height = '34px';
-            container.style.cursor = 'pointer';
-            container.style.display = 'flex';
-            container.style.alignItems = 'center';
-            container.style.justifyContent = 'center';
-            container.title = 'Centrar en mi flota';
-            container.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>';
-            
-            container.onclick = function(e){
-              e.stopPropagation();
-              if (Object.keys(marcadores.current).length > 0 && mapa.current) {
-                const markersArr = Object.values(marcadores.current);
-                const group = L.featureGroup(markersArr);
-                mapa.current.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 15 });
-              }
-            }
-            return container;
-          }
-        });
-        mapa.current.addControl(new CenterControl());
-
-        clusterGroup.current = L.markerClusterGroup({
-          maxClusterRadius: 40,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: false,
-          zoomToBoundsOnClick: true,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          iconCreateFunction: function(cluster: any) {
-            const childCount = cluster.getChildCount();
-            return L.divIcon({ 
-              html: `<div style="background:#334155;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 14px system-ui,sans-serif;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);">${childCount}</div>`, 
-              className: 'marker-cluster-custom', 
-              iconSize: [34, 34] 
-            });
-          }
-        });
-        mapa.current.addLayer(clusterGroup.current);
-      }
-
-      const vivos = new Set(puntos.map((p) => p.id));
-
-      for (const [id, m] of Object.entries(marcadores.current)) {
-        if (!vivos.has(id)) {
-          clusterGroup.current.removeLayer(m);
-          delete marcadores.current[id];
-        }
-      }
-
-      for (const p of puntos) {
-        const html = popupHtml(p);
-        const existente = marcadores.current[p.id];
-
-        if (existente) {
-          // Movimiento fluido del marcador
-          slideTo(existente, [p.lat, p.lng], 1200);
-          existente.setIcon(
-            L.divIcon({ html: icono(p), className: "", iconSize: [34, 34], iconAnchor: [17, 17] })
-          );
-          existente.setPopupContent(html);
-        } else {
-          const icon = L.divIcon({
-            html: icono(p),
-            className: "",
-            iconSize: [34, 34],
-            iconAnchor: [17, 17],
-          });
-          const marker = L.marker([p.lat, p.lng], { icon }).bindPopup(html);
-          
-          marcadores.current[p.id] = marker;
-          clusterGroup.current.addLayer(marker);
-        }
-      }
-
-      if (!encuadrado.current && puntos.length > 0) {
-        const markersArr = Object.values(marcadores.current);
-        const group = L.featureGroup(markersArr);
-        mapa.current!.fitBounds(group.getBounds(), { padding: [50, 50], maxZoom: 15 });
-        encuadrado.current = true;
-      }
-
-      // Aquí ya NO se llama a invalidateSize().
-      //
-      // Estaba en un temporizador que se rearmaba con cada cambio de `puntos`,
-      // y `puntos` cambia cada pocos segundos entre el sondeo y el realtime.
-      // invalidateSize desplaza el mapa para conservar el centro, así que a
-      // media maniobra te movía la vista: arrastrabas, y a los 250 ms el mapa
-      // daba un tirón. Ahora se llama una vez al montar y cuando el contenedor
-      // cambia de tamaño de verdad, que es lo único que lo necesita.
-    };
-
-    pintar();
-
-    return () => {
-      cancelado = true;
-    };
-  }, [puntos]);
-
-  useEffect(() => {
-    return () => {
-      try {
-        mapa.current?.remove();
-      } catch {
-        /* ya estaba destruido */
-      }
+      nodo.removeEventListener("click", encender);
+      nodo.removeEventListener("mouseleave", apagar);
+      m.remove();
       mapa.current = null;
       marcadores.current = {};
     };
   }, []);
 
+  // ── Cambiar entre satélite y calles ─────────────────────────────────────
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m || !listo) return;
+
+    const alCargar = () => {
+      // Cada estilo trae sus propias capas: el relieve y los edificios hay que
+      // volver a ponerlos encima del estilo nuevo.
+      if (!m.getSource("relieve")) {
+        m.addSource("relieve", {
+          type: "raster-dem",
+          tiles: [TERRENO],
+          tileSize: 256,
+          maxzoom: 15,
+          encoding: "terrarium",
+        });
+      }
+      m.setTerrain({ source: "relieve", exaggeration: 1.15 });
+      if (!m.getLayer("edificios-3d")) {
+        if (!m.getSource("vectores")) {
+          m.addSource("vectores", { type: "vector", url: FUENTE_VECTORES });
+        }
+        m.addLayer(capaEdificios());
+      }
+    };
+
+    if (vista === "calles") {
+      m.setStyle(ESTILO_CALLES);
+    } else {
+      m.setStyle(estiloSatelite());
+    }
+    m.once("styledata", alCargar);
+  }, [vista, listo]);
+
+  // ── Marcadores ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m) return;
+
+    const vivos = new Set(puntos.map((p) => p.id));
+    for (const [id, marcador] of Object.entries(marcadores.current)) {
+      if (!vivos.has(id)) {
+        marcador.remove();
+        delete marcadores.current[id];
+      }
+    }
+
+    for (const p of puntos) {
+      const existente = marcadores.current[p.id];
+      if (existente) {
+        interpolarMarcador(existente, [p.lng, p.lat]);
+        existente.getPopup()?.setHTML(popupHtml(p));
+      } else {
+        const marcador = new Marker({ element: nodoMarcador(p) })
+          .setLngLat([p.lng, p.lat])
+          .setPopup(new Popup({ offset: 22, maxWidth: "280px" }).setHTML(popupHtml(p)))
+          .addTo(m);
+        marcadores.current[p.id] = marcador;
+      }
+    }
+
+    if (!encuadrado.current && puntos.length > 0) {
+      const limites = new LngLatBounds();
+      puntos.forEach((p) => limites.extend([p.lng, p.lat]));
+      m.fitBounds(limites, { padding: 80, maxZoom: 15, pitch: 55, duration: 900 });
+      encuadrado.current = true;
+    }
+  }, [puntos, listo]);
+
+  function centrarFlota() {
+    const m = mapa.current;
+    const ids = Object.keys(marcadores.current);
+    if (!m || ids.length === 0) return;
+    const limites = new LngLatBounds();
+    puntos.forEach((p) => limites.extend([p.lng, p.lat]));
+    m.fitBounds(limites, { padding: 80, maxZoom: 15, duration: 900 });
+  }
+
   return (
-    <div
-      ref={contenedor}
-      style={{ height: alto }}
-      className="w-full overflow-hidden rounded-3xl bg-slate-100 dark:bg-slate-800 relative z-0"
-    />
+    <div className="relative w-full" style={{ height: alto }}>
+      <div ref={contenedor} className="atl-mapa h-full w-full overflow-hidden rounded-3xl" />
+
+      {/* Los mandos van en HTML y no como controles de MapLibre para que sigan
+          el mismo lenguaje visual que el resto de la app. */}
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+        <div className="pointer-events-auto flex overflow-hidden rounded-xl border border-white/[0.14] bg-black/55 backdrop-blur-md">
+          {(["satelite", "calles"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setVista(v)}
+              className={`px-3 py-2 text-[13px] font-semibold transition-colors ${
+                vista === v ? "bg-[#ff812c] text-[#1C1C1E]" : "text-white/80 hover:text-white"
+              }`}
+            >
+              {v === "satelite" ? "Satélite" : "Calles"}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={centrarFlota}
+          className="pointer-events-auto rounded-xl border border-white/[0.14] bg-black/55 px-3 py-2 text-[13px] font-semibold text-white/90 backdrop-blur-md transition-colors hover:text-white"
+        >
+          Centrar flota
+        </button>
+      </div>
+
+      {!listo && (
+        <div className="absolute inset-0 z-10 grid place-items-center rounded-3xl bg-[#0b1a33]/85 px-6 text-center backdrop-blur-sm">
+          {tardando ? (
+            <div className="max-w-sm">
+              <p className="text-[15px] font-semibold text-white">
+                El mapa en 3D no arrancó en este navegador
+              </p>
+              <p className="mt-2 text-[13px] leading-snug text-white/70">
+                Necesita aceleración por hardware. Prueba a recargar; si sigue igual,
+                el navegador la tiene desactivada.
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-4 min-h-[44px] rounded-xl bg-[#ff812c] px-5 text-[14px] font-bold text-[#1C1C1E]"
+              >
+                Recargar
+              </button>
+            </div>
+          ) : (
+            <p className="text-[14px] text-white/70">Levantando el valle…</p>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

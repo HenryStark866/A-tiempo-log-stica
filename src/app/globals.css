@@ -523,3 +523,50 @@ textarea:-webkit-autofill:focus {
 .tema-multicolor .atl-superficie {
   background-color: rgb(18, 16, 34, 0.78);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EL MAPA DE LA FLOTA
+
+   El latido del marcador vive aquí y no dentro del HTML del propio marcador.
+   Antes cada marcador traía su propia etiqueta <style> con los mismos
+   fotogramas: con diez mensajeros en pantalla eran diez copias de la misma
+   animación, y se volvían a inyectar en cada latido del realtime.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes atl-latido {
+  0%   { transform: scale(0.95); opacity: 0.5; }
+  50%  { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+/* El color del cielo mientras las teselas todavía no llegan: sin esto, el
+   hueco del mapa es blanco y pega un fogonazo en una pantalla oscura. */
+.atl-mapa {
+  background-color: #0b1a33;
+}
+
+/* Los mandos de MapLibre vienen con el look por defecto de la librería. Se
+   los acerca al resto de la app sin reescribirlos. */
+.atl-mapa .maplibregl-ctrl-group {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.atl-mapa .maplibregl-ctrl-group button + button {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.atl-mapa .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
+
+.atl-mapa .maplibregl-ctrl-attrib {
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.atl-mapa .maplibregl-ctrl-attrib a {
+  color: rgba(255, 255, 255, 0.9);
+}

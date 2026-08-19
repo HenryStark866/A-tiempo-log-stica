@@ -16,7 +16,6 @@ import {
   Receipt,
   Route,
   ShieldAlert,
-  Store,
   Tag,
   Users,
   Warehouse,
@@ -78,9 +77,6 @@ export const NAV: NavItem[] = [
   { href: "/seguimiento", label: "Seguimiento", icon: Radio, roles: ["cliente", "admin", "coordinador", "operario", "admin_cedi", "asesor"] },
   { href: "/destinatarios", label: "Clientes", icon: Contact, roles: ["cliente", "asesor"] },
   { href: "/productos", label: "Productos", icon: Tag, roles: ["cliente", "asesor"] },
-  // Dentro de Mi comercio viven también sus sedes y su equipo de asesores:
-  // son configuración del mismo negocio, no tres pantallas distintas.
-  { href: "/mi-comercio", label: "Mi comercio", icon: Store, roles: ["cliente"] },
   { href: "/conductor/recogida", label: "Mis recogidas", icon: PackageOpen, roles: ["mensajero"] },
   { href: "/entregas", label: "Mi ruta", icon: MapPinned, roles: ["mensajero"] },
   // Mi perfil es de TODOS, no solo del mensajero. La pantalla se abrió a todos

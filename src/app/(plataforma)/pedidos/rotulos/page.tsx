@@ -134,12 +134,30 @@ function Rotulo({ g, origin }: { g: LabelData; origin: string | null }) {
       {/* Cabecera: remitente y número de pedido grande, que es lo que el
           mensajero canta al chequear contra su lista. */}
       <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
-            A Tiempo Logística · Remite
-          </p>
-          <p className="truncate text-[15px] font-bold">{g.business_name}</p>
-          {g.business_phone && <p className="text-[12px] text-slate-600">{g.business_phone}</p>}
+        <div className="flex min-w-0 items-center gap-3">
+          {/* La marca del comercio, pegada a la caja.
+              El rótulo es lo único del envío que el comprador ve antes de
+              abrirla: si el paquete llega con el logo de la tienda a la que le
+              compró, sabe de quién es sin leer nada.
+              `crossOrigin` no hace falta —el bucket es público— pero
+              print-color-adjust sí: sin eso el navegador imprime las imágenes
+              con los colores lavados o directamente en blanco. */}
+          {g.business_logo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={g.business_logo}
+              alt={g.business_name}
+              className="h-12 w-12 shrink-0 rounded-lg object-contain"
+              style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              A Tiempo Logística · Remite
+            </p>
+            <p className="truncate text-[15px] font-bold">{g.business_name}</p>
+            {g.business_phone && <p className="text-[12px] text-slate-600">{g.business_phone}</p>}
+          </div>
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Pedido</p>

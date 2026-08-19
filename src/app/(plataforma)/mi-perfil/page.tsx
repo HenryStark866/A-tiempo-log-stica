@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
+import { MiComercioPanel } from "@/components/MiComercioPanel";
 import { PageHeader, Card, Field, Loading, inputCls } from "@/components/ui";
 import { reabrirPermisosTurno } from "@/components/PermisosTurno";
 import {
@@ -225,6 +226,20 @@ export default function MyProfilePage() {
       />
 
       <TuRedSocial />
+
+      {/* Lo del negocio, para quien tiene uno.
+          Antes esto era una pantalla aparte, «Mi comercio», y el dueño tenía
+          que acordarse de en cuál de las dos estaba cada cosa: su teléfono en
+          una, el de su negocio en la otra, su logo en la otra. Es la misma
+          pregunta —«lo mío»— así que ahora es una sola pantalla.
+          Solo el dueño: al asesor la base no le abre los medios de pago ni la
+          facturación, y enseñarle una sección que no puede usar es peor que no
+          enseñársela. */}
+      {profile.role === "cliente" && (
+        <div className="mt-8">
+          <MiComercioPanel />
+        </div>
+      )}
 
       {/* El resto de la pantalla —documentos, habilitación, permisos del
           turno— es solo del mensajero: son cosas que no existen para los

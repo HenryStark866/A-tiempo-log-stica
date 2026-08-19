@@ -71,6 +71,11 @@ export default function NewGuidePage() {
    * ROLES_DEL_COMERCIO es la misma lista que ya usan /pedidos y /recogidas.
    */
   const esDelComercio = ROLES_DEL_COMERCIO.includes(profile.role);
+  // ¿El comercio ya dijo a dónde se le gira el contraentrega? Solo lo puede
+  // consultar el dueño: al asesor la base no le abre los medios de pago, así
+  // que preguntarlo desde su sesión devolvería vacío y le mostraría un aviso
+  // falso.
+  const [sinMedioDeCobro, setSinMedioDeCobro] = useState(false);
   // Autoaprovisiona el comercio: una cuenta cliente nunca queda bloqueada.
   const { client: miComercio, clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
   const offline = useOffline();
@@ -118,6 +123,17 @@ export default function NewGuidePage() {
     package_weight_kg: "",
     is_fragile: false,
   });
+
+  useEffect(() => {
+    if (profile.role !== "cliente" || !clientId) return;
+    const supabase = createClient();
+    supabase
+      .from("at_payment_methods")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("active", true)
+      .then(({ count }) => setSinMedioDeCobro((count ?? 0) === 0));
+  }, [profile.role, clientId]);
 
   // Zonas y tarifas: el cliente ve el listado de precios completo.
   useEffect(() => {
@@ -322,6 +338,17 @@ export default function NewGuidePage() {
 
     if (!form.client_id) {
       setError("Todavía estamos preparando tu comercio. Espera un segundo y vuelve a intentar.");
+      return;
+    }
+
+    // Contraentrega sin valor es un mensajero que entrega y no cobra: la plata
+    // no se queda en una cuenta, se pierde en la calle. El `required` del campo
+    // no bastaba porque un cero lo satisface, y la base lo rechaza desde la
+    // migración 0087 — mejor decirlo aquí que dejar que reviente al guardar.
+    if (form.is_cod && Number(form.cod_amount) <= 0) {
+      setError(
+        "Un pedido contraentrega tiene que decir cuánto cobrar. Si no hay nada que cobrar, apaga «Pago contraentrega»."
+      );
       return;
     }
 
@@ -1069,6 +1096,18 @@ export default function NewGuidePage() {
                 />
               </div>
 
+              {form.is_cod && sinMedioDeCobro && (
+                <div className="border-b border-slate-900/[0.06] bg-amber-50 px-4 py-3 dark:border-white/[0.08] dark:bg-amber-500/10">
+                  <p className="text-[13px] leading-snug text-amber-700 dark:text-amber-400">
+                    Vas a cobrar contraentrega, pero tu comercio todavía no dice a
+                    dónde girarle esa plata.{" "}
+                    <Link href="/mi-perfil" className="font-bold underline">
+                      Agregar mi cuenta
+                    </Link>
+                  </p>
+                </div>
+              )}
+
               {form.is_cod && (
                 <>
                   <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors bg-gray-50 dark:bg-[#1C1C1E]">
@@ -1076,7 +1115,7 @@ export default function NewGuidePage() {
                     <span className="text-slate-400 dark:text-slate-500 mr-2">$</span>
                     <input
                       type="number"
-                      min="0"
+                      min="1"
                       required
                       value={form.cod_amount}
                       onChange={(e) => {

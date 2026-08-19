@@ -116,6 +116,17 @@ export default function EditGuidePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Lo mismo que al crear: contraentrega sin valor no existe. Aquí importa
+    // igual o más, porque editar un pedido es justo donde alguien borra el
+    // monto para corregirlo y se le queda en blanco.
+    if (form.is_cod && Number(form.cod_amount) <= 0) {
+      setError(
+        "Un pedido contraentrega tiene que decir cuánto cobrar. Si no hay nada que cobrar, apaga «Pago contraentrega»."
+      );
+      return;
+    }
+
     setSaving(true);
 
     // Va por RPC y no por update directo: RLS no le abre at_guides al comercio,
@@ -358,7 +369,7 @@ export default function EditGuidePage() {
                   <span className="text-slate-400 dark:text-slate-500 mr-2">$</span>
                   <input
                     type="number"
-                    min="0"
+                    min="1"
                     required
                     value={form.cod_amount}
                     onChange={set("cod_amount")}

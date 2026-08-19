@@ -604,6 +604,8 @@ export interface LabelData {
   created_at: string;
   business_name: string;
   business_phone: string | null;
+  /** Logo del comercio, del bucket público at-brand-logos. Va impreso en el rótulo. */
+  business_logo: string | null;
   zone_name: string | null;
 }
 

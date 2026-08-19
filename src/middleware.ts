@@ -69,7 +69,33 @@ function aguantaElMantenimiento(pathname: string) {
   );
 }
 
-const SUPABASE_ORIGIN = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin;
+/**
+ * El origen de Supabase, sin tumbar la app entera si falta la variable.
+ *
+ * Esto era `new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin` a secas, en
+ * el cuerpo del módulo. Cuando la variable no está —y no está en los deploys de
+ * vista previa, donde solo se configuró para producción— `new URL(undefined)`
+ * lanza al arrancar el middleware, y un middleware que no arranca no sirve
+ * NINGUNA página: la app responde 500 con `MIDDLEWARE_INVOCATION_FAILED`, que
+ * no dice qué variable falta ni siquiera que el problema sea una variable.
+ *
+ * Costó media tarde descubrir que la vista previa del mapa no estaba rota por
+ * el mapa. Ahora el error trae el nombre de la variable, que es lo único que
+ * hacía falta para no volver a perder ese rato.
+ */
+function origenDeSupabase(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    throw new Error(
+      "Falta NEXT_PUBLIC_SUPABASE_URL en este entorno. En Vercel las variables " +
+        "se configuran por entorno: si solo están en Production, las vistas " +
+        "previas de cada rama responden 500 en todas sus rutas."
+    );
+  }
+  return new URL(url).origin;
+}
+
+const SUPABASE_ORIGIN = origenDeSupabase();
 const SUPABASE_WS_ORIGIN = SUPABASE_ORIGIN.replace(/^https:/, "wss:");
 
 /**

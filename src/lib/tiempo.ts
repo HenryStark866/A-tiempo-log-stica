@@ -198,3 +198,81 @@ export function horaDelDiaEnColombia(referencia: Date = new Date()): number {
     }).format(referencia)
   );
 }
+
+/**
+ * ── Horas de pared ─────────────────────────────────────────────────────────
+ *
+ * Lo de abajo es la otra mitad del archivo: no instantes, sino horas sueltas
+ * "HH:MM" —lo que guardan las columnas `time` de la base (`scheduled_time`) y
+ * lo que viaja en un formulario—. Una franja de atención no es un instante:
+ * «de 8 a 5» es de 8 a 5 todos los días, así que aquí no hay zona que aplicar,
+ * y por eso estas dos no pasan por `interpretar`, que las leería como fechas
+ * inválidas.
+ */
+
+/**
+ * La hora que es ahora mismo en Medellín, como "HH:MM" de 24 horas.
+ *
+ * Es la pareja de `hoyEnColombia`: juntas dan el «ahora» de la operación sin
+ * pasar por la zona del aparato. Hace falta con minutos —y no basta
+ * `horaDelDiaEnColombia`, que redondea a la hora— para decidir qué turnos de
+ * recogida todavía se pueden ofrecer.
+ *
+ * `hourCycle: "h23"` y no `hour12: false`: con lo segundo, la medianoche sale
+ * como "24:00" en varias versiones de ICU, y "24:00" es mayor que cualquier
+ * hora de la jornada, así que a las 00:10 el formulario habría dado la noche
+ * por cerrada para el día entero.
+ */
+export function horaEnColombia(referencia: Date = new Date()): string {
+  const partes = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ZONA,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(referencia);
+  const v = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "00";
+  return `${v("hour")}:${v("minute")}`;
+}
+
+/** "08:15" → 495 minutos desde la medianoche. */
+function minutosDeHora(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+/**
+ * Los turnos de una franja, en pasos de N minutos:
+ * `turnosDelDia("08:00", "17:00", 15)` → `["08:00", "08:15", … "17:00"]`.
+ *
+ * Devuelve "HH:MM" con el cero delante, que es tal cual lo que guarda la base
+ * y lo que ya venía guardado: el desplegable manda el valor a la RPC sin
+ * convertir nada por el camino.
+ */
+export function turnosDelDia(desde: string, hasta: string, pasoMinutos = 15): string[] {
+  const turnos: string[] = [];
+  for (let m = minutosDeHora(desde); m <= minutosDeHora(hasta); m += pasoMinutos) {
+    turnos.push(
+      `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`
+    );
+  }
+  return turnos;
+}
+
+/**
+ * «2:15 p. m.» a partir de un "14:15" suelto.
+ *
+ * Da el mismo formato que `formatHora` muestra en el resto de la app —y por la
+ * misma vía, `Intl`— para que una hora elegida en un formulario y esa misma
+ * hora leída después en una tarjeta se escriban igual. El instante que se arma
+ * es un andamio: se ancla y se formatea en UTC, así que los números que entran
+ * son exactamente los que salen.
+ */
+export function etiquetaDeHora(hhmm: string): string {
+  const total = minutosDeHora(hhmm);
+  if (!Number.isFinite(total)) return hhmm;
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "UTC",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(Date.UTC(2000, 0, 1, Math.floor(total / 60), total % 60)));
+}

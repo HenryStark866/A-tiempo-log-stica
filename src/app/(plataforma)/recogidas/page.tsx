@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass, QrCode } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass, QrCode, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -12,8 +12,8 @@ import { RecogidaQR, ImprimirQR } from "@/components/RecogidaQR";
 import { FiltroActivo, Loading } from "@/components/ui";
 import { PICKUP_STATUS_LABELS, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { esFalloDeRed } from "@/lib/offline/queue";
-import { formatDate, formatDateTime } from "@/lib/utils";
-import { hoyEnColombia } from "@/lib/tiempo";
+import { cn, formatDate, formatDateTime } from "@/lib/utils";
+import { etiquetaDeHora, horaEnColombia, hoyEnColombia, turnosDelDia } from "@/lib/tiempo";
 import type { Client, Pickup, PickupStatus, Guide, Profile } from "@/lib/types";
 
 const MIN_PACKAGES = 5;
@@ -68,13 +68,145 @@ function PickupBadge({ status }: { status: PickupStatus }) {
  * campo: son dos formularios —crear y editar— y con el valor repetido bastaba
  * con cambiar uno para que la app ofreciera dos horarios distintos.
  *
- * La base lo vuelve a exigir en at_request_pickup y at_update_pickup: `min` y
- * `max` de un input son una ayuda para quien escribe, no una garantía. Un
- * navegador viejo los ignora, y la RPC se puede llamar sin pasar por la
- * pantalla.
+ * La base lo vuelve a exigir en at_request_pickup y at_update_pickup: lo que
+ * ofrece la pantalla es una ayuda para quien elige, no una garantía. La RPC se
+ * puede llamar sin pasar por aquí.
  */
 const HORA_MIN = "08:00";
 const HORA_MAX = "17:00";
+/**
+ * Cada cuánto se ofrece un turno. La operación no agenda al minuto: el mensajero
+ * pasa dentro de una franja, así que ofrecer 08:07 era prometer una precisión
+ * que el CEDI no puede cumplir.
+ */
+const PASO_MINUTOS = 15;
+
+/**
+ * Los turnos que ofrece el desplegable. Se calculan una sola vez al cargar el
+ * módulo: la lista no depende de nada del render y no tiene por qué rehacerse
+ * en cada tecla del formulario.
+ */
+const HORAS_RECOGIDA = turnosDelDia(HORA_MIN, HORA_MAX, PASO_MINUTOS);
+
+/** El texto de ayuda bajo el campo, con las horas escritas como se hablan. */
+const AYUDA_HORARIO = `Recogemos de ${etiquetaDeHora(HORA_MIN)} a ${etiquetaDeHora(HORA_MAX)}, en turnos de ${PASO_MINUTOS} minutos.`;
+
+const MSG_JORNADA_CERRADA =
+  "El horario de recogidas por hoy ha finalizado. Por favor, selecciona una fecha a partir de mañana.";
+const MSG_HORA_PASADA =
+  "La hora seleccionada ya pasó. Por favor, elige una hora futura o cambia la fecha.";
+
+/**
+ * ¿Este momento ya quedó atrás, en hora de Medellín?
+ *
+ * Es el único criterio de «ya pasó» de la pantalla: de él salen los turnos que
+ * se ofrecen, el aviso de jornada cerrada, la limpieza de una hora que se
+ * quedó vieja en el formulario y la comprobación al enviar. Con cuatro copias
+ * de la misma cuenta bastaba con corregir tres para que la cuarta siguiera
+ * dejando pasar lo que las otras bloquean.
+ *
+ * Compara cadenas y no `Date`: "2026-08-19" y "08:15" están rellenas con ceros
+ * y ordenan igual que los números que representan, y así no hay que construir
+ * un instante —ni acertar con su zona— para responder algo que es de calendario
+ * de pared. Una hora vacía («sin preferencia») nunca ha pasado: es la fecha la
+ * que manda.
+ */
+function yaPaso(fecha: string, hora: string, ahora: Date): boolean {
+  if (!fecha) return false;
+  const hoy = hoyEnColombia(ahora);
+  if (fecha !== hoy) return fecha < hoy;
+  return hora !== "" && hora <= horaEnColombia(ahora);
+}
+
+/**
+ * Los turnos que todavía se pueden pedir para esa fecha. Para mañana en
+ * adelante son todos; para hoy, los que aún no han pasado; después de las
+ * 5 p. m. no queda ninguno y la pantalla lo dice con todas sus letras.
+ */
+function turnosDisponibles(fecha: string, ahora: Date): string[] {
+  return HORAS_RECOGIDA.filter((hora) => !yaPaso(fecha, hora, ahora));
+}
+
+/**
+ * La hora de recogida, como desplegable.
+ *
+ * Era un `input type="time"` con min/max/step, y el navegador respondía a media
+ * escritura con su propia burbuja de validación ("El valor debe ser 08:00 o
+ * posterior"): un regaño en el idioma del sistema operativo, encima del campo,
+ * mientras el usuario todavía estaba tecleando. Con un `<select>` no hay nada
+ * que validar —solo se puede elegir una hora que la operación sí atiende— y de
+ * paso la interfaz dice la verdad: se agenda por turnos, no al minuto.
+ *
+ * La hora sigue siendo opcional (la RPC acepta null), así que la primera opción
+ * es dejarla en blanco.
+ *
+ * No decide qué horas existen: recibe la lista ya filtrada por la fecha que
+ * haya escogido el usuario. Cuando esa lista viene vacía la jornada terminó, y
+ * entonces no se dibuja un desplegable sin nada dentro —que no explica nada—
+ * sino el aviso de que hay que irse a mañana.
+ */
+function SelectHora({
+  id,
+  value,
+  onChange,
+  className,
+  horas,
+}: {
+  id: string;
+  value: string;
+  onChange: (hora: string) => void;
+  className: string;
+  horas: string[];
+}) {
+  if (horas.length === 0) {
+    return (
+      <div
+        role="status"
+        className="flex min-h-[52px] items-start gap-2.5 rounded-2xl bg-amber-500/10 px-4 py-3 ring-1 ring-inset ring-amber-500/25"
+      >
+        <Clock className="mt-0.5 w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        <p className="text-[14px] leading-snug text-amber-700 dark:text-amber-300">
+          {MSG_JORNADA_CERRADA}
+        </p>
+      </div>
+    );
+  }
+
+  // Una recogida ya guardada puede traer una hora que no cae en la rejilla
+  // (07:40, 16:50, cualquier cosa creada antes de esto o por la RPC directa).
+  // Si no se ofrece como opción, el <select> se dibuja vacío y al guardar le
+  // borraríamos la hora al comercio sin que nadie lo pidiera. Solo se conserva
+  // si sigue siendo futura: de eso responde quien pasa `value`, que es el mismo
+  // que limpia el campo cuando deja de serlo.
+  const fueraDeRejilla = value !== "" && !horas.includes(value);
+
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        // `appearance-none` quita la flecha del sistema —que en Windows y en
+        // móvil no se parecen entre sí— y `pr-11` deja el hueco para la nuestra.
+        className={cn(className, "appearance-none cursor-pointer pr-11")}
+      >
+        <option value="">Sin preferencia</option>
+        {fueraDeRejilla && (
+          <option value={value}>{etiquetaDeHora(value)} · hora actual</option>
+        )}
+        {horas.map((hora) => (
+          <option key={hora} value={hora}>
+            {etiquetaDeHora(hora)}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        aria-hidden
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500"
+      />
+    </div>
+  );
+}
 
 export default function PickupsPage() {
   // El filtro llega por la URL desde Mi panel, y `useSearchParams` pide su
@@ -145,6 +277,51 @@ function Pickups() {
     contact_phone: "",
     notes: "",
   });
+
+  // ── El «ahora» de los formularios ────────────────────────────────────
+  //
+  // Qué horas se pueden pedir depende del reloj, así que el reloj tiene que
+  // seguir corriendo mientras el formulario está abierto: si alguien lo abre a
+  // las 4:58 y envía a las 5:03, la lista que tiene delante ya no es cierta.
+  // Se refresca cada medio minuto y solo con un formulario abierto, para no
+  // volver a dibujar la tabla entera cada 30 s sin que nadie lo esté mirando.
+  const [ahora, setAhora] = useState(() => new Date());
+  const formularioAbierto = showNew || editando !== null;
+
+  useEffect(() => {
+    if (!formularioAbierto) return;
+    // El formulario puede abrirse mucho después de que cargara la pantalla:
+    // primero se pone el reloj en hora, y luego se deja andando.
+    setAhora(new Date());
+    const id = setInterval(() => setAhora(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, [formularioAbierto]);
+
+  const hoy = hoyEnColombia(ahora);
+  const turnosNueva = useMemo(
+    () => turnosDisponibles(form.scheduled_date, ahora),
+    [form.scheduled_date, ahora]
+  );
+  const turnosEdit = useMemo(
+    () => turnosDisponibles(editForm.scheduled_date, ahora),
+    [editForm.scheduled_date, ahora]
+  );
+
+  // Una hora elegida deja de valer sola: porque el usuario movió la fecha a hoy,
+  // o porque el reloj le pasó por encima con el formulario abierto. Se limpia el
+  // campo en vez de dejarlo con un valor que el desplegable ya no muestra —el
+  // <select> se vería vacío pero el estado seguiría enviando la hora vieja—.
+  useEffect(() => {
+    setForm((f) =>
+      yaPaso(f.scheduled_date, f.scheduled_time, ahora) ? { ...f, scheduled_time: "" } : f
+    );
+  }, [ahora, form.scheduled_date]);
+
+  useEffect(() => {
+    setEditForm((f) =>
+      yaPaso(f.scheduled_date, f.scheduled_time, ahora) ? { ...f, scheduled_time: "" } : f
+    );
+  }, [ahora, editForm.scheduled_date]);
 
   const isStaff = ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
@@ -219,8 +396,36 @@ function Pickups() {
     });
   }
 
+  /**
+   * El último filtro antes de mandar, común a crear y a corregir.
+   *
+   * Los desplegables ya no ofrecen horas pasadas, así que esto no debería
+   * saltar nunca: se pone porque entre abrir el formulario y darle al botón
+   * cabe cualquier cosa —el reloj que avanza, una pestaña que estuvo media
+   * hora en segundo plano, un `value` viejo que sobrevivió a un re-render—.
+   *
+   * Pregunta la hora otra vez con `new Date()` y no con el estado `ahora`, que
+   * puede llevar hasta 30 s de retraso. Y sigue sin ser la última palabra: la
+   * autoridad es el reloj del servidor, que es el que ve la RPC.
+   */
+  function momentoInvalido(fecha: string, hora: string): string | null {
+    const instante = new Date();
+    if (fecha === hoyEnColombia(instante) && turnosDisponibles(fecha, instante).length === 0) {
+      return MSG_JORNADA_CERRADA;
+    }
+    if (yaPaso(fecha, hora, instante)) return MSG_HORA_PASADA;
+    return null;
+  }
+
   async function createPickup(e: React.FormEvent) {
     e.preventDefault();
+
+    const problema = momentoInvalido(form.scheduled_date, form.scheduled_time);
+    if (problema) {
+      setError(problema);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -293,6 +498,13 @@ function Pickups() {
   async function guardarEdicion(e: React.FormEvent) {
     e.preventDefault();
     if (!editando) return;
+
+    const problema = momentoInvalido(editForm.scheduled_date, editForm.scheduled_time);
+    if (problema) {
+      setError(problema);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -725,27 +937,34 @@ function Pickups() {
                   <input
                     type="date"
                     required
+                    // El calendario no deja ni siquiera elegir ayer: es más
+                    // barato no ofrecer la fecha que explicar después por qué
+                    // no servía.
+                    min={hoy}
                     value={form.scheduled_date}
                     onChange={(e) => setForm((f) => ({ ...f, scheduled_date: e.target.value }))}
                     className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                  <label
+                    htmlFor="hora-recogida-nueva"
+                    className="block text-[15px] font-semibold text-slate-900 dark:text-white"
+                  >
                     Hora deseada
                   </label>
-                  <input
-                    type="time"
-                    min={HORA_MIN}
-                    max={HORA_MAX}
-                    step={900}
+                  <SelectHora
+                    id="hora-recogida-nueva"
                     value={form.scheduled_time}
-                    onChange={(e) => setForm((f) => ({ ...f, scheduled_time: e.target.value }))}
+                    onChange={(hora) => setForm((f) => ({ ...f, scheduled_time: hora }))}
+                    horas={turnosNueva}
                     className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400">
-                    Recogemos de {HORA_MIN} a {HORA_MAX}.
-                  </p>
+                  {turnosNueva.length > 0 && (
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                      {AYUDA_HORARIO}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -990,26 +1209,31 @@ function Pickups() {
                   <input
                     type="date"
                     required
-                    min={hoyEnColombia()}
+                    min={hoy}
                     value={editForm.scheduled_date}
                     onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })}
                     className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[15px] font-semibold text-slate-900 dark:text-white">Hora</label>
-                  <input
-                    type="time"
-                    min={HORA_MIN}
-                    max={HORA_MAX}
-                    step={900}
+                  <label
+                    htmlFor="hora-recogida-editar"
+                    className="block text-[15px] font-semibold text-slate-900 dark:text-white"
+                  >
+                    Hora
+                  </label>
+                  <SelectHora
+                    id="hora-recogida-editar"
                     value={editForm.scheduled_time}
-                    onChange={(e) => setEditForm({ ...editForm, scheduled_time: e.target.value })}
+                    onChange={(hora) => setEditForm({ ...editForm, scheduled_time: hora })}
+                    horas={turnosEdit}
                     className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
-                  <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
-                    Recogemos de {HORA_MIN} a {HORA_MAX}.
-                  </p>
+                  {turnosEdit.length > 0 && (
+                    <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
+                      {AYUDA_HORARIO}
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -1,12 +1,15 @@
 import { describe, it, expect } from "vitest";
 import {
   ZONA,
+  etiquetaDeHora,
   formatDate,
   formatDateTime,
+  horaEnColombia,
   hoyEnColombia,
   horaDelDiaEnColombia,
   inicioDeHoyEnColombia,
   primerDiaDelMes,
+  turnosDelDia,
 } from "@/lib/tiempo";
 
 /**
@@ -130,5 +133,86 @@ describe("formatDateTime", () => {
   it("también responde «—» a lo que no es una fecha", () => {
     expect(formatDateTime(null)).toBe("—");
     expect(formatDateTime("cualquier cosa")).toBe("—");
+  });
+});
+
+/**
+ * ── Horas de pared ────────────────────────────────────────────────────────
+ *
+ * Lo que sostiene el desplegable de «Hora deseada» en Recogidas: la rejilla de
+ * turnos y el reloj con el que se decide cuáles ya pasaron. La misma franja
+ * está escrita en la base (migración 0088, at_pickups_hora_en_franja); si
+ * alguien mueve una de las dos sin la otra, la pantalla ofrecerá horas que el
+ * servidor rechaza.
+ */
+describe("horaEnColombia", () => {
+  it("da la hora de Medellín, no la del aparato", () => {
+    expect(horaEnColombia(NOCHE)).toBe("21:30");
+    expect(horaEnColombia(MANANA)).toBe("09:00");
+  });
+
+  it("la medianoche es 00:00 y no 24:00", () => {
+    // Con `hour12: false` en vez de `hourCycle: "h23"`, varias versiones de ICU
+    // devuelven "24:00". Y "24:00" > "17:00" en comparación de cadenas: a las
+    // 00:10 el formulario habría dado la jornada por cerrada el día entero.
+    const medianoche = new Date("2026-08-05T05:00:00Z"); // 00:00 en Medellín
+    expect(horaEnColombia(medianoche)).toBe("00:00");
+  });
+
+  it("rellena con cero para que ordene como el número que representa", () => {
+    // De esto depende que `hora <= horaEnColombia(...)` sea una comparación
+    // válida: sin el cero, "9:00" > "17:00" y se cuela una hora ya pasada.
+    expect(horaEnColombia(MANANA)).toMatch(/^\d{2}:\d{2}$/);
+  });
+});
+
+describe("turnosDelDia", () => {
+  it("cubre la jornada de recogidas de punta a punta", () => {
+    const turnos = turnosDelDia("08:00", "17:00", 15);
+    expect(turnos).toHaveLength(37);
+    expect(turnos[0]).toBe("08:00");
+    expect(turnos[1]).toBe("08:15");
+    expect(turnos.at(-1)).toBe("17:00");
+  });
+
+  it("incluye el extremo final, que es un turno atendible más", () => {
+    expect(turnosDelDia("08:00", "09:00", 30)).toEqual(["08:00", "08:30", "09:00"]);
+  });
+
+  it("devuelve HH:MM con cero delante, como lo guarda la columna time", () => {
+    for (const turno of turnosDelDia("08:00", "17:00", 15)) {
+      expect(turno).toMatch(/^\d{2}:\d{2}$/);
+    }
+  });
+
+  it("un paso que no cae justo en el final no lo inventa", () => {
+    expect(turnosDelDia("08:00", "08:50", 20)).toEqual(["08:00", "08:20", "08:40"]);
+  });
+});
+
+describe("etiquetaDeHora", () => {
+  it("escribe la hora como se dice por teléfono", () => {
+    expect(etiquetaDeHora("08:00")).toBe("8:00 a. m.");
+    expect(etiquetaDeHora("14:15")).toBe("2:15 p. m.");
+    expect(etiquetaDeHora("17:00")).toBe("5:00 p. m.");
+  });
+
+  it("el mediodía es 12 p. m. y la medianoche 12 a. m.", () => {
+    // El error clásico de hacerlo a mano con `h % 12`: las 12:00 salen como
+    // «0:00». Por eso esto pasa por Intl y no por aritmética.
+    expect(etiquetaDeHora("12:00")).toBe("12:00 p. m.");
+    expect(etiquetaDeHora("11:45")).toBe("11:45 a. m.");
+    expect(etiquetaDeHora("00:15")).toBe("12:15 a. m.");
+  });
+
+  it("una hora fuera de la rejilla se sigue pudiendo escribir", () => {
+    // Las recogidas viejas pueden traerla, y el formulario la conserva como
+    // opción en vez de borrarle la hora al comercio.
+    expect(etiquetaDeHora("07:40")).toBe("7:40 a. m.");
+  });
+
+  it("lo que no es una hora se devuelve tal cual, sin «Invalid Date»", () => {
+    expect(etiquetaDeHora("")).toBe("");
+    expect(etiquetaDeHora("no es una hora")).toBe("no es una hora");
   });
 });

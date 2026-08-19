@@ -218,11 +218,11 @@ function estiloSatelite(): StyleSpecification {
  * altura por defecto del dato, no en cero: un bloque bajo es más parecido a la
  * realidad que un solar vacío.
  */
-function capaEdificios(): LayerSpecification {
+function capaEdificios(fuente = "vectores"): LayerSpecification {
   return {
     id: "edificios-3d",
     type: "fill-extrusion",
-    source: "vectores",
+    source: fuente,
     "source-layer": "building",
     minzoom: 14,
     paint: {
@@ -302,6 +302,8 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
   const marcadores = useRef<Record<string, Marker>>({});
   const encuadrado = useRef(false);
   const [vista, setVista] = useState<"satelite" | "calles">("satelite");
+  /** La vista que ya está pintada, para no reaplicar el estilo por gusto. */
+  const vistaPintada = useRef<"satelite" | "calles">("satelite");
   const [listo, setListo] = useState(false);
   // Si el mapa no arranca, hay que decirlo. Un WebGL que falla no lanza
   // ningun error: simplemente no carga, y sin esto la pantalla se queda con
@@ -375,10 +377,28 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
   useEffect(() => {
     const m = mapa.current;
     if (!m || !listo) return;
+    // El mapa nace en satélite, así que el primer paso por aquí no tiene nada
+    // que cambiar. Sin esta guarda, en cuanto termina de cargar se vuelve a
+    // aplicar el mismo estilo y el mapa entero se recarga para quedar igual.
+    if (vistaPintada.current === vista) return;
+    vistaPintada.current = vista;
 
-    const alCargar = () => {
-      // Cada estilo trae sus propias capas: el relieve y los edificios hay que
-      // volver a ponerlos encima del estilo nuevo.
+    /**
+     * Soltar el relieve ANTES de cambiar de estilo.
+     *
+     * Aquí estaba el fallo por el que «Calles» no cargaba y «Satélite» sí: el
+     * terreno apunta a la fuente `relieve`, que vive dentro del estilo. Al
+     * cambiar de estilo esa fuente desaparece, el terreno se queda apuntando
+     * al vacío y MapLibre aborta el estilo nuevo sin dibujar nada. El satélite
+     * se salvaba solo porque es el estilo con el que nace el mapa y nunca
+     * llegaba a cambiarse.
+     *
+     * Se suelta el terreno, se cambia el estilo y se vuelve a poner cuando el
+     * estilo nuevo ya está dentro.
+     */
+    m.setTerrain(null);
+
+    const reponerRelieveYEdificios = () => {
       if (!m.getSource("relieve")) {
         m.addSource("relieve", {
           type: "raster-dem",
@@ -389,20 +409,23 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         });
       }
       m.setTerrain({ source: "relieve", exaggeration: 1.15 });
+
       if (!m.getLayer("edificios-3d")) {
-        if (!m.getSource("vectores")) {
+        // El estilo de calles ya trae su propia fuente vectorial —la misma de
+        // OpenFreeMap, con otro nombre—. Reutilizarla evita descargar dos
+        // veces las mismas teselas para dibujar lo mismo.
+        const suya = m.getStyle()?.sources?.openmaptiles ? "openmaptiles" : "vectores";
+        if (suya === "vectores" && !m.getSource("vectores")) {
           m.addSource("vectores", { type: "vector", url: FUENTE_VECTORES });
         }
-        m.addLayer(capaEdificios());
+        m.addLayer(capaEdificios(suya));
       }
     };
 
-    if (vista === "calles") {
-      m.setStyle(ESTILO_CALLES);
-    } else {
-      m.setStyle(estiloSatelite());
-    }
-    m.once("styledata", alCargar);
+    // El oyente se registra ANTES del cambio: si se pone después, el estilo
+    // puede haber terminado ya y el evento se pierde.
+    m.once("styledata", reponerRelieveYEdificios);
+    m.setStyle(vista === "calles" ? ESTILO_CALLES : estiloSatelite());
   }, [vista, listo]);
 
   // ── Marcadores ──────────────────────────────────────────────────────────

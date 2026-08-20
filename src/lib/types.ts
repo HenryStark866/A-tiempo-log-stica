@@ -201,6 +201,8 @@ export interface Client {
 /** Una fila del tarifario personalizado que ve un comercio (at_mi_tarifario). */
 export interface TarifaDestino {
   id: string;
+  /** Código corto de la sub-zona (MED-SO, SUR-LOM…). Null en zonas anteriores a la migración 0089. */
+  code: string | null;
   name: string;
   coverage: string | null;
   sort_order: number;
@@ -266,6 +268,14 @@ export interface RecaudoPorGirar {
 
 export interface Zone {
   id: string;
+  /**
+   * Código corto y estable de la sub-zona: MED-SO, SUR-LOM, EXT-NOR…
+   *
+   * Es lo que dice el operario al agrupar paquetes en ruta; el `name` es para
+   * el comercio. Null en las cinco zonas anteriores a la migración 0089, que
+   * siguen en la tabla —desactivadas— sosteniendo las guías históricas.
+   */
+  code: string | null;
   name: string;
   description: string | null;
   /** Municipios/sectores cubiertos, separados por coma. */

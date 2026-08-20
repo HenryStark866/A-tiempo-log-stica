@@ -234,7 +234,7 @@ export default function GuideDetailPage() {
             <Link
               href={`/rastreo/t/${guide.tracking_token}`}
               target="_blank"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
             >
               Rastreo público <ExternalLink className="size-3.5" />
             </Link>
@@ -271,49 +271,49 @@ export default function GuideDetailPage() {
         <div className="space-y-6 lg:col-span-3">
           <Card className="p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-bold text-navy-900">Información del envío</h2>
+              <h2 className="font-bold text-slate-900 dark:text-white">Información del envío</h2>
               <StatusBadge status={guide.status} large />
             </div>
             <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-slate-400">Destinatario</dt>
-                <dd className="font-medium text-navy-900">{guide.recipient_name}</dd>
-                <dd className="text-slate-500">{guide.recipient_phone ?? "—"}</dd>
+                <dt className="text-slate-500 dark:text-slate-400">Destinatario</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{guide.recipient_name}</dd>
+                <dd className="text-slate-500 dark:text-slate-400">{guide.recipient_phone ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-slate-400">Dirección</dt>
-                <dd className="font-medium text-navy-900">{guide.recipient_address}</dd>
-                <dd className="text-slate-500">
+                <dt className="text-slate-500 dark:text-slate-400">Dirección</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{guide.recipient_address}</dd>
+                <dd className="text-slate-500 dark:text-slate-400">
                   {guide.recipient_city} · Zona {guide.at_zones?.name ?? "sin asignar"}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-400">Contraentrega</dt>
-                <dd className="font-medium text-navy-900">
+                <dt className="text-slate-500 dark:text-slate-400">Contraentrega</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">
                   {guide.is_cod ? formatCOP(guide.cod_amount) : "No aplica"}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-400">Mensajero</dt>
-                <dd className="font-medium text-navy-900">
+                <dt className="text-slate-500 dark:text-slate-400">Mensajero</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">
                   {guide.courier?.full_name ?? "Sin asignar"}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-400">Intentos de entrega</dt>
-                <dd className="font-medium text-navy-900">{guide.delivery_attempts} / 2</dd>
+                <dt className="text-slate-500 dark:text-slate-400">Intentos de entrega</dt>
+                <dd className="font-medium text-slate-900 dark:text-white">{guide.delivery_attempts} / 2</dd>
               </div>
               {guide.notes && (
                 <div className="sm:col-span-2">
-                  <dt className="text-slate-400">Notas</dt>
-                  <dd className="text-slate-700">{guide.notes}</dd>
+                  <dt className="text-slate-500 dark:text-slate-400">Notas</dt>
+                  <dd className="text-slate-700 dark:text-slate-300">{guide.notes}</dd>
                 </div>
               )}
               {(guide.delivery_evidence_url || guide.delivery_signature_name) && (
                 <div className="sm:col-span-2">
-                  <dt className="text-slate-400">Evidencia de entrega</dt>
+                  <dt className="text-slate-500 dark:text-slate-400">Evidencia de entrega</dt>
                   {guide.delivery_signature_name && (
-                    <dd className="font-medium text-navy-900">Recibió: {guide.delivery_signature_name}</dd>
+                    <dd className="font-medium text-slate-900 dark:text-white">Recibió: {guide.delivery_signature_name}</dd>
                   )}
                   {guide.delivery_evidence_url && (
                     <dd>
@@ -321,7 +321,7 @@ export default function GuideDetailPage() {
                         href={guide.delivery_evidence_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
                       >
                         Ver foto <ExternalLink className="size-3.5" />
                       </a>
@@ -336,7 +336,7 @@ export default function GuideDetailPage() {
 
           {(acts.length > 0 || canAssign || canProcessReturn) && (
             <Card className="p-6">
-              <h2 className="mb-4 font-bold text-navy-900">Acciones</h2>
+              <h2 className="mb-4 font-bold text-slate-900 dark:text-white">Acciones</h2>
 
               {canAssign && (
                 <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -428,7 +428,7 @@ export default function GuideDetailPage() {
         </div>
 
         <Card className="p-6 lg:col-span-2">
-          <h2 className="mb-5 font-bold text-navy-900">Línea de tiempo</h2>
+          <h2 className="mb-5 font-bold text-slate-900 dark:text-white">Línea de tiempo</h2>
           {/* Un pedido siempre tiene al menos un hito: haberse creado. El
               trigger at_evento_al_crear_pedido lo escribe, pero si por lo que
               sea faltara, aquí se deriva de la fecha del propio pedido. Un
@@ -438,10 +438,10 @@ export default function GuideDetailPage() {
           {events.length === 0 && (
             <ol>
               <li className="relative flex gap-3">
-                <CheckCircle2 className="relative z-10 size-5 shrink-0 text-brand-500" />
+                <CheckCircle2 className="relative z-10 size-5 shrink-0 text-brand-500 dark:text-brand-400" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-navy-900">Pedido creado</p>
-                  <p className="text-xs text-slate-400">{formatDateTime(guide.created_at)}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Pedido creado</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{formatDateTime(guide.created_at)}</p>
                 </div>
               </li>
             </ol>
@@ -453,16 +453,16 @@ export default function GuideDetailPage() {
                   <span className="absolute left-[9px] top-5 h-full w-px bg-slate-200" />
                 )}
                 {i === 0 ? (
-                  <CheckCircle2 className="relative z-10 size-5 shrink-0 text-brand-500" />
+                  <CheckCircle2 className="relative z-10 size-5 shrink-0 text-brand-500 dark:text-brand-400" />
                 ) : (
                   <Circle className="relative z-10 size-5 shrink-0 fill-white text-slate-300" />
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-navy-900">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     {GUIDE_STATUS_LABELS[ev.status]}
                   </p>
-                  {ev.note && <p className="text-sm text-slate-600">{ev.note}</p>}
-                  <p className="text-xs text-slate-400">
+                  {ev.note && <p className="text-sm text-slate-600 dark:text-slate-400">{ev.note}</p>}
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {formatDateTime(ev.created_at)}
                     {ev.actor?.full_name ? ` · ${ev.actor.full_name}` : ""}
                   </p>
@@ -520,14 +520,14 @@ export default function GuideDetailPage() {
               placeholder="000000"
               className={inputCls + " text-center text-xl font-bold tracking-[0.3em]"}
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Los 6 dígitos que le llegaron al comprador por mensaje. Se exige solo si el mensaje
               alcanzó a salir; coordinación puede confirmar sin él y queda anotado en el historial.
             </p>
           </Field>
           <Field label={`Foto de evidencia ${guide.is_cod ? "*" : "(opcional)"}`}>
             <label className={inputCls + " flex items-center gap-2 cursor-pointer"}>
-              <Camera className="size-4 shrink-0 text-brand-600" />
+              <Camera className="size-4 shrink-0 text-brand-600 dark:text-brand-400" />
               <span className="truncate">{evidenceFile ? evidenceFile.name : "Adjuntar foto del paquete entregado"}</span>
               <input
                 type="file"
@@ -585,11 +585,11 @@ export default function GuideDetailPage() {
               <AlertTriangle className="w-5 h-5 text-rose-600" />
             </div>
             <div>
-              <p className="font-semibold text-slate-900">{guide.guide_number}</p>
-              <p className="text-sm text-slate-500">Destinatario: {guide.recipient_name}</p>
+              <p className="font-semibold text-slate-900 dark:text-white">{guide.guide_number}</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Destinatario: {guide.recipient_name}</p>
             </div>
           </div>
-          <p className="text-sm text-slate-700 mb-4">
+          <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
             ¿Seguro que quieres eliminar esta guía? Esta acción no se puede deshacer.
           </p>
           {deleteError && (
@@ -639,7 +639,7 @@ function ContenidoDelPaquete({ guide }: { guide: Guide }) {
   return (
     <Card className="p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-bold text-navy-900">Contenido del paquete</h2>
+        <h2 className="font-bold text-slate-900 dark:text-white">Contenido del paquete</h2>
         {guide.is_fragile && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-700">
             <AlertTriangle className="size-3.5" /> Frágil
@@ -669,28 +669,28 @@ function ContenidoDelPaquete({ guide }: { guide: Guide }) {
                 className="flex items-start justify-between gap-3 py-2.5 text-sm"
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-navy-900">
-                    <span className="tabular-nums text-slate-500">{it.qty}×</span> {it.name}
+                  <p className="font-medium text-slate-900 dark:text-white">
+                    <span className="tabular-nums text-slate-500 dark:text-slate-400">{it.qty}×</span> {it.name}
                   </p>
-                  {it.sku && <p className="text-xs text-slate-400">SKU {it.sku}</p>}
+                  {it.sku && <p className="text-xs text-slate-500 dark:text-slate-400">SKU {it.sku}</p>}
                 </div>
-                <p className="shrink-0 font-semibold tabular-nums text-navy-900">
+                <p className="shrink-0 font-semibold tabular-nums text-slate-900 dark:text-white">
                   {formatCOP(it.unit_price * it.qty)}
                 </p>
               </li>
             ))}
           </ul>
           <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-sm">
-            <span className="text-slate-400">
+            <span className="text-slate-500 dark:text-slate-400">
               {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
             </span>
-            <span className="font-bold tabular-nums text-navy-900">{formatCOP(total)}</span>
+            <span className="font-bold tabular-nums text-slate-900 dark:text-white">{formatCOP(total)}</span>
           </div>
         </>
       )}
 
       {guide.content_description && (
-        <p className="mt-4 border-l-2 border-slate-200 pl-3 text-sm leading-relaxed text-slate-700">
+        <p className="mt-4 border-l-2 border-slate-200 pl-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
           {guide.content_description}
         </p>
       )}

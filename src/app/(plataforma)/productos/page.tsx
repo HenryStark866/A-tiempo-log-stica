@@ -19,8 +19,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
 import { useProfile } from "@/components/ProfileContext";
 import {
-  parseCsv,
-  decodeCsvBytes,
+  leerTabla,
+  FORMATOS_ACEPTADOS,
+  FORMATOS_LEGIBLES,
   guessProductMapping,
   toProductPayload,
   PRODUCT_FIELD_LABELS,
@@ -179,16 +180,18 @@ export default function ProductsPage() {
     load();
   }
 
-  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+  // `leerTabla` decide el formato por el CONTENIDO del archivo —no por su
+  // extensión— y devuelve siempre lo mismo: encabezados y filas. Lo que lanza
+  // ya viene redactado para la persona, así que se pinta tal cual.
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
     setResult(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const { headers: h, rows: r } = parseCsv(decodeCsvBytes(reader.result as ArrayBuffer));
+    try {
+      const { headers: h, rows: r } = await leerTabla(file);
       if (h.length === 0 || r.length === 0) {
-        setError("El archivo no tiene filas legibles.");
+        setError("El archivo no tiene filas legibles. Revisa que la primera fila sean los encabezados.");
         setHeaders([]);
         setRows([]);
         return;
@@ -197,9 +200,11 @@ export default function ProductsPage() {
       setHeaders(h);
       setRows(r);
       setMapping(guessProductMapping(h));
-    };
-    reader.onerror = () => setError("No se pudo leer el archivo.");
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo leer el archivo.");
+      setHeaders([]);
+      setRows([]);
+    }
   }
 
   const faltantes = PRODUCT_REQUIRED_FIELDS.filter((f) => !mapping[f]);
@@ -337,7 +342,7 @@ export default function ProductsPage() {
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,text/csv"
+              accept={FORMATOS_ACEPTADOS}
               onChange={onPickFile}
               className="block flex-1 text-[15px] text-slate-600 dark:text-slate-400
                 file:mr-4 file:rounded-xl file:border-0 file:bg-[#ff812c] file:px-5 file:py-3
@@ -350,6 +355,13 @@ export default function ProductsPage() {
               <Download className="w-4 h-4" /> Plantilla
             </button>
           </div>
+
+          {/* Decir qué se acepta ahorra el viaje de elegir un archivo para que
+              lo rechacen. El texto sale de la misma constante que alimenta el
+              `accept`, así que no pueden decir cosas distintas. */}
+          <p className="-mt-1 text-[13px] text-slate-500 dark:text-slate-400">
+            {FORMATOS_LEGIBLES}. La primera fila tiene que ser la de los encabezados.
+          </p>
 
           {headers.length > 0 && (
             <div className="space-y-4 border-t border-slate-900/[0.06] dark:border-white/[0.08] pt-4">

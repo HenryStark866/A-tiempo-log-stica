@@ -6,8 +6,19 @@ import QRCode from "react-qr-code";
 import { Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Loading, Empty, PageHeader, Card } from "@/components/ui";
-import { formatCOP } from "@/lib/utils";
+import { cn, formatCOP } from "@/lib/utils";
 import type { LabelData } from "@/lib/types";
+
+/**
+ * Milisegundos entre marcar qué rótulo se va a imprimir y abrir el diálogo.
+ *
+ * window.print() congela la pestaña y fotografía el DOM tal como esté en ese
+ * instante. Si se llama en el mismo turno en que se cambia el estado, React
+ * todavía no ha pintado el `print:hidden` sobre los demás rótulos y salen
+ * todos. Un turno del reloj alcanza; 50 ms deja margen en equipos lentos sin
+ * que el usuario perciba demora.
+ */
+const RETARDO_DE_PINTADO = 50;
 
 export default function LabelsPage() {
   return (
@@ -24,8 +35,41 @@ function Labels() {
   const [origin, setOrigin] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Qué rótulo se está imprimiendo solo. En `null` se imprime la hoja entera,
+   * que es el comportamiento de siempre del botón naranja.
+   */
+  const [printingId, setPrintingId] = useState<string | null>(null);
+
   // El QR lleva una URL absoluta, y el origin solo existe en el navegador.
   useEffect(() => setOrigin(window.location.origin), []);
+
+  // El navegador avisa cuando el diálogo se cerró —se haya impreso o
+  // cancelado— y esa es la señal buena para volver a habilitar la hoja
+  // completa. No sirve limpiar justo después de window.print(): en escritorio
+  // la llamada bloquea, pero en móvil devuelve enseguida y se alcanzaría a
+  // reaparecer el resto de rótulos antes de la foto.
+  useEffect(() => {
+    const alTerminar = () => setPrintingId(null);
+    window.addEventListener("afterprint", alTerminar);
+    return () => window.removeEventListener("afterprint", alTerminar);
+  }, []);
+
+  /** Imprime un solo rótulo: el resto se esconde apenas para el papel. */
+  const imprimirUno = useCallback((id: string) => {
+    setPrintingId(id);
+    setTimeout(() => window.print(), RETARDO_DE_PINTADO);
+  }, []);
+
+  /**
+   * Imprime todos. Limpia `printingId` antes por si un navegador se quedó sin
+   * disparar `afterprint`: si no, el botón naranja sacaría un solo rótulo y
+   * nadie entendería por qué.
+   */
+  const imprimirTodos = useCallback(() => {
+    setPrintingId(null);
+    setTimeout(() => window.print(), RETARDO_DE_PINTADO);
+  }, []);
 
   const load = useCallback(async () => {
     if (ids.length === 0) {
@@ -78,7 +122,7 @@ function Labels() {
           </p>
         </div>
         <button
-          onClick={() => window.print()}
+          onClick={imprimirTodos}
           className="inline-flex min-h-[48px] items-center gap-2 rounded-xl bg-[#ff812c] px-5 font-bold text-[#1C1C1E] active:scale-[0.98]"
         >
           <Printer className="size-5" /> Imprimir
@@ -87,7 +131,16 @@ function Labels() {
 
       <div className="space-y-4 print:space-y-0">
         {rows.map((g) => (
-          <Rotulo key={g.id} g={g} origin={origin} />
+          <Rotulo
+            key={g.id}
+            g={g}
+            origin={origin}
+            // Solo para el papel: en pantalla la hoja no se mueve, así que
+            // apretar el botón de un rótulo no hace saltar la página.
+            oculto={printingId !== null && printingId !== g.id}
+            aislado={printingId === g.id}
+            onImprimir={imprimirUno}
+          />
         ))}
       </div>
 
@@ -119,18 +172,46 @@ function Labels() {
           .rotulo:last-child {
             page-break-after: auto;
           }
+          /* Al imprimir uno solo, los demás quedan en display:none pero siguen
+             en el DOM, así que :last-child puede caerle a un rótulo escondido
+             y el que sí se imprime arrastraría su salto de página: sale una
+             hoja en blanco detrás. Este es el que manda mientras dure la
+             impresión individual. */
+          .rotulo-aislado {
+            page-break-after: auto !important;
+          }
         }
       `}</style>
     </div>
   );
 }
 
-function Rotulo({ g, origin }: { g: LabelData; origin: string | null }) {
+function Rotulo({
+  g,
+  origin,
+  oculto,
+  aislado,
+  onImprimir,
+}: {
+  g: LabelData;
+  origin: string | null;
+  /** Se está imprimiendo otro rótulo: este no debe salir en el papel. */
+  oculto: boolean;
+  /** Este es el rótulo que se está imprimiendo solo. */
+  aislado: boolean;
+  onImprimir: (id: string) => void;
+}) {
   const urlRastreo = origin ? `${origin}/rastreo/t/${g.tracking_token}` : null;
   const urlPago = origin ? `${origin}/pagar/${g.payment_token}` : null;
 
   return (
-    <div className="rotulo rounded-2xl border border-slate-300 bg-white p-5 text-black">
+    <div
+      className={cn(
+        "rotulo rounded-2xl border border-slate-300 bg-white p-5 text-black",
+        oculto && "print:hidden",
+        aislado && "rotulo-aislado"
+      )}
+    >
       {/* Cabecera: remitente y número de pedido grande, que es lo que el
           mensajero canta al chequear contra su lista. */}
       <div className="flex items-start justify-between gap-4 border-b-2 border-black pb-3">
@@ -159,10 +240,26 @@ function Rotulo({ g, origin }: { g: LabelData; origin: string | null }) {
             {g.business_phone && <p className="text-[12px] text-slate-600">{g.business_phone}</p>}
           </div>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Pedido</p>
-          <p className="text-[22px] font-extrabold leading-none tracking-tight">{g.guide_number}</p>
-          {g.zone_name && <p className="mt-1 text-[12px] font-semibold">{g.zone_name}</p>}
+        <div className="flex shrink-0 items-start gap-2">
+          <div className="text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Pedido</p>
+            <p className="text-[22px] font-extrabold leading-none tracking-tight">{g.guide_number}</p>
+            {g.zone_name && <p className="mt-1 text-[12px] font-semibold">{g.zone_name}</p>}
+          </div>
+
+          {/* Reimprimir un rótulo suelto. Va discreto —sin fondo ni borde
+              hasta que se pasa el cursor— porque el protagonista de la tarjeta
+              es el número de pedido, no un control. Desaparece en el papel: no
+              tendría sentido pegarle a la caja un botón de imprimir. */}
+          <button
+            type="button"
+            onClick={() => onImprimir(g.id)}
+            title={`Imprimir solo el pedido ${g.guide_number}`}
+            aria-label={`Imprimir solo el pedido ${g.guide_number}`}
+            className="print:hidden -mr-2 -mt-2 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff812c] active:scale-90"
+          >
+            <Printer className="size-[18px]" aria-hidden="true" />
+          </button>
         </div>
       </div>
 

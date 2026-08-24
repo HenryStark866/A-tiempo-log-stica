@@ -140,14 +140,24 @@ export default function UsersPage() {
     setActingId(p.id);
     setReqError(null);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("at_profiles")
-      .update({
-        role: p.requested_role as Role,
-        active: true,
-        requested_role: null,
-      })
-      .eq("id", p.id);
+
+    // Un asesor no es solo un rol: hereda el comercio al que pidió entrar y la
+    // sede principal de ese comercio. Aprobarlo con el UPDATE de abajo —que
+    // solo toca rol, activo y solicitud— lo deja CON rol de asesor y SIN
+    // comercio, y sin comercio no ve absolutamente nada, porque todo el RLS
+    // del comercio cuelga de client_id. Le pasó a dos personas antes de que
+    // esto existiera. Por eso el asesor va por su propia función.
+    const { error } =
+      p.requested_role === "asesor"
+        ? await supabase.rpc("at_admin_aprobar_asesor", { p_profile_id: p.id })
+        : await supabase
+            .from("at_profiles")
+            .update({
+              role: p.requested_role as Role,
+              active: true,
+              requested_role: null,
+            })
+            .eq("id", p.id);
     setActingId(null);
     if (error) {
       setReqError(error.message);

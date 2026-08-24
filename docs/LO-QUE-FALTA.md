@@ -1,49 +1,28 @@
 # Lo que falta, y por qué me toca a mí
 
-Estado al cierre del 2026-08-16, actualizado el 2026-08-24 desde `C:\dev`.
+Estado al cierre del 2026-08-16. Cerrado del todo el 2026-08-24 desde `C:\dev`.
 
-## 1 · Los commits ya están hechos
+## 1 y 2 · Hechos: commits, push, y las tres migraciones en Supabase
 
 Lo que el cierre del 16 de agosto dejó pendiente por un `.git` de solo
-lectura en aquel entorno ya se commiteó desde acá — `C:\dev` no tiene ese
-problema. Tres commits, en orden: la nota de dónde vive la memoria del
-proyecto, el arreglo del precio y de los documentos del mensajero (abajo), y
-la función nueva del rótulo (`Atendido por` + código de seguimiento en
-texto, migración `0092`). **No están pusheados** — eso queda para cuando
-decidas publicar.
+lectura en aquel entorno ya está resuelto — `C:\dev` no tiene ese problema.
+Commiteado, pusheado a `origin/main` y desplegado en producción (Vercel
+despliega solo al hacer push).
 
-## 2 · Aplicar las migraciones `0090`, `0091` y `0092` en Supabase
+Las migraciones `0090` (precio del CSV), `0091` (documentos del mensajero
+nuevo) y `0092` (rótulo: «Atendido por» + código de seguimiento en texto) ya
+están aplicadas en el proyecto `uhbtivaepyhwfdvtpfjq` de Supabase — el
+compartido con TaxiYa. Se corrieron desde el SQL Editor del dashboard, con
+sesión iniciada por Henry, y se verificaron en vivo después de aplicarlas:
+`at_parse_money('89900,00')` devuelve `89900.00`, no `8990000`; las tres
+funciones (`at_parse_money`, `at_register_courier_doc`, `at_label_data`)
+existen en `pg_proc`.
 
-**El despliegue no las aplica.** Es un paso aparte, y las tres llevan sus
-propias aserciones: si algo falla, no se aplican.
-
-[supabase.com/dashboard](https://supabase.com/dashboard) → proyecto
-`uhbtivaepyhwfdvtpfjq` (el compartido con TaxiYa, prefijo `at_` — **no** el de
-IncubApp) → SQL Editor → pega el contenido de cada archivo, en este orden, y
-Run:
-
-1. `supabase/migrations/0090_el_precio_del_csv_no_se_multiplica_por_cien.sql`
-   — sin ella, un precio como `89900,00` se sigue guardando como
-   **8.990.000**. Después, revisa lo ya cargado con la consulta que está al
-   pie del archivo: un precio de siete cifras en el catálogo casi siempre es
-   este fallo.
-2. `supabase/migrations/0091_el_mensajero_nuevo_puede_subir_sus_documentos.sql`
-   — sin ella, nadie que se registre como mensajero de aquí en adelante puede
-   subir sus documentos (necesita estar habilitado para subir los papeles que
-   hacen falta para habilitarlo).
-3. `supabase/migrations/0092_el_rotulo_dice_quien_atendio.sql` — sin ella,
-   `at_label_data` no trae el nombre del asesor y el rótulo no muestra
-   «Atendido por». (El código de seguimiento en texto no necesita nada nuevo:
-   ya viaja el `tracking_token` que el QR usa desde la migración 0023.)
-
-(0090 y 0091 quedaron pendientes del cierre del 16 de agosto, renumeradas de
-0083/0084 porque esos números ya los usó el trabajo que se hizo mientras
-tanto en otra sesión. 0092 es nueva, del 2026-08-24.)
-
-> **Por qué no lo hago yo:** no tengo credenciales de base de datos para este
-> proyecto en este entorno — ni MCP de Supabase conectado, ni CLI enlazado,
-> ni `service_role key` en `.env.local` (solo la `anon key`, que no alcanza
-> para DDL).
+No hay `service_role key` ni CLI de Supabase enlazado en este entorno — por
+eso se aplicaron a mano por el editor SQL en vez de con `supabase db push`.
+Si en algún momento se enlaza el CLI, reaplicar estas tres migraciones es
+inofensivo: todas usan `create or replace` / `if not exists`, están escritas
+para poder correr dos veces sin romper nada.
 
 ## 3 · Subir el archivo real que falló hoy
 

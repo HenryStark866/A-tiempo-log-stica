@@ -31,26 +31,37 @@
  *
  * Corre solo, antes de `dev` y de `build` (ver package.json: predev/prebuild),
  * así que nunca hay que acordarse de repetirlo a mano después de actualizar
- * la librería. No se commitea el archivo copiado: se regenera siempre desde
- * la versión de maplibre-gl que haya en node_modules, así nunca queda
- * desincronizado del resto del paquete.
+ * la librería. No se commitean los archivos copiados: se regeneran siempre
+ * desde la versión de maplibre-gl que haya en node_modules, así nunca quedan
+ * desincronizados del resto del paquete.
+ *
+ * ── No es un solo archivo ────────────────────────────────────────────────
+ *
+ * `maplibre-gl-worker.mjs` a su vez importa `./maplibre-gl-shared.mjs` —el
+ * código común entre el hilo principal y el worker—, con la misma resolución
+ * relativa. Copiar solo el worker deja ese import apuntando a una ruta que
+ * tampoco existe: el mismo fallo, un nivel más adentro, y esta vez sin ni
+ * siquiera un mensaje de consola claro porque ocurre DENTRO del worker — se
+ * ve como un Worker.onerror vacío, sin pista de qué falló. Van los dos.
  */
 import { copyFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
-const origen = join(raiz, "node_modules", "maplibre-gl", "dist", "maplibre-gl-worker.mjs");
-const destino = join(raiz, "public", "maplibre-gl-worker.mjs");
+const carpeta = join(raiz, "node_modules", "maplibre-gl", "dist");
+const destino = join(raiz, "public");
 
-if (!existsSync(origen)) {
-  console.warn(
-    "[copiar-worker-maplibre] No se encontró " +
-      origen +
-      " — ¿se corrió npm install? El mapa de la flota no va a arrancar sin este archivo."
-  );
-  process.exit(0); // no rompe la instalación por esto; solo avisa.
+for (const archivo of ["maplibre-gl-worker.mjs", "maplibre-gl-shared.mjs"]) {
+  const origen = join(carpeta, archivo);
+  if (!existsSync(origen)) {
+    console.warn(
+      `[copiar-worker-maplibre] No se encontró ${origen} — ¿se corrió npm install? ` +
+        "El mapa de la flota no va a arrancar sin este archivo."
+    );
+    continue; // no rompe la instalación por esto; solo avisa.
+  }
+  copyFileSync(origen, join(destino, archivo));
 }
 
-copyFileSync(origen, destino);
-console.log("[copiar-worker-maplibre] worker de MapLibre listo en public/maplibre-gl-worker.mjs");
+console.log("[copiar-worker-maplibre] worker de MapLibre listo en public/");

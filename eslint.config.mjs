@@ -22,6 +22,7 @@ const eslintConfig = [
       "next-env.d.ts", // lo genera Next en cada build, no es código nuestro
       "public/sw.js",
       "public/maplibre-gl-worker.mjs", // copiado de node_modules por scripts/copiar-worker-maplibre.mjs, no es código nuestro
+      "public/maplibre-gl-shared.mjs", // idem
       "supabase/functions/**", // Deno, con su propio runtime y sus imports por URL
       "scratch/**",
     ],

@@ -283,12 +283,13 @@ export const config = {
   // pide sin sesión y, si el middleware los manda al login, la app deja de ser
   // instalable y el SW nunca llega a registrarse.
   //
-  // maplibre-gl-worker.mjs por el mismo motivo, pero con un actor distinto: no
-  // es el navegador pidiéndolo sin sesión, es el Web Worker de MapLibre desde
-  // dentro del mapa de la flota (ver FleetMap.tsx). Si el middleware lo manda
-  // a /login, el worker recibe HTML donde esperaba JavaScript y el mapa nunca
-  // arranca: ni siquiera llega a intentar la primera tesela.
+  // maplibre-gl-worker.mjs y su import maplibre-gl-shared.mjs, por el mismo
+  // motivo pero con un actor distinto: no es el navegador pidiéndolos sin
+  // sesión, es el Web Worker de MapLibre desde dentro del mapa de la flota
+  // (ver FleetMap.tsx). Si el middleware los manda a /login, el worker recibe
+  // HTML donde esperaba JavaScript y el mapa nunca arranca: ni siquiera llega
+  // a intentar la primera tesela.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|maplibre-gl-worker.mjs|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|maplibre-gl-worker.mjs|maplibre-gl-shared.mjs|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

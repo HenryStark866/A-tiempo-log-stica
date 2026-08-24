@@ -46,6 +46,16 @@ export const MARCA = {
   /** Para títulos donde «YAM» solo no dice de qué se trata. */
   appLargo: "YAM — Red de mensajería",
 
+  /**
+   * El eslogan. En mongol, no en español: «örtöö» es la posta misma, la
+   * palabra de la que sale el nombre. Va en minúsculas y sin traducir a
+   * propósito —como un nombre propio—, con la traducción al lado para quien
+   * no conoce la historia. Vive en el splash de arranque (Splash.tsx) y en
+   * cualquier pantalla que necesite decir de un vistazo qué es YAM sin
+   * repetir la explicación entera de arriba.
+   */
+  eslogan: "örtöö · la posta siguiente",
+
   /** La empresa. Lo que va en los papeles. */
   empresa: "A Tiempo Logística",
   empresaCorto: "ATL",

@@ -410,6 +410,27 @@ select option {
   }
 }
 
+/* La misma estela del splash (arriba), pero en bucle: la usa el mapa de la
+   flota (FleetMap.tsx) mientras el WebGL del valle todavía está subiendo, y
+   ahí no hay un instante único en el que "ya llegó" para tocar `forwards`. */
+.atl-mapa-carga-estela {
+  position: absolute;
+  top: 34%;
+  left: -60%;
+  width: 220%;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #ff812c, transparent);
+  opacity: 0;
+  animation: atl-estela 1800ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .atl-mapa-carga-estela {
+    display: none;
+  }
+}
+
 /* --- Corrección para el fondo blanco del Autocompletar (Autofill) en navegadores --- */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

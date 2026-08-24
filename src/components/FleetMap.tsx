@@ -13,6 +13,8 @@ import {
   type LayerSpecification,
 } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { LogoIcon } from "@/components/Logo";
+import { MARCA } from "@/lib/marca";
 import type { CourierType } from "@/lib/types";
 
 /**
@@ -503,8 +505,19 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
         </button>
       </div>
 
+      {/* La marca, discreta, en la esquina del mapa ya cargado. No se pinta
+          mientras se ve la pantalla de carga, que ya lleva el logo grande. */}
+      {listo && (
+        <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 backdrop-blur-md">
+          <LogoIcon className="h-3.5 w-3.5 text-white/70" />
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+            {MARCA.app}
+          </span>
+        </div>
+      )}
+
       {!listo && (
-        <div className="absolute inset-0 z-10 grid place-items-center rounded-3xl bg-[#0b1a33]/85 px-6 text-center backdrop-blur-sm">
+        <div className="absolute inset-0 z-10 grid place-items-center overflow-hidden rounded-3xl bg-[#0b1a33]/90 px-6 text-center backdrop-blur-sm">
           {tardando ? (
             <div className="max-w-sm">
               <p className="text-[15px] font-semibold text-white">
@@ -523,7 +536,22 @@ export function FleetMap({ puntos, alto = 420 }: { puntos: MapPoint[]; alto?: nu
               </button>
             </div>
           ) : (
-            <p className="text-[14px] text-white/70">Levantando el valle…</p>
+            <div className="flex flex-col items-center gap-4">
+              {/* El logo con su estela, en bucle mientras carga el valle. La
+                  misma estela del splash de arranque (globals.css, atl-estela)
+                  pero infinita en vez de una sola pasada: aquí no hay un
+                  instante fijo en el que "terminó de arrancar". */}
+              <div className="relative">
+                <span className="atl-mapa-carga-estela" aria-hidden="true" />
+                <LogoIcon className="relative h-12 w-12 text-white" accent="#ff812c" />
+              </div>
+              <div>
+                <p className="text-[14px] font-medium text-white/80">Levantando el valle…</p>
+                <p className="mt-1.5 text-[10px] font-light uppercase tracking-[0.26em] text-white/40">
+                  {MARCA.eslogan}
+                </p>
+              </div>
+            </div>
           )}
         </div>
       )}

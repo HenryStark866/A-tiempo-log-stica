@@ -1,4 +1,5 @@
 import { Logo } from "@/components/Logo";
+import { MARCA } from "@/lib/marca";
 
 /**
  * El arranque de la app — la ruta de postas.
@@ -144,7 +145,7 @@ export function Splash() {
         </svg>
 
         <p className="atl-splash-pie text-[11px] font-light uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
-          örtöö · la posta siguiente
+          {MARCA.eslogan}
         </p>
       </div>
     </div>

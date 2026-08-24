@@ -23,5 +23,8 @@ next-env.d.ts
 npm-debug.log*
 *.tsbuildinfo
 
+# generado por scripts/copiar-worker-maplibre.mjs (predev/prebuild) — nunca a mano
+/public/maplibre-gl-worker.mjs
+
 .vercel
 .env*.local

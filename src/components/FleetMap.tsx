@@ -9,6 +9,7 @@ import {
   ScaleControl,
   FullscreenControl,
   LngLatBounds,
+  setWorkerUrl,
   type StyleSpecification,
   type LayerSpecification,
 } from "maplibre-gl";
@@ -54,6 +55,26 @@ import type { CourierType } from "@/lib/types";
  * cambia un proveedor aquí, hay que abrirlo allá o el mapa se queda en negro.
  * ═══════════════════════════════════════════════════════════════════════════
  */
+
+/**
+ * Dónde vive el Web Worker de MapLibre.
+ *
+ * Por defecto, maplibre-gl arma esa URL a partir de `import.meta.url` del
+ * propio paquete, asumiendo que su worker vive al lado — cierto en
+ * node_modules, falso en el navegador, porque Next.js empaqueta la librería
+ * dentro de sus propios chunks. Sin esto, el navegador pide un script de
+ * módulo en una ruta que no existe, el servidor responde con la página HTML
+ * de siempre, y el worker nunca arranca: sin worker no se procesa una sola
+ * tesela, y el mapa se queda con el lienzo en blanco hasta que esta pantalla
+ * se rinde a los 12 segundos con "no arrancó" — un mensaje que suena a que
+ * falta aceleración por hardware, cuando el problema real era este.
+ *
+ * El archivo lo pone en public/ scripts/copiar-worker-maplibre.mjs, que corre
+ * solo antes de `dev` y de `build` (ver package.json). Tiene que llamarse
+ * ANTES de crear cualquier Map, así que va en el cuerpo del módulo, no dentro
+ * del componente.
+ */
+setWorkerUrl("/maplibre-gl-worker.mjs");
 
 export interface MapPoint {
   id: string;

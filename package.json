@@ -4,7 +4,9 @@
   "private": true,
   "description": "Plataforma SaaS de logística de última milla para e-commerce en Medellín",
   "scripts": {
+    "predev": "node scripts/copiar-worker-maplibre.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copiar-worker-maplibre.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

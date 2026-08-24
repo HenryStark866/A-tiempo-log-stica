@@ -2,8 +2,11 @@
 -- VERIFICACIÓN POST-DEPLOY — 0088, la hora de recogida
 --
 -- Todo esto es de solo lectura salvo el último bloque, que está comentado.
--- Pégalo en el SQL Editor de Supabase contra el proyecto donde aplicaste la
--- migración. Cada consulta dice qué se espera ver.
+-- Pégalo en el SQL Editor de Supabase. Cada consulta dice qué se espera ver.
+--
+-- Proyecto: uhbtivaepyhwfdvtpfjq  ⚠ es el de PRODUCCIÓN (ver
+-- docs/despliegue-supabase.md).
+-- https://supabase.com/dashboard/project/uhbtivaepyhwfdvtpfjq/sql/new
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- 1. ¿Llegaron las tres piezas? Se esperan 3 filas.

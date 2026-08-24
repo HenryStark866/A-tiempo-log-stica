@@ -8,8 +8,23 @@ import type { Zone } from "@/lib/types";
  * Tarifario por zona visible para el cliente.
  * Solo muestra delivery_rate (lo que se le cobra). El pago al domiciliario vive
  * en at_zone_costs, con RLS de solo-staff, para no exponer el margen.
+ *
+ * `tarifas` es el precio REAL de este comercio hacia cada zona, el que devuelve
+ * at_mi_tarifario. Sin él, esta lista mostraba `at_zones.delivery_rate` —la
+ * tarifa saliendo del CEDI— mientras el resumen del pedido, dos bloques más
+ * arriba en la misma pantalla, mostraba el de la matriz origen×destino. Dos
+ * cifras distintas para el mismo envío, a la vista al mismo tiempo.
  */
-export function PriceList({ zones, activeZoneId }: { zones: Zone[]; activeZoneId?: string | null }) {
+export function PriceList({
+  zones,
+  activeZoneId,
+  tarifas,
+}: {
+  zones: Zone[];
+  activeZoneId?: string | null;
+  /** zona → lo que le cuesta a ESTE comercio llegar allá (at_mi_tarifario). */
+  tarifas?: Record<string, number>;
+}) {
   if (zones.length === 0) return null;
 
   return (
@@ -34,12 +49,15 @@ export function PriceList({ zones, activeZoneId }: { zones: Zone[]; activeZoneId
                   <p className={`text-[15px] font-semibold truncate ${activa ? "text-[#ff812c]" : "text-slate-900 dark:text-white"}`}>
                     {z.name}
                   </p>
+                  {/* El código no se le muestra al comercio: a él le sirve el
+                      nombre y la lista de barrios. «MED-SO» es vocabulario del
+                      CEDI y aquí solo sería ruido. */}
                   {z.coverage && (
                     <p className="text-[12px] text-slate-500 dark:text-slate-400 truncate">{z.coverage}</p>
                   )}
                 </div>
                 <p className="text-[16px] font-bold text-slate-900 dark:text-white shrink-0">
-                  {formatCOP(z.delivery_rate)}
+                  {formatCOP(tarifas?.[z.id] ?? z.delivery_rate)}
                 </p>
               </li>
             );

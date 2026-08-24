@@ -104,8 +104,41 @@ export function resolveZone(zones: Zone[], city: string, address?: string): Zone
   return { zone: null, status: cubierta ? "por_confirmar" : "fuera" };
 }
 
+/**
+ * ¿La operación llega a esta ciudad?
+ *
+ * La respuesta sale ENTERA de `at_zones`: se busca la ciudad entre los sectores
+ * y los respaldos por ciudad de las zonas ACTIVAS. Aquí no hay lista de
+ * municipios escrita en el código —a diferencia de `CIUDADES_OPERADAS`, que es
+ * fija— y esa es justo la gracia: el día que A Tiempo abra en Rionegro basta
+ * con activar su zona en la base para que la app empiece a aceptarla, sin tocar
+ * una línea ni volver a desplegar.
+ *
+ * Se compara por igualdad exacta del texto normalizado y no por «contiene»:
+ * preguntar si «cali» aparece dentro de algún sector casaría con «Calasanz» y
+ * daría por cubierta media Colombia.
+ *
+ * Lo que esto NO dice: que la ciudad esté cubierta no significa que una
+ * dirección concreta tenga zona —para eso está `zoneForText`, que mira el
+ * barrio—. Esta responde la pregunta gruesa, «¿vamos hasta allá?», que es la
+ * que decide si un pedido se puede crear.
+ */
+export function ciudadCubierta(zones: Zone[], city: string): boolean {
+  const c = normalizeText(city).trim();
+  if (!c) return true; // sin ciudad escrita todavía no hay nada que reprochar
+  if (zones.length === 0) return true; // aún cargando: no se bloquea a ciegas
+
+  return zones.some(
+    (z) => listar(z.coverage).includes(c) || listar(z.city_fallback).includes(c)
+  );
+}
+
 export const ZONE_STATUS_LABELS: Record<ZoneStatus, string> = {
   asignada: "",
   por_confirmar: "Zona por confirmar",
   fuera: "Fuera de cobertura",
 };
+
+/** Lo que se le dice a quien intenta despachar fuera del Valle de Aburrá. */
+export const MSG_FUERA_DE_COBERTURA =
+  "Fuera de Cobertura: Actualmente solo realizamos entregas en el Área Metropolitana del Valle de Aburrá.";

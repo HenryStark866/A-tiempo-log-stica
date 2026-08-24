@@ -3,6 +3,8 @@
 // Shopify/WooCommerce/Excel, así que hay que tolerar comillas, comas dentro de
 // comillas, saltos de línea CRLF, BOM y separador ; (Excel en español).
 
+import { leerXlsx, pareceXlsx, pareceXlsViejo } from "./xlsx";
+
 export type CsvRow = Record<string, string>;
 
 /** Campos que la app necesita para poder crear una guía. */
@@ -371,4 +373,132 @@ export function toProductPayload(
     if (Object.keys(extra).length > 0) out.extra = extra;
     return out;
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UNA SOLA PUERTA PARA TODOS LOS FORMATOS
+//
+// Las dos pantallas que importan —Clientes y Productos— tenían el mismo
+// FileReader copiado, y cada formato nuevo habría que añadirlo dos veces. Aquí
+// se decide una vez qué es el archivo y se devuelve siempre lo mismo:
+// encabezados y filas.
+//
+// El formato se decide por el CONTENIDO, no por la extensión. Un .csv renombrado
+// a .txt sigue siendo un csv, y un .xlsx que alguien renombró a .xls sigue
+// siendo un zip: mirar los primeros bytes acierta donde el nombre miente.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Lo que el `accept` del input debe ofrecer. Se escribe aquí para que la lista
+ *  y lo que el parser realmente entiende no puedan separarse. */
+export const FORMATOS_ACEPTADOS = [
+  ".csv",
+  ".tsv",
+  ".txt",
+  ".json",
+  ".xlsx",
+  "text/csv",
+  "text/tab-separated-values",
+  "text/plain",
+  "application/json",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+].join(",");
+
+/** Para el texto de ayuda bajo el campo. */
+export const FORMATOS_LEGIBLES = "CSV, TSV, TXT, JSON o Excel (.xlsx)";
+
+/** Convierte una matriz de celdas en encabezados + filas con nombre. */
+function matrizAFilas(matriz: string[][]): { headers: string[]; rows: CsvRow[] } {
+  const noVacias = matriz.filter((f) => f.some((c) => c.trim() !== ""));
+  if (noVacias.length === 0) return { headers: [], rows: [] };
+
+  const headers = noVacias[0].map((h, i) => h.trim() || `Columna ${i + 1}`);
+  const rows = noVacias.slice(1).map((fila) => {
+    const row: CsvRow = {};
+    headers.forEach((h, i) => (row[h] = (fila[i] ?? "").trim()));
+    return row;
+  });
+  return { headers, rows };
+}
+
+/** Un JSON de exportación: `[{...}]`, o un objeto con un único arreglo dentro. */
+function parseJson(texto: string): { headers: string[]; rows: CsvRow[] } {
+  let dato: unknown;
+  try {
+    dato = JSON.parse(texto);
+  } catch {
+    throw new Error("El archivo .json no es válido. Ábrelo y revisa que no le falte una llave o una coma.");
+  }
+
+  if (!Array.isArray(dato) && dato && typeof dato === "object") {
+    // Shopify y compañía envuelven la lista: { customers: [...] }.
+    const arreglo = Object.values(dato as Record<string, unknown>).find(Array.isArray);
+    if (arreglo) dato = arreglo;
+  }
+  if (!Array.isArray(dato) || dato.length === 0) {
+    throw new Error("El .json tiene que ser una lista de registros. Este no trae ninguna.");
+  }
+
+  // Los encabezados salen de recorrer TODOS los registros: el primero puede no
+  // traer los campos opcionales, y esas columnas se perderían.
+  const headers: string[] = [];
+  for (const item of dato) {
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      for (const k of Object.keys(item)) if (!headers.includes(k)) headers.push(k);
+    }
+  }
+  if (headers.length === 0) {
+    throw new Error("El .json trae una lista, pero no de registros con campos.");
+  }
+
+  const rows = dato.map((item) => {
+    const row: CsvRow = {};
+    for (const h of headers) {
+      const v = (item as Record<string, unknown>)?.[h];
+      // Un objeto anidado se deja como JSON en vez de como «[object Object]»:
+      // al menos así la persona ve qué traía y puede decidir.
+      row[h] =
+        v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v).trim();
+    }
+    return row;
+  });
+
+  return { headers, rows };
+}
+
+/**
+ * Lee cualquiera de los formatos aceptados y devuelve encabezados y filas.
+ *
+ * Los errores llevan mensaje para la persona, no para la consola: lo que se
+ * lanza aquí es lo que se va a pintar en pantalla tal cual.
+ */
+export async function leerTabla(file: File): Promise<{ headers: string[]; rows: CsvRow[] }> {
+  const bytes = await file.arrayBuffer();
+  const nombre = file.name.toLowerCase();
+
+  if (pareceXlsViejo(bytes)) {
+    throw new Error(
+      "Ese archivo es de Excel 2003 o anterior (.xls), un formato que ya no se puede leer aquí. " +
+        "Ábrelo en Excel y usa «Guardar como» → Libro de Excel (.xlsx) o CSV."
+    );
+  }
+
+  if (pareceXlsx(bytes)) {
+    try {
+      return matrizAFilas(await leerXlsx(bytes));
+    } catch (e) {
+      const codigo = e instanceof Error ? e.message : "";
+      if (codigo === "XLSX_SIN_HOJAS") throw new Error("Ese Excel no tiene ninguna hoja con datos.");
+      throw new Error("No se pudo leer ese Excel. Si te sirve, guárdalo como CSV y vuelve a intentar.");
+    }
+  }
+
+  // Texto: se decodifica desde bytes porque Excel en español exporta ANSI.
+  const texto = decodeCsvBytes(bytes);
+
+  // JSON por extensión o porque el contenido empieza como tal.
+  if (nombre.endsWith(".json") || /^\s*[[{]/.test(texto)) return parseJson(texto);
+
+  // Todo lo demás pasa por el lector de texto separado, que ya olfatea si el
+  // separador es coma, punto y coma, tabulación o barra vertical.
+  return parseCsv(texto);
 }

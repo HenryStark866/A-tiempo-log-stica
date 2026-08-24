@@ -7,6 +7,8 @@ import { formatCOP } from "@/lib/utils";
 
 interface ZonaSimple {
   id: string;
+  /** Código corto de la sub-zona. Null en las zonas anteriores a la 0089. */
+  code: string | null;
   name: string;
   sort_order: number;
 }
@@ -24,8 +26,9 @@ interface TarifaPar {
  * corto, y es lo que arregla cobrarle "Norte Extendido" a un comercio que ya
  * está en el norte.
  *
- * Cada celda se guarda sola al salir del campo: son 25 números y obligar a un
- * botón de "guardar todo" invita a perder el trabajo a medio camino.
+ * Cada celda se guarda sola al salir del campo: obligar a un botón de "guardar
+ * todo" invita a perder el trabajo a medio camino. Con las 10 sub-zonas de la
+ * migración 0089 son 100 celdas, así que eso importa más que cuando eran 25.
  */
 export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
   const [zonas, setZonas] = useState<ZonaSimple[]>([]);
@@ -128,7 +131,10 @@ export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
                   key={z.id}
                   className="px-3 py-3 text-center text-[12px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400"
                 >
-                  {z.name.replace(/^Zona\s*/i, "Z").split("·")[0].trim()}
+                  {/* El código es justo lo que hace falta en una cabecera de 10
+                      columnas. Si la zona no tiene —las de antes de la 0089—,
+                      se cae al recorte del nombre de siempre. */}
+                  {z.code ?? z.name.replace(/^Zona\s*/i, "Z").split("·")[0].trim()}
                 </th>
               ))}
             </tr>

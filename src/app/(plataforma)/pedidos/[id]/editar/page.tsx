@@ -18,6 +18,7 @@ import { useProfile } from "@/components/ProfileContext";
 import { useMyClient } from "@/components/useMyClient";
 import { formatCOP } from "@/lib/utils";
 import { zoneForText } from "@/lib/zones";
+import { ROLES_DEL_COMERCIO } from "@/lib/constants";
 import type { Guide, Zone } from "@/lib/types";
 
 export default function EditGuidePage() {
@@ -28,6 +29,11 @@ export default function EditGuidePage() {
   // cliente si todavía no lo tiene. Sin esta línea, un comercio recién
   // registrado que entra directo a editar una guía se queda sin cuenta.
   useMyClient();
+
+  // La misma lista que usa /pedidos/nueva: el dueño del comercio y su asesor.
+  // No es `role === "cliente"` porque el asesor es quien más pedidos maneja y
+  // quedaría fuera.
+  const esDelComercio = ROLES_DEL_COMERCIO.includes(profile.role);
 
   const [guide, setGuide] = useState<Guide | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
@@ -83,7 +89,13 @@ export default function EditGuidePage() {
     }
 
     setGuide(guide);
-    setZonaManual(true); // pre-cargamos zona, no la sobreescribimos
+    // Se da por fijada solo si el pedido YA tiene zona: entonces manda la
+    // precargada y la sugerencia por dirección no la pisa, que era el motivo
+    // original de esta línea. Si todavía no la tiene —el caso normal antes de
+    // que el CEDI la asigne—, dejar la sugerencia encendida es lo que hace que
+    // el comercio siga viendo el precio del domicilio, ahora que ya no tiene un
+    // campo con el que corregirla.
+    setZonaManual(Boolean(guide.zone_id));
     setForm({
       recipient_name: guide.recipient_name,
       recipient_phone: guide.recipient_phone ?? "",
@@ -297,26 +309,32 @@ export default function EditGuidePage() {
                 />
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
-                <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">
-                  Zona
-                </label>
-                <select
-                  value={form.zone_id}
-                  onChange={(e) => {
-                    setZonaManual(true);
-                    set("zone_id")(e);
-                  }}
-                  className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
-                >
-                  <option value="">(Se define en el CEDI)</option>
-                  {zones.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Mismo criterio que en /pedidos/nueva: al comercio no se le
+                  pregunta la zona, sale de la dirección. Se oculta el control,
+                  no el dato: `form.zone_id` se sigue llenando y viaja igual en
+                  `p_zone_id`. */}
+              {!esDelComercio && (
+                <div className="flex items-center px-4 min-h-[52px] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">
+                    Zona
+                  </label>
+                  <select
+                    value={form.zone_id}
+                    onChange={(e) => {
+                      setZonaManual(true);
+                      set("zone_id")(e);
+                    }}
+                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
+                  >
+                    <option value="">(Se define en el CEDI)</option>
+                    {zones.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {zonaElegida ? (

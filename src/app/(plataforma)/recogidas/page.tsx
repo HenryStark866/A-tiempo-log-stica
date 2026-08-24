@@ -1042,11 +1042,6 @@ function Pickups() {
                     </div>
                     <p className="text-[13px] text-slate-500 dark:text-slate-400">
                       {seleccionadas.size} de {pendientes.length} guía(s) incluidas
-                      {seleccionadas.size > 0 && seleccionadas.size < MIN_PACKAGES && (
-                        <span className="text-amber-600 dark:text-amber-400">
-                          {" "}· el mínimo operativo de recogida es {MIN_PACKAGES}
-                        </span>
-                      )}
                     </p>
                   </>
                 )}

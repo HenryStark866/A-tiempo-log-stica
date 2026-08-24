@@ -21,8 +21,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useMyClient } from "@/components/useMyClient";
 import { useProfile } from "@/components/ProfileContext";
 import {
-  parseCsv,
-  decodeCsvBytes,
+  leerTabla,
+  FORMATOS_ACEPTADOS,
+  FORMATOS_LEGIBLES,
   guessMapping,
   guessProductMapping,
   toRecipientPayload,
@@ -66,6 +67,16 @@ export default function RecipientsPage() {
   const [recipients, setRecipients] = useState<Recipient[] | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
   const [query, setQuery] = useState("");
+  // "" = todas. El de cobertura guarda "con" | "por_confirmar" | "fuera" o el
+  // id de una sub-zona concreta: son excluyentes entre sí, así que un solo
+  // selector los cubre todos sin multiplicar controles en la barra.
+  const [ciudadFiltro, setCiudadFiltro] = useState("");
+  const [coberturaFiltro, setCoberturaFiltro] = useState("");
+
+  // Selección múltiple para borrar en bloque.
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [confirmarMasivo, setConfirmarMasivo] = useState(false);
+  const [borrandoMasivo, setBorrandoMasivo] = useState(false);
 
   // Alta/edición manual
   const [editing, setEditing] = useState<Recipient | "nuevo" | null>(null);
@@ -73,6 +84,9 @@ export default function RecipientsPage() {
   const [guardando, setGuardando] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [borrando, setBorrando] = useState<Recipient | null>(null);
+  // El cliente que se parece al que se está creando. Mientras haya uno aquí,
+  // el guardado está en pausa esperando que la persona decida.
+  const [duplicado, setDuplicado] = useState<Recipient | null>(null);
 
   // Importación (colapsada: es una acción ocasional, no el centro de la pantalla)
   const [importAbierto, setImportAbierto] = useState(false);
@@ -136,9 +150,76 @@ export default function RecipientsPage() {
     [zones, form.city, form.address]
   );
 
-  async function guardar(e: React.FormEvent) {
+  /**
+   * ¿Ya existe este cliente?
+   *
+   * Dos criterios, y basta con que se cumpla uno:
+   *
+   *  · El mismo teléfono. Se comparan solo los dígitos, porque «300 111 2233»,
+   *    «300-111-2233» y «3001112233» son el mismo número escrito por tres
+   *    personas distintas. Un teléfono vacío no cuenta como coincidencia: casi
+   *    la mitad de la base viene sin él, y si contara, todos serían duplicados
+   *    de todos.
+   *
+   *  · Nombre + dirección + ciudad, los tres a la vez. Normalizados igual que
+   *    en el buscador —minúsculas, sin tildes, espacios colapsados— para que
+   *    «María Restrepo» y «maria  restrepo» no pasen por personas distintas.
+   *
+   * Solo mira la lista que ya está cargada, que es la misma que se ve en
+   * pantalla. Con más de mil clientes el listado viene recortado y un duplicado
+   * podría quedar fuera del alcance de esta comprobación; el índice único de la
+   * base (comercio + nombre + dirección) sigue siendo el que no se escapa.
+   */
+  function buscarDuplicado(): Recipient | null {
+    const norma = (s: string) =>
+      s
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
+    const soloDigitos = (s: string) => s.replace(/\D/g, "");
+
+    const idActual = editing !== "nuevo" && editing ? editing.id : null;
+    const telNuevo = soloDigitos(form.phone);
+    const nombreNuevo = norma(form.full_name);
+    const dirNueva = norma(form.address);
+    const ciudadNueva = norma(form.city || "Medellín");
+
+    return (
+      (recipients ?? []).find((r) => {
+        if (r.id === idActual) return false; // no es duplicado de sí mismo
+
+        if (telNuevo.length >= 7 && soloDigitos(r.phone ?? "") === telNuevo) return true;
+
+        return (
+          norma(r.full_name) === nombreNuevo &&
+          norma(r.address) === dirNueva &&
+          norma(r.city) === ciudadNueva
+        );
+      }) ?? null
+    );
+  }
+
+  /**
+   * El guardado va en dos tiempos: primero se pregunta, después se escribe.
+   *
+   * `forzar` es lo que distingue «le di a Guardar» de «ya vi el aviso y aun así
+   * quiero crearlo». Sin esa bandera, el modal de duplicado se volvería a abrir
+   * sobre sí mismo en un bucle.
+   */
+  async function guardar(e: React.FormEvent, forzar = false) {
     e.preventDefault();
     if (!clientId) return;
+
+    if (!forzar) {
+      const parecido = buscarDuplicado();
+      if (parecido) {
+        setDuplicado(parecido);
+        return; // el guardado queda en pausa; no se escribe nada todavía
+      }
+    }
+
     setGuardando(true);
     setFormError(null);
     const supabase = createClient();
@@ -159,8 +240,11 @@ export default function RecipientsPage() {
         : await supabase.from("at_recipients").update(payload).eq("id", (editing as Recipient).id);
 
     setGuardando(false);
+    setDuplicado(null);
     if (error) {
-      // El índice único (comercio + nombre + dirección) evita duplicados.
+      // El índice único (comercio + nombre + dirección) evita duplicados. Es la
+      // última red: aquí se llega cuando la comprobación de arriba no lo vio,
+      // por ejemplo con más de mil clientes cargados a medias.
       setFormError(
         error.code === "23505"
           ? "Ya tienes un destinatario con ese nombre y esa dirección."
@@ -170,6 +254,14 @@ export default function RecipientsPage() {
     }
     setEditing(null);
     load();
+  }
+
+  /** «Usar el que ya existe»: se abandona el nuevo y se abre el de siempre. */
+  function usarExistente() {
+    if (!duplicado) return;
+    const existente = duplicado;
+    setDuplicado(null);
+    abrirEdicion(existente);
   }
 
   async function confirmarBorrado() {
@@ -185,18 +277,18 @@ export default function RecipientsPage() {
   }
 
   // ── Importación ──────────────────────────────────────────────────────
-  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+  // `leerTabla` decide el formato por el CONTENIDO del archivo —no por su
+  // extensión— y devuelve siempre lo mismo: encabezados y filas. Lo que lanza
+  // ya viene redactado para la persona, así que se pinta tal cual.
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
     setResult(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Se decodifica desde bytes: Excel en español exporta ANSI, no UTF-8.
-      const texto = decodeCsvBytes(reader.result as ArrayBuffer);
-      const { headers: h, rows: r } = parseCsv(texto);
+    try {
+      const { headers: h, rows: r } = await leerTabla(file);
       if (h.length === 0 || r.length === 0) {
-        setError("El archivo no tiene filas legibles. Revisa que sea un CSV con encabezados.");
+        setError("El archivo no tiene filas legibles. Revisa que la primera fila sean los encabezados.");
         setHeaders([]);
         setRows([]);
         return;
@@ -206,9 +298,11 @@ export default function RecipientsPage() {
       setRows(r);
       // Se pasan las filas para poder detectar el teléfono por contenido.
       setMapping(guessMapping(h, r));
-    };
-    reader.onerror = () => setError("No se pudo leer el archivo.");
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo leer el archivo.");
+      setHeaders([]);
+      setRows([]);
+    }
   }
 
   const faltantes = REQUIRED_FIELDS.filter((f) => !mapping[f]);
@@ -293,16 +387,127 @@ export default function RecipientsPage() {
     URL.revokeObjectURL(url);
   }
 
-  const filtrados = (recipients ?? []).filter((r) => {
-    const s = query.trim().toLowerCase();
-    if (!s) return true;
-    return (
-      r.full_name.toLowerCase().includes(s) ||
-      r.address.toLowerCase().includes(s) ||
-      (r.phone ?? "").includes(s) ||
-      r.city.toLowerCase().includes(s)
+  /**
+   * La zona de cada cliente, resuelta una sola vez.
+   *
+   * `resolveZone` recorre todos los sectores de todas las zonas buscando cuál
+   * aparece en la dirección. Con mil clientes y diez sub-zonas de ~25 barrios
+   * eso es un cuarto de millón de comparaciones, y desde que hay filtro de
+   * cobertura haría falta dos veces por render: una para filtrar y otra para
+   * pintar la etiqueta. Se calcula aquí y las dos la leen.
+   */
+  const zonaPorCliente = useMemo(() => {
+    const mapa = new Map<string, ReturnType<typeof resolveZone>>();
+    for (const r of recipients ?? []) mapa.set(r.id, resolveZone(zones, r.city, r.address));
+    return mapa;
+  }, [recipients, zones]);
+
+  /** Las ciudades que de verdad hay en la lista, no un catálogo fijo. */
+  const ciudades = useMemo(() => {
+    const vistas = new Set<string>(
+      (recipients ?? []).map((r) => r.city.trim()).filter((c) => c.length > 0)
     );
-  });
+    // localeCompare con "es" para que Envigado vaya antes que Ítagüí y no al
+    // revés: ordenar por punto de código pone las tildes al final.
+    return [...vistas].sort((a, b) => a.localeCompare(b, "es"));
+  }, [recipients]);
+
+  const filtrados = useMemo(() => {
+    const s = query.trim().toLowerCase();
+    return (recipients ?? []).filter((r) => {
+      if (s) {
+        const coincide =
+          r.full_name.toLowerCase().includes(s) ||
+          r.address.toLowerCase().includes(s) ||
+          (r.phone ?? "").includes(s) ||
+          r.city.toLowerCase().includes(s);
+        if (!coincide) return false;
+      }
+
+      if (ciudadFiltro && r.city.trim() !== ciudadFiltro) return false;
+
+      if (coberturaFiltro) {
+        const zr = zonaPorCliente.get(r.id);
+        // La zona guardada manda sobre la deducida: si el CEDI se la asignó a
+        // mano, es la buena. Es el mismo criterio con el que se pinta la
+        // etiqueta en la lista, para que filtrar y ver no se contradigan.
+        const zonaId = r.zone_id ?? zr?.zone?.id ?? null;
+        if (coberturaFiltro === "con") return zonaId !== null;
+        if (coberturaFiltro === "por_confirmar") return zonaId === null && zr?.status === "por_confirmar";
+        if (coberturaFiltro === "fuera") return zonaId === null && zr?.status === "fuera";
+        return zonaId === coberturaFiltro;
+      }
+
+      return true;
+    });
+  }, [recipients, query, ciudadFiltro, coberturaFiltro, zonaPorCliente]);
+
+  /**
+   * La selección nunca sobrevive a un filtro que la esconda.
+   *
+   * Si al buscar se pudieran quedar seleccionados clientes que ya no están en
+   * pantalla, «Eliminar seleccionados (7)» borraría cosas que la persona no
+   * puede ver ni revisar. Se prefiere perder la selección a borrar a ciegas.
+   */
+  useEffect(() => {
+    setSeleccion((prev) => {
+      if (prev.size === 0) return prev;
+      const visibles = new Set(filtrados.map((r) => r.id));
+      const siguen = [...prev].filter((id) => visibles.has(id));
+      return siguen.length === prev.size ? prev : new Set(siguen);
+    });
+  }, [filtrados]);
+
+  const hayFiltros = query.trim() !== "" || ciudadFiltro !== "" || coberturaFiltro !== "";
+  const todosVisiblesMarcados =
+    filtrados.length > 0 && filtrados.every((r) => seleccion.has(r.id));
+
+  function alternarCliente(id: string) {
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /** «Seleccionar todos» son los de la vista actual, no los de la base. */
+  function alternarTodosVisibles() {
+    setSeleccion(todosVisiblesMarcados ? new Set() : new Set(filtrados.map((r) => r.id)));
+  }
+
+  async function borrarSeleccionados() {
+    const ids = [...seleccion];
+    if (ids.length === 0) return;
+    setBorrandoMasivo(true);
+    setError(null);
+    const supabase = createClient();
+
+    // Se borra por tandas: `in` viaja en la URL y con mil identificadores la
+    // petición se pasa de largo y el servidor la rechaza entera.
+    const TANDA = 200;
+    for (let i = 0; i < ids.length; i += TANDA) {
+      const { error } = await supabase
+        .from("at_recipients")
+        .delete()
+        .in("id", ids.slice(i, i + TANDA));
+      if (error) {
+        setBorrandoMasivo(false);
+        setConfirmarMasivo(false);
+        setError(
+          `Se borraron ${i} de ${ids.length}. El resto quedó sin borrar: ${error.message}`
+        );
+        setSeleccion(new Set());
+        load();
+        return;
+      }
+    }
+
+    setBorrandoMasivo(false);
+    setConfirmarMasivo(false);
+    setSeleccion(new Set());
+    load();
+  }
 
   const sinTelefono = (recipients ?? []).filter((r) => !r.phone).length;
 
@@ -381,7 +586,7 @@ export default function RecipientsPage() {
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,text/csv"
+              accept={FORMATOS_ACEPTADOS}
               onChange={onPickFile}
               className="block flex-1 text-[15px] text-slate-600 dark:text-slate-400
                 file:mr-4 file:rounded-xl file:border-0 file:bg-[#ff812c] file:px-5 file:py-3
@@ -394,6 +599,13 @@ export default function RecipientsPage() {
               <Download className="w-4 h-4" /> Plantilla
             </button>
           </div>
+
+          {/* Decir qué se acepta ahorra el viaje de elegir un archivo para que
+              lo rechacen. El texto sale de la misma constante que alimenta el
+              `accept`, así que no pueden decir cosas distintas. */}
+          <p className="-mt-1 text-[13px] text-slate-500 dark:text-slate-400">
+            {FORMATOS_LEGIBLES}. La primera fila tiene que ser la de los encabezados.
+          </p>
 
           {headers.length > 0 && (
             <div className="space-y-4 border-t border-slate-900/[0.06] dark:border-white/[0.08] pt-4">
@@ -513,16 +725,76 @@ export default function RecipientsPage() {
         </section>
       )}
 
-      {/* Buscador */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nombre, dirección o teléfono…"
-          className="w-full min-h-[48px] pl-11 pr-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
-        />
+      {/* Buscador y filtros. En el teléfono se apilan; desde sm el buscador se
+          queda con el ancho que sobra y los dos selectores caben al lado. */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nombre, dirección o teléfono…"
+            className="w-full min-h-[48px] pl-11 pr-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] transition-all"
+          />
+        </div>
+
+        <select
+          value={ciudadFiltro}
+          onChange={(e) => setCiudadFiltro(e.target.value)}
+          aria-label="Filtrar por ciudad"
+          className="min-h-[48px] sm:w-44 px-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white focus:outline-none focus:border-[#ff812c] transition-all appearance-none cursor-pointer"
+        >
+          <option value="">Todas las ciudades</option>
+          {ciudades.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+
+        <select
+          value={coberturaFiltro}
+          onChange={(e) => setCoberturaFiltro(e.target.value)}
+          aria-label="Filtrar por cobertura o zona"
+          className="min-h-[48px] sm:w-52 px-4 atl-superficie border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white focus:outline-none focus:border-[#ff812c] transition-all appearance-none cursor-pointer"
+        >
+          <option value="">Toda la cobertura</option>
+          <option value="con">Con cobertura</option>
+          <option value="por_confirmar">Zona por confirmar</option>
+          <option value="fuera">Fuera de cobertura</option>
+          {/* Las sub-zonas van después de los tres estados: son el detalle, no
+              lo primero que se busca. Se listan por `name`; el día que la
+              migración 0089 entre y `Zone` tenga `code`, aquí conviene mostrar
+              «MED-SO · Medellín Sur-Occidente», que es como las nombra el CEDI. */}
+          {zones.map((z) => (
+            <option key={z.id} value={z.id}>
+              {z.name}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {/* Seleccionar todos + cuántos se están viendo. Solo aparece cuando hay
+          algo que seleccionar: en una lista vacía sería un control muerto. */}
+      {recipients !== null && filtrados.length > 0 && !esAsesor && (
+        <div className="flex items-center justify-between gap-3 px-1">
+          <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={todosVisiblesMarcados}
+              onChange={alternarTodosVisibles}
+              aria-label="Seleccionar todos los clientes visibles"
+              className="w-5 h-5 shrink-0 accent-[#ff812c]"
+            />
+            <span className="text-[14px] text-slate-600 dark:text-slate-300">
+              Seleccionar todos
+            </span>
+          </label>
+          <p className="text-[13px] text-slate-500 dark:text-slate-400">
+            {hayFiltros
+              ? `${filtrados.length} de ${recipients.length}`
+              : `${recipients.length} cliente(s)`}
+          </p>
+        </div>
+      )}
 
       {/* Listado con información completa — translúcida y con blur (probado
           en vivo: /90 sin blur no se notaba). El formulario de edición y el
@@ -554,10 +826,26 @@ export default function RecipientsPage() {
         ) : (
           <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {filtrados.map((r) => {
-              const zr = resolveZone(zones, r.city, r.address);
+              // Ya resuelta arriba para todos los clientes: aquí solo se lee.
+              const zr = zonaPorCliente.get(r.id) ?? resolveZone(zones, r.city, r.address);
               const zonaNombre = r.at_zones?.name ?? zr.zone?.name ?? null;
+              const marcado = seleccion.has(r.id);
               return (
-                <li key={r.id} className="flex items-start gap-3 px-4 sm:px-5 py-4">
+                <li
+                  key={r.id}
+                  className={`flex items-start gap-3 px-4 sm:px-5 py-4 transition-colors ${
+                    marcado ? "bg-[#ff812c]/[0.07]" : ""
+                  }`}
+                >
+                  {!esAsesor && (
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      onChange={() => alternarCliente(r.id)}
+                      aria-label={`Seleccionar a ${r.full_name}`}
+                      className="w-5 h-5 shrink-0 mt-1 accent-[#ff812c] cursor-pointer"
+                    />
+                  )}
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="text-[16px] font-semibold text-slate-900 dark:text-white truncate">
                       {r.full_name}
@@ -764,6 +1052,88 @@ export default function RecipientsPage() {
         </div>
       )}
 
+      {/* Posible duplicado. Va con z-[60] para quedar POR ENCIMA del formulario
+          de alta, que es z-50: si saliera por debajo, el aviso quedaría oculto
+          justo detrás de lo que está avisando. */}
+      {duplicado && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => setDuplicado(null)}
+        >
+          <div
+            className="w-full max-w-sm atl-superficie rounded-3xl p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-amber-500/10">
+                <TriangleAlert className="size-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">
+                  Posible cliente duplicado
+                </h3>
+                <p className="mt-1 text-[14px] leading-snug text-slate-500 dark:text-slate-400">
+                  Ya tienes uno guardado que coincide. Míralo antes de crear otro.
+                </p>
+              </div>
+            </div>
+
+            {/* La tarjeta del que ya existe: mismos datos que muestra la lista,
+                para que se reconozca de un vistazo sin tener que ir a buscarlo. */}
+            <div className="mt-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-4 space-y-1.5">
+              <p className="text-[15px] font-semibold text-slate-900 dark:text-white truncate">
+                {duplicado.full_name}
+              </p>
+              <p className="flex items-start gap-1.5 text-[14px] text-slate-600 dark:text-slate-300">
+                <MapPin className="w-3.5 h-3.5 shrink-0 mt-1 text-slate-400" />
+                <span>
+                  {duplicado.address}
+                  <span className="text-slate-400 dark:text-slate-500"> · {duplicado.city}</span>
+                </span>
+              </p>
+              <p className="flex items-center gap-1.5 text-[14px]">
+                <Phone className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                {duplicado.phone ? (
+                  <span className="text-slate-600 dark:text-slate-300">{duplicado.phone}</span>
+                ) : (
+                  <span className="text-amber-600 dark:text-amber-400">Sin teléfono</span>
+                )}
+              </p>
+              {duplicado.times_used > 0 && (
+                <p className="text-[13px] text-slate-500 dark:text-slate-400">
+                  Le has despachado {duplicado.times_used} guía(s)
+                </p>
+              )}
+            </div>
+
+            {/* La acción recomendada va primera y con el color de marca; crear
+                otro es la salida, no la puerta principal. */}
+            <div className="mt-6 space-y-2">
+              <button
+                onClick={usarExistente}
+                className="w-full min-h-[48px] rounded-xl bg-[#ff812c] hover:bg-[#ff812c]/90 font-bold text-[#1C1C1E] active:scale-[0.98] transition-transform"
+              >
+                Usar cliente existente
+              </button>
+              <button
+                onClick={(e) => guardar(e, true)}
+                disabled={guardando}
+                className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform disabled:opacity-50"
+              >
+                {guardando && <Loader2 className="w-4 h-4 animate-spin" />}
+                {guardando ? "Creando…" : "Crear de todos modos"}
+              </button>
+              <button
+                onClick={() => setDuplicado(null)}
+                className="w-full min-h-[44px] rounded-xl text-[14px] font-semibold text-slate-500 dark:text-slate-400 active:scale-[0.98] transition-transform"
+              >
+                Volver a editar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmación de borrado */}
       {borrando && (
         <div
@@ -793,6 +1163,88 @@ export default function RecipientsPage() {
                 className="flex-1 min-h-[48px] rounded-xl bg-rose-600 hover:bg-rose-700 font-bold text-white active:scale-[0.98] transition-transform"
               >
                 Borrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra flotante de acción masiva. Se ancla abajo, que es donde está el
+          pulgar en el teléfono, y el `env(safe-area-inset-bottom)` evita que
+          la tape la barra del sistema en un iPhone. */}
+      {seleccion.size > 0 && !esAsesor && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pointer-events-none">
+          <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border border-slate-900/[0.06] bg-[#FFFFFF]/90 px-4 py-3 shadow-2xl backdrop-blur-xl dark:border-white/[0.10] dark:bg-[#2C2C2E]/90">
+            <p className="min-w-0 flex-1 text-[15px] font-semibold text-slate-900 dark:text-white">
+              {seleccion.size} seleccionado{seleccion.size > 1 ? "s" : ""}
+            </p>
+            <button
+              onClick={() => setSeleccion(new Set())}
+              className="shrink-0 rounded-xl px-3 min-h-[44px] text-[14px] font-semibold text-slate-600 dark:text-slate-300 active:scale-[0.98] transition-transform"
+            >
+              Quitar
+            </button>
+            <button
+              onClick={() => setConfirmarMasivo(true)}
+              className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 min-h-[44px] text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
+            >
+              <Trash2 className="w-4 h-4" />
+              Eliminar ({seleccion.size})
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación del borrado masivo. Mismo lenguaje que el de uno solo:
+          si se parecen, nadie se confunde sobre cuál está mirando. */}
+      {confirmarMasivo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => !borrandoMasivo && setConfirmarMasivo(false)}
+        >
+          <div
+            className="w-full max-w-sm atl-superficie rounded-3xl p-6 shadow-2xl text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Trash2 className="mx-auto mb-3 w-9 h-9 text-rose-500" />
+            <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">
+              ¿Borrar {seleccion.size} cliente{seleccion.size > 1 ? "s" : ""}?
+            </h3>
+            <p className="mt-2 text-[14px] text-slate-500 dark:text-slate-400">
+              Se quitan de tu lista. Las guías ya creadas a su nombre no se tocan.
+            </p>
+            {/* Que se vea a QUIÉN se está borrando, no solo cuántos: un número
+                no se puede revisar, una lista de nombres sí. */}
+            <ul className="mt-4 max-h-32 overflow-y-auto rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-2 text-left">
+              {filtrados
+                .filter((r) => seleccion.has(r.id))
+                .slice(0, 50)
+                .map((r) => (
+                  <li key={r.id} className="truncate py-0.5 text-[13px] text-slate-600 dark:text-slate-300">
+                    {r.full_name}
+                  </li>
+                ))}
+              {seleccion.size > 50 && (
+                <li className="py-0.5 text-[13px] text-slate-400 dark:text-slate-500">
+                  y {seleccion.size - 50} más…
+                </li>
+              )}
+            </ul>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setConfirmarMasivo(false)}
+                disabled={borrandoMasivo}
+                className="flex-1 min-h-[48px] rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={borrarSeleccionados}
+                disabled={borrandoMasivo}
+                className="flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-700 font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-60"
+              >
+                {borrandoMasivo && <Loader2 className="w-5 h-5 animate-spin" />}
+                {borrandoMasivo ? "Borrando…" : "Borrar"}
               </button>
             </div>
           </div>

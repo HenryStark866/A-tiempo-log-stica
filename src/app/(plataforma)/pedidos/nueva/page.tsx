@@ -33,7 +33,7 @@ import { PriceList } from "@/components/PriceList";
 import { PACKAGE_SIZES, PACKAGE_TYPES, ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { esFalloDeRed } from "@/lib/offline/queue";
 import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
-import { zoneForText } from "@/lib/zones";
+import { zoneForText, ciudadCubierta, MSG_FUERA_DE_COBERTURA } from "@/lib/zones";
 import type {
   Client,
   Zone,
@@ -101,6 +101,9 @@ export default function NewGuidePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [zonaManual, setZonaManual] = useState(false);
+  // Aviso efímero, con el mismo aspecto que el de Novedades para que la app
+  // hable con una sola voz.
+  const [toast, setToast] = useState<string | null>(null);
   // Encendido por defecto: quien escribe un comprador a mano casi siempre va a
   // volver a despacharle. Apagarlo es la excepción (una venta de una sola vez,
   // un regalo a una dirección ajena), no lo normal.
@@ -251,10 +254,49 @@ export default function NewGuidePage() {
       .slice(0, 6);
   }, [buscador, recipients]);
 
+  /**
+   * ¿El destino que hay escrito está fuera de la operación?
+   *
+   * Se pregunta a las zonas activas, no a una lista fija: cuando el CEDI abra
+   * en otra ciudad, activar su zona basta para que esto deje de bloquear.
+   *
+   * Una zona puesta a mano manda sobre la ciudad. El operario que elige zona en
+   * el desplegable sabe lo que hace —un acuerdo puntual, una dirección que la
+   * deducción no reconoce— y esta validación no está para discutirle: está para
+   * que nadie cree sin querer un pedido a Bogotá.
+   */
+  const fueraDeCobertura = useMemo(
+    () =>
+      form.zone_id === "" &&
+      form.recipient_city.trim() !== "" &&
+      !ciudadCubierta(zones, form.recipient_city),
+    [zones, form.recipient_city, form.zone_id]
+  );
+
+  function avisar(mensaje: string) {
+    setToast(mensaje);
+    setTimeout(() => setToast(null), 4000);
+  }
+
   function usarDestinatario(r: Recipient) {
+    // Un comprador guardado fuera del área no se carga: si se cargara, la
+    // persona llenaría el resto del pedido para encontrarse el bloqueo al
+    // final. Mejor decirlo en el momento de elegirlo.
+    if (!r.zone_id && !ciudadCubierta(zones, r.city)) {
+      avisar(
+        "No es posible seleccionar este cliente porque su dirección de entrega está fuera del Área Metropolitana."
+      );
+      return;
+    }
+
     setRecipientId(r.id);
     setBuscador("");
-    setZonaManual(true);
+    // Solo se da la zona por fijada si el comprador guardado trae una. Si no
+    // —y muchos no la traen, porque la pone el CEDI después—, marcarla como
+    // manual apagaba la deducción por dirección y el pedido se quedaba sin
+    // zona: sin panel de precios y, ahora que el comercio ya no ve el campo,
+    // sin forma de corregirlo.
+    setZonaManual(Boolean(r.zone_id));
     setForm((f) => ({
       ...f,
       recipient_name: r.full_name,
@@ -338,6 +380,14 @@ export default function NewGuidePage() {
 
     if (!form.client_id) {
       setError("Todavía estamos preparando tu comercio. Espera un segundo y vuelve a intentar.");
+      return;
+    }
+
+    // El botón ya está deshabilitado, pero un formulario también se envía con
+    // Enter desde cualquier campo. La regla vive en los dos sitios porque una
+    // sola de las dos puertas cerrada no cierra nada.
+    if (fueraDeCobertura) {
+      setError(MSG_FUERA_DE_COBERTURA);
       return;
     }
 
@@ -887,6 +937,22 @@ export default function NewGuidePage() {
 
           <section>
             <h3 className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-4 mb-2">Información de Envío</h3>
+
+            {/* Aviso de cobertura. Va DENTRO de la sección y encima de los
+                campos, no al final del formulario: el problema está en la
+                ciudad que se acaba de escribir, y el aviso tiene que estar
+                donde se mira, no a dos pantallas de scroll. */}
+            {fueraDeCobertura && (
+              <div
+                role="alert"
+                className="mb-2 flex items-start gap-3 rounded-2xl bg-amber-500/10 px-4 py-3 ring-1 ring-inset ring-amber-500/25"
+              >
+                <TriangleAlert className="mt-0.5 w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="text-[14px] leading-snug text-amber-700 dark:text-amber-300">
+                  {MSG_FUERA_DE_COBERTURA}
+                </p>
+              </div>
+            )}
             <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
 
               {/* El comercio que crea la guía se carga solo; el cliente no lo elige. */}
@@ -978,25 +1044,38 @@ export default function NewGuidePage() {
                 </div>
               </div>
 
-              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
-                <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Zona</label>
-                <select
-                  value={form.zone_id}
-                  onChange={(e) => {
-                    setZonaManual(true);
-                    set("zone_id")(e);
-                  }}
-                  className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
-                >
-                  <option value="">(Se define en el CEDI)</option>
-                  {zones.map((z) => (
-                    <option key={z.id} value={z.id}>
-                      {z.name}
-                      {z.coverage ? ` — ${z.coverage}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* La zona no se le pregunta al comercio: sale sola de la dirección
+                  de destino, y la única opción que este campo le ofrecía —«(Se
+                  define en el CEDI)»— era pedirle que decidiera algo que por
+                  definición no le toca a él. El campo sigue en pie para la
+                  operación, que es quien de verdad corrige una zona cuando una
+                  dirección ambigua se deduce mal.
+
+                  Ojo: esto oculta el CONTROL, no el dato. `form.zone_id` se
+                  sigue llenando en el efecto de más arriba, y de él salen tanto
+                  el panel de precios que el comercio sí necesita ver como el
+                  `p_zone_id` que viaja a la RPC. */}
+              {!esDelComercio && (
+                <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                  <label className="w-[80px] text-[16px] text-slate-500 dark:text-slate-400 shrink-0">Zona</label>
+                  <select
+                    value={form.zone_id}
+                    onChange={(e) => {
+                      setZonaManual(true);
+                      set("zone_id")(e);
+                    }}
+                    className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none text-slate-900 dark:text-white appearance-none"
+                  >
+                    <option value="">(Se define en el CEDI)</option>
+                    {zones.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name}
+                        {z.coverage ? ` — ${z.coverage}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Guardar al comprador desde aquí mismo. Solo aparece cuando los
                   datos se escribieron a mano: si vienen de la libreta ya está
@@ -1198,7 +1277,7 @@ export default function NewGuidePage() {
             </div>
           </section>
 
-          <PriceList zones={zones} activeZoneId={form.zone_id || null} />
+          <PriceList zones={zones} activeZoneId={form.zone_id || null} tarifas={tarifaPorZona} />
 
           {error && (
             <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
@@ -1223,7 +1302,8 @@ export default function NewGuidePage() {
               </button>
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || fueraDeCobertura}
+                title={fueraDeCobertura ? MSG_FUERA_DE_COBERTURA : undefined}
                 className="flex-[2] flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px] shadow-sm disabled:opacity-60"
               >
                 {saving ? <LoaderCircle className="w-5 h-5 animate-spin text-[#1C1C1E]" /> : <PackagePlus className="w-5 h-5 text-[#1C1C1E]" />}
@@ -1233,6 +1313,17 @@ export default function NewGuidePage() {
           </div>
         </form>
       </div>
+
+      {/* Aviso efímero. Mismas clases que el de Novedades: si dos pantallas
+          avisan igual, nadie tiene que aprender dos lenguajes. */}
+      {toast && (
+        <div
+          role="status"
+          className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-[92vw] px-5 py-3 rounded-2xl bg-rose-500 text-white text-[14px] font-semibold shadow-2xl animate-in slide-in-from-bottom-4"
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

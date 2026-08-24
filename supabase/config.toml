@@ -1,0 +1,32 @@
+# Configuración del CLI de Supabase para este repo.
+#
+# `project_id` es el identificador LOCAL: solo le pone nombre a los contenedores
+# de Docker cuando se corre `supabase start`. NO es el proyecto de la nube.
+#
+# El proyecto remoto se enlaza aparte, y el enlace no vive aquí sino en
+# supabase/.temp/project-ref, que no se commitea:
+#
+#     npx supabase@latest login
+#     npx supabase@latest link --project-ref uhbtivaepyhwfdvtpfjq
+#
+# ⚠ uhbtivaepyhwfdvtpfjq es el proyecto de PRODUCCIÓN — está en la lista
+#   PROHIBIDOS de tests/db/harness.ts, que existe justamente para que los tests
+#   contra la base nunca apunten ahí. Los tests de tests/db/ crean y borran
+#   filas con la llave service_role. Este archivo enlaza el CLI para aplicar
+#   migraciones; los tests siguen necesitando su propia base.
+#
+# Este config se escribió a mano con lo mínimo, para que `supabase link` y
+# `supabase db push` encuentren el proyecto. Si prefieres el completo que genera
+# el CLI, bórralo y corre `npx supabase@latest init`: los campos que no están
+# aquí toman su valor por defecto.
+#
+# Nota para cuando haya staging local: si usas `supabase start`, añade
+#
+#     [db]
+#     major_version = <la del proyecto en la nube>
+#
+# para que la base local sea la misma versión que la de arriba. No lo puse
+# porque no sé cuál es, y adivinarla es peor que dejarla en el valor por
+# defecto — se ve en el panel de Supabase, en Settings → Infrastructure.
+
+project_id = "a-tiempo-logistica"

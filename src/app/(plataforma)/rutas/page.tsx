@@ -30,6 +30,8 @@ interface BoardGuide {
 interface BoardZone {
   zone_id: string;
   zone_name: string;
+  /** Código corto de la sub-zona. Null en las zonas anteriores a la 0089. */
+  zone_code: string | null;
   sort_order: number;
   pendientes: number;
   guias: BoardGuide[];
@@ -198,8 +200,12 @@ export default function RoutingPage() {
                         {z.pendientes}
                       </div>
                       <div className="min-w-0">
+                        {/* El código va delante del nombre a propósito: es lo
+                            que el operario canta al armar la ruta, y cuando
+                            `truncate` recorta en un teléfono, lo que sobrevive
+                            es el código. */}
                         <p className="truncate text-[17px] font-bold text-slate-900 dark:text-white">
-                          {z.zone_name}
+                          {z.zone_code ? `${z.zone_code} · ${z.zone_name}` : z.zone_name}
                         </p>
                         <p className="text-[14px] text-slate-500 dark:text-slate-400">
                           {z.pendientes} paquete{Number(z.pendientes) > 1 ? "s" : ""} ·{" "}

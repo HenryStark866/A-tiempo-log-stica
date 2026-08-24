@@ -4,6 +4,7 @@
 // comillas, saltos de línea CRLF, BOM y separador ; (Excel en español).
 
 import { leerXlsx, pareceXlsx, pareceXlsViejo } from "./xlsx";
+import { leerDbf, pareceDbf } from "./dbf";
 
 export type CsvRow = Record<string, string>;
 
@@ -447,6 +448,7 @@ export const FORMATOS_ACEPTADOS = [
   ".txt",
   ".json",
   ".xlsx",
+  ".dbf",
   "text/csv",
   "text/tab-separated-values",
   "text/plain",
@@ -455,7 +457,7 @@ export const FORMATOS_ACEPTADOS = [
 ].join(",");
 
 /** Para el texto de ayuda bajo el campo. */
-export const FORMATOS_LEGIBLES = "CSV, TSV, TXT, JSON o Excel (.xlsx)";
+export const FORMATOS_LEGIBLES = "CSV, TSV, TXT, JSON, Excel (.xlsx) o dBase (.dbf)";
 
 /** Convierte una matriz de celdas en encabezados + filas con nombre. */
 function matrizAFilas(matriz: string[][]): { headers: string[]; rows: CsvRow[] } {
@@ -540,6 +542,14 @@ export async function leerTabla(file: File): Promise<{ headers: string[]; rows: 
       const codigo = e instanceof Error ? e.message : "";
       if (codigo === "XLSX_SIN_HOJAS") throw new Error("Ese Excel no tiene ninguna hoja con datos.");
       throw new Error("No se pudo leer ese Excel. Si te sirve, guárdalo como CSV y vuelve a intentar.");
+    }
+  }
+
+  if (pareceDbf(bytes)) {
+    try {
+      return matrizAFilas(leerDbf(bytes));
+    } catch {
+      throw new Error("Ese .dbf no se pudo leer. Puede estar dañado o venir de un formato dBase muy distinto.");
     }
   }
 

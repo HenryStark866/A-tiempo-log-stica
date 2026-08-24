@@ -617,6 +617,8 @@ export interface LabelData {
   /** Logo del comercio, del bucket público at-brand-logos. Va impreso en el rótulo. */
   business_logo: string | null;
   zone_name: string | null;
+  /** Nombre de quien creó el pedido, solo cuando fue un asesor. */
+  advisor_name: string | null;
 }
 
 /**

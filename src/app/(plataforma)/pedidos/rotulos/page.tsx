@@ -20,6 +20,15 @@ import type { LabelData } from "@/lib/types";
  */
 const RETARDO_DE_PINTADO = 50;
 
+/**
+ * `tracking_token` es una tira de 24 caracteres hex sin separadores: fácil de
+ * generar, imposible de copiar bien a mano. Se agrupa de a 4 solo para
+ * imprimirlo — el valor que viaja en el QR y en la URL no cambia.
+ */
+function agruparCodigo(token: string): string {
+  return token.match(/.{1,4}/g)?.join(" ") ?? token;
+}
+
 export default function LabelsPage() {
   return (
     <Suspense fallback={<Loading />}>
@@ -245,6 +254,9 @@ function Rotulo({
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Pedido</p>
             <p className="text-[22px] font-extrabold leading-none tracking-tight">{g.guide_number}</p>
             {g.zone_name && <p className="mt-1 text-[12px] font-semibold">{g.zone_name}</p>}
+            {g.advisor_name && (
+              <p className="mt-1 text-[11px] text-slate-600">Atendido por {g.advisor_name}</p>
+            )}
           </div>
 
           {/* Reimprimir un rótulo suelto. Va discreto —sin fondo ni borde
@@ -290,6 +302,16 @@ function Rotulo({
           </div>
           <p className="mt-1 w-[104px] text-[9px] leading-tight text-slate-600">
             Escanea para ver dónde va tu pedido
+          </p>
+          {/* Mismo destino que el QR, en texto: si el paquete llegó rayado o el
+              teléfono no enfoca, este código tecleado a mano en /rastreo/t/
+              lleva al mismo seguimiento en vivo. Agrupado de a 4 para que
+              copiarlo o dictarlo por teléfono no pierda un carácter. */}
+          <p className="mt-1.5 w-[104px] text-[8px] uppercase leading-tight text-slate-400">
+            O escribe el código
+          </p>
+          <p className="w-[104px] break-all font-mono text-[9px] font-semibold tracking-tight text-slate-600">
+            {agruparCodigo(g.tracking_token)}
           </p>
         </div>
       </div>

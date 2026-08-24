@@ -4,8 +4,30 @@ SaaS de última milla para e-commerce en Medellín. Next.js 15 (App Router) + Re
 TypeScript + Tailwind 4 + Supabase. Todo en **español**, incluida la UI y los commits.
 
 > Las decisiones y el *porqué* (infraestructura, marcas, criterios de diseño) viven en la
-> memoria del proyecto, que se carga sola cada sesión. Este archivo solo describe **dónde
-> está cada cosa**, para no reexplorar el repo.
+> memoria del proyecto. Este archivo solo describe **dónde está cada cosa**, para no
+> reexplorar el repo.
+
+## La memoria del proyecto
+
+Está en una bóveda de Obsidian, en `C:\Users\tabor\CLAUDE_CDH`. Son archivos `.md`
+normales: Obsidian y Claude escriben sobre los mismos, así que no hay nada que
+sincronizar a mano.
+
+**Al empezar una sesión de trabajo sobre este repo, leer primero:**
+
+| Archivo de la bóveda | Qué trae |
+| --- | --- |
+| `00 Índice/Índice.md` | mapa de todo |
+| `10 Proyectos/YAM/YAM.md` | contexto del proyecto y enlaces al resto |
+| `10 Proyectos/YAM/Estado de producción.md` | qué está encendido y qué falta |
+| `20 Decisiones/` | ADR — decisiones tomadas con su alternativa descartada |
+| `40 Bitácora/` | qué se hizo cada día |
+
+Reparto, para que nada esté escrito dos veces: **este archivo dice dónde está cada
+cosa; la bóveda dice por qué es como es.** Al terminar una sesión, actualizar lo que
+cambió y añadir la línea del día a la bitácora.
+
+Los secretos **no** se escriben en la bóveda. Viven en Vercel y en Supabase.
 
 ## Comandos
 

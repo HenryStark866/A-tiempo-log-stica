@@ -15,6 +15,9 @@ import type { Zone } from "@/lib/types";
 function zona(over: Partial<Zone> & { name: string; sort_order: number }): Zone {
   return {
     id: over.name,
+    // Null, como las zonas anteriores a la migración 0089: el código corto
+    // solo lo tienen las diez subzonas nuevas.
+    code: null,
     description: null,
     coverage: null,
     city_fallback: null,

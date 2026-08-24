@@ -17,6 +17,9 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/registro",
+  // Los términos y la política de datos: hay que poder leerlos ANTES de tener
+  // cuenta, que es justo el momento en que se aceptan.
+  "/legal",
   "/rastreo",
   "/auth",
   "/pagar",

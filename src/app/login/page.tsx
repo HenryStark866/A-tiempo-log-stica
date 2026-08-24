@@ -24,10 +24,43 @@ function LoginForm() {
     ERRORES_ENLACE[params.get("error") ?? ""] ?? null
   );
   const [loading, setLoading] = useState(false);
+  /**
+   * Ofrecer el reenvío del correo de confirmación tras fallar el acceso.
+   *
+   * Supabase responde «Invalid login credentials» tanto a quien se equivocó de
+   * clave como a quien nunca confirmó su correo: son el mismo error, y a
+   * propósito, para no revelar qué correos existen. El efecto es que quien se
+   * registró y no abrió el enlace se queda golpeando una puerta sin saber por
+   * qué no abre. Se le ofrece la salida sin afirmar que su cuenta exista.
+   */
+  const [reenviando, setReenviando] = useState(false);
+  const [avisoReenvio, setAvisoReenvio] = useState<string | null>(null);
+
+  async function reenviarConfirmacion() {
+    if (!email.trim()) {
+      setError("Escribe tu correo arriba y vuelve a tocar aquí.");
+      return;
+    }
+    setReenviando(true);
+    setError(null);
+    const supabase = createClient();
+    await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/inicio` },
+    });
+    setReenviando(false);
+    // El mismo mensaje pase lo que pase: si el correo no existe o ya estaba
+    // confirmado, decirlo sería confirmar qué cuentas hay.
+    setAvisoReenvio(
+      `Si ${email.trim()} tiene una cuenta sin confirmar, le acabamos de mandar el enlace. Revisa tu correo, incluida la carpeta de no deseado.`
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setAvisoReenvio(null);
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -97,6 +130,27 @@ function LoginForm() {
         <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
           <p className="text-[14px] text-rose-600 dark:text-rose-400 text-center font-medium">
             {error}
+          </p>
+          {/* La otra razón de este error, y la que nadie adivina: la cuenta
+              existe pero el correo nunca se confirmó. */}
+          <p className="mt-3 text-center text-[13px] leading-snug text-rose-600/90 dark:text-rose-400/90">
+            ¿Te registraste y nunca confirmaste el correo?{" "}
+            <button
+              type="button"
+              onClick={reenviarConfirmacion}
+              disabled={reenviando}
+              className="font-bold underline disabled:opacity-60"
+            >
+              {reenviando ? "Enviando…" : "Reenviar el enlace"}
+            </button>
+          </p>
+        </div>
+      )}
+
+      {avisoReenvio && (
+        <div className="rounded-2xl bg-emerald-50 p-4 dark:bg-emerald-500/10">
+          <p className="text-[14px] leading-snug text-emerald-700 dark:text-emerald-400">
+            {avisoReenvio}
           </p>
         </div>
       )}

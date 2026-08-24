@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
+import { marcaDeAceptacion } from "@/lib/legal";
 
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
 type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi" | "asesor";
@@ -42,6 +43,10 @@ export default function RegisterPage() {
   const [comercioElegido, setComercioElegido] = useState<ComercioOpcion | null>(null);
   const [buscando, setBuscando] = useState(false);
 
+  // La casilla nace vacía a propósito: la Ley 1581 pide autorización expresa,
+  // y una casilla premarcada no es un acto de nadie.
+  const [aceptaPoliticas, setAceptaPoliticas] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,6 +75,10 @@ export default function RegisterPage() {
       setError("Busca y elige el comercio para el que trabajas.");
       return;
     }
+    if (!aceptaPoliticas) {
+      setError("Para crear la cuenta tienes que aceptar los términos y la política de datos.");
+      return;
+    }
 
     setLoading(true);
     const supabase = createClient();
@@ -83,11 +92,14 @@ export default function RegisterPage() {
         // le da por hecho que el navegador donde revisó el correo es el que
         // va a usar para trabajar, que en el teléfono es un dueño de comercio
         // de cada tres.
-        emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/`,
+        emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/inicio`,
         data: {
           full_name: fullName,
           phone: phone || null,
           requested_role: requestedRole,
+          // Cuándo aceptó y qué versión: sin esto no hay forma de demostrar
+          // qué texto tenía delante el día que dijo que sí.
+          ...marcaDeAceptacion(),
           ...(isClient
             ? {
                 business_type: businessType,
@@ -511,9 +523,42 @@ export default function RegisterPage() {
                 </div>
               )}
 
+              {/* La autorización de datos.
+                  Va pegada al botón y no escondida en el pie: la ley pide que
+                  sea informada y expresa, así que tiene que estar donde se
+                  decide. Los enlaces abren en otra pestaña para que nadie
+                  pierda el formulario a medio llenar por ir a leerlos. */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-white/60 p-4 dark:bg-white/[0.04]">
+                <input
+                  type="checkbox"
+                  checked={aceptaPoliticas}
+                  onChange={(e) => setAceptaPoliticas(e.target.checked)}
+                  className="mt-0.5 size-5 shrink-0 cursor-pointer accent-[#ff812c]"
+                />
+                <span className="text-[14px] leading-snug text-slate-600 dark:text-slate-300">
+                  Acepto los{" "}
+                  <Link
+                    href="/legal/terminos"
+                    target="_blank"
+                    className="font-semibold text-[#ff812c] underline"
+                  >
+                    términos y condiciones
+                  </Link>{" "}
+                  y autorizo el tratamiento de mis datos personales conforme a la{" "}
+                  <Link
+                    href="/legal/privacidad"
+                    target="_blank"
+                    className="font-semibold text-[#ff812c] underline"
+                  >
+                    política de tratamiento de datos
+                  </Link>
+                  .
+                </span>
+              </label>
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !aceptaPoliticas}
                 className="w-full flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px] disabled:opacity-60"
               >
                 {loading ? (

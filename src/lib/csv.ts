@@ -330,12 +330,26 @@ function columnasExtra(row: CsvRow, mapeadas: (string | undefined)[]): Record<st
  * Convierte las filas del archivo al payload que espera at_sync_recipients.
  * El complemento se pega a la dirección: al mensajero le sirve la dirección
  * completa en un solo campo, no partida en dos columnas.
+ *
+ * ── Aquí NO se manda `extra`, y es a propósito ───────────────────────────
+ *
+ * `at_recipients` no tiene columna `extra` —mira su definición en la
+ * migración 0009— y `at_sync_recipients` nunca lee `r->>'extra'`. O sea que
+ * todo lo que se metiera ahí viajaría por la red para que la base lo tirase.
+ *
+ * No era gratis: un export de Shopify o WooCommerce trae entre 50 y 70
+ * columnas y el mapeo usa seis. Las otras sesenta se serializaban POR CADA
+ * FILA. Con lotes de cientos de filas eso son megabytes de JSON por petición,
+ * y ahí es donde la importación de un archivo real se caía —sin un error que
+ * explicara nada, porque el fallo ocurre en el transporte, no en el SQL—.
+ *
+ * Los productos SÍ llevan `extra` porque `at_products` sí tiene esa columna y
+ * `at_sync_products` la guarda. Ver `toProductPayload`.
  */
 export function toRecipientPayload(
   rows: CsvRow[],
   mapping: Partial<Record<RecipientField, string>>
 ): Record<string, unknown>[] {
-  const mapeadas = Object.values(mapping);
   return rows.map((row) => {
     const out: Record<string, unknown> = {};
     for (const field of Object.keys(RECIPIENT_FIELD_LABELS) as RecipientField[]) {
@@ -350,11 +364,48 @@ export function toRecipientPayload(
       out.address = out.address ? `${out.address} ${complemento}` : complemento;
     }
 
-    // Nada de lo que sube el cliente se descarta.
-    const extra = columnasExtra(row, mapeadas);
-    if (Object.keys(extra).length > 0) out.extra = extra;
     return out;
   });
+}
+
+/**
+ * Parte el payload en lotes que quepan en una petición.
+ *
+ * Antes se cortaba por número de filas (400) y eso no dice nada del tamaño:
+ * 400 filas de un archivo con cuatro columnas son 40 KB, y 400 filas de un
+ * export de e-commerce con setenta columnas son varios megabytes. El primero
+ * vuela y el segundo no llega.
+ *
+ * Se corta por bytes de JSON, que es lo que de verdad viaja. El límite de
+ * filas se mantiene como tope aparte: cada fila cuesta un recorrido del bucle
+ * dentro de la RPC, y un lote gigantesco de filas cortas tarda demasiado
+ * aunque pese poco.
+ */
+export function lotesQueQuepan<T>(
+  filas: T[],
+  { maxBytes = 512 * 1024, maxFilas = 200 }: { maxBytes?: number; maxFilas?: number } = {}
+): T[][] {
+  const lotes: T[][] = [];
+  let actual: T[] = [];
+  let bytes = 0;
+
+  for (const fila of filas) {
+    // +1 por la coma que las separa en el arreglo JSON.
+    const peso = JSON.stringify(fila).length + 1;
+
+    // Una sola fila que ya se pasa del límite va sola: partirla no se puede, y
+    // dejarla fuera perdería un comprador sin avisar. Que la rechace el
+    // servidor con su propio mensaje es mejor que descartarla en silencio.
+    if (actual.length > 0 && (bytes + peso > maxBytes || actual.length >= maxFilas)) {
+      lotes.push(actual);
+      actual = [];
+      bytes = 0;
+    }
+    actual.push(fila);
+    bytes += peso;
+  }
+  if (actual.length > 0) lotes.push(actual);
+  return lotes;
 }
 
 /** Convierte las filas al payload que espera at_sync_products. */

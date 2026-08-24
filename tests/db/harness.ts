@@ -60,10 +60,18 @@ if (hayBase && PROHIBIDOS.some((ref) => URL_TEST!.includes(ref))) {
 export const describeDb = hayBase ? describe : describe.skip;
 
 if (!hayBase) {
-  console.warn(
-    "\n  ⏭  Tests de base de datos saltados: falta SUPABASE_TEST_URL / " +
+  // console.log y NO console.warn, a propósito: warn escribe en stderr, y
+  // PowerShell con $ErrorActionPreference = "Stop" trata cualquier stderr de un
+  // comando nativo como error fatal. El script de commit moría aquí con un
+  // NativeCommandError, dando a entender que los tests habían fallado cuando en
+  // realidad habían pasado todos.
+  //
+  // Un test saltado a propósito no es un error y no tiene por qué salir por el
+  // canal de errores.
+  console.log(
+    "\n  [saltados] Tests de base de datos: falta SUPABASE_TEST_URL / " +
       "SUPABASE_TEST_SERVICE_KEY / SUPABASE_TEST_ANON_KEY.\n" +
-      "     Ver el encabezado de tests/db/harness.ts para levantarlos.\n"
+      "             Ver el encabezado de tests/db/harness.ts para levantarlos.\n"
   );
 }
 

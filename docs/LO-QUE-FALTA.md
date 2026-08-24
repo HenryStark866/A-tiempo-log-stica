@@ -1,101 +1,105 @@
 # Lo que falta, y por qué me toca a mí
 
-Estado al 2026-08-16, tarde.
+Estado al cierre del 2026-08-16.
 
 Todo lo que se podía hacer sin credenciales ni terminal en tu máquina está
-hecho. Esto es lo que queda, con el motivo exacto por el que no lo pude hacer
-yo — no es cautela, es que no alcanzo.
+hecho y verificado. Lo que queda son **tres acciones**, cada una con el motivo
+exacto por el que no la pude hacer yo.
 
 ---
 
-## Ahora mismo: dos clics
+## 1 · Doble clic en `EJECUTAR-commit.bat`
 
-### 1. Commitear y publicar
+En la raíz del repo.
 
-**Doble clic en `EJECUTAR-commit.bat`**, en la raíz del repo.
-
-Hace los cinco commits en orden, pero **verifica antes**: `typecheck`, `lint`,
-`test:run` y `build`. Si alguno falla, se para y no commitea nada — más vale
-quedarse a medias limpio que publicar algo que no compila.
-
-Al final te pregunta si publicar. Si dices que sí, el CI arranca solo por
-primera vez: <https://github.com/HenryStark866/A-tiempo-log-stica/actions>
+Verifica primero —typecheck, lint, 63 tests, build— y **se para al primer fallo
+sin commitear nada**. Luego hace los commits **empezando por el arreglo de la
+importación**, que va solo para poder desplegarlo y revertirlo aparte del resto.
+Al final pregunta si publicar; al hacer push, Vercel despliega solo.
 
 > **Por qué no lo hago yo:** el `.git` del repo está montado en solo lectura
-> desde mi entorno. No puedo crear el `index.lock` que git necesita para
-> escribir. Lo comprobé también después de mover el repo, por si el montaje
-> nuevo se comportaba distinto: no.
+> desde mi entorno — no puedo crear el `index.lock` que git necesita para
+> escribir. Lo comprobé también después de mover el repo a `C:\dev`, por si el
+> montaje nuevo se comportaba distinto: no.
 
-### 2. Rellenar dos variables
+## 2 · Aplicar las migraciones `0090` y `0091` en Supabase
 
-En `infra/aws/1-hibrido/terraform.tfvars` — ya está creado, con todo lo demás
-resuelto. Faltan dos, marcadas con `← RELLENAR`:
+**El despliegue no las aplica.** Es un paso aparte, y las dos llevan sus
+propias aserciones: si algo falla, no se aplican.
 
-| Variable | De dónde sale |
-| --- | --- |
-| `correo_alertas` | Lo decides tú. Mejor una lista de los tres socios que un correo personal: el punto focal rota cada semana |
-| `vercel_ip` | [vercel.com/dashboard](https://vercel.com/dashboard) → proyecto → Settings → Domains → Add `atiempologistica.com` → copiar el registro A de la tarjeta |
+[supabase.com/dashboard](https://supabase.com/dashboard) → proyecto
+`uhbtivaepyhwfdvtpfjq` (el compartido con TaxiYa, prefijo `at_` — **no** el de
+IncubApp) → SQL Editor → pega el contenido de cada archivo, en este orden, y
+Run:
 
-> **Por qué no lo hago yo:** la IP hay que leerla del panel de Vercel, que es
-> tuyo. Y **no hay una IP única** — los proyectos nuevos toman una de un pool
-> según plan y proyecto, así que inventarla o copiarla de un tutorial es
-> exactamente como acaban los dominios apuntando a ninguna parte.
+1. `supabase/migrations/0090_el_precio_del_csv_no_se_multiplica_por_cien.sql`
+   — sin ella, un precio como `89900,00` se sigue guardando como
+   **8.990.000**. Después, revisa lo ya cargado con la consulta que está al
+   pie del archivo: un precio de siete cifras en el catálogo casi siempre es
+   este fallo.
+2. `supabase/migrations/0091_el_mensajero_nuevo_puede_subir_sus_documentos.sql`
+   — sin ella, nadie que se registre como mensajero de aquí en adelante puede
+   subir sus documentos (necesita estar habilitado para subir los papeles que
+   hacen falta para habilitarlo).
 
----
+(Estas dos son las que quedaron pendientes del cierre del 16 de agosto;
+renumeradas de 0083/0084 a 0090/0091 porque esos números ya los usó el
+trabajo que se hizo mientras tanto en otra sesión.)
 
-## Después: el dominio
+> **Por qué no lo hago yo:** no tengo credenciales de base de datos para este
+> proyecto en este entorno — ni MCP de Supabase conectado, ni CLI enlazado,
+> ni `service_role key` en `.env.local` (solo la `anon key`, que no alcanza
+> para DDL).
 
-Sigue `docs/paso-a-paso-dominio.md` desde el paso 2. El resumen:
+## 3 · Subir el archivo real que falló hoy
 
-```powershell
-cd C:\dev\a-tiempo-logistica\infra\aws\1-hibrido
-terraform init
-terraform plan -out=plan.tfplan     # LEELO ENTERO: ~25 recursos, 0 destroy
-terraform apply plan.tfplan
-terraform output servidores_de_nombres
-```
+Es **la única prueba que cierra el incidente**. Que entre completo.
 
-Luego los cuatro servidores de nombres van a tu **registrador**, y después
-Vercel y Supabase. El paso de Supabase (`Site URL` + `Redirect URLs`) es el que
-siempre se olvida y el que rompe los registros nuevos.
+Si vuelve a fallar, ahora sí queda registro: busca `[yam]` en los Runtime Logs
+de Vercel. Los tres puntos de fallo de la importación reportan telemetría.
 
-> **Por qué no lo hago yo:** mi entorno **no tiene salida de red a AWS**
-> (`sts.amazonaws.com` no responde), ni `terraform`, ni la CLI de AWS, y no
-> puedo instalarlos. Y tus credenciales de AWS no debo manejarlas.
->
-> Además, este Terraform **nunca ha pasado por un `terraform plan`**. Ese plan
-> es su primera verificación real. Léelo con esa idea; es de esperar que algo
-> haya que ajustar, y los puntos más probables están listados en
-> `infra/aws/README.md`.
+> **Por qué no lo hago yo:** no tengo el archivo ni acceso a la cuenta del
+> comercio.
 
 ---
 
-## Lo que sigue pendiente, sin prisa
+## Después, sin prisa
 
 | Qué | Por qué importa | Bloqueado en |
 | --- | --- | --- |
-| **Staging de Supabase** (`npx supabase start` + `db reset`) | Enciende los tests de `tests/db/`, y es lo único que dirá si las 78 migraciones aplican en orden desde cero | Docker, que no tengo |
-| **`AT_CRON_SECRET` en Supabase** | Los pedidos de Shopify **no están entrando solos**: la función responde 401 | Panel de Supabase |
-| **Decidir lo de la evidencia de entrega** | Hoy solo se exige en contraentrega, y el README promete que siempre. En un e-commerce las prepagadas son la mayoría | Decisión de negocio, tuya |
-| **Subir la organización de Supabase a Pro** | En Free no hay respaldos diarios y el proyecto se pausa por inactividad | Tu tarjeta |
+| El dominio `atiempologistica.com` | `docs/paso-a-paso-dominio.md`, desde el paso 2. Falta la IP de Vercel en `terraform.tfvars` | Panel de Vercel + tu registrador |
+| **Staging** (`npx supabase start` + `db reset`) | Enciende los **43 tests de base** que están escritos y esperando. Y dirá si las 78 migraciones aplican desde cero | Docker |
+| `AT_CRON_SECRET` en Supabase | Los pedidos de Shopify **no entran solos**: la función responde 401 | Panel de Supabase |
+| Decidir lo de la evidencia de entrega | Hoy solo se exige en contraentrega; el README promete que siempre | Decisión tuya |
+| Subir la organización de Supabase a Pro | En Free no hay respaldos diarios y el proyecto se pausa | Tu tarjeta |
 
 ---
 
-## Lo que sí quedó hecho
+## Lo que quedó hecho y verificado
 
-- Auditoría del repo y **25 notas de memoria** en la bóveda de Obsidian.
-- **50 tests unitarios**, verificados pasando. Zonas y tarifas, hora de
-  Medellín, formato de dinero, ordenamiento de ruta, la marca.
-- **6 archivos de tests contra la base**, escritos leyendo el SQL real de las
-  migraciones. Se saltan solos hasta que haya staging.
-- **Observabilidad sin dependencias**: errores del navegador y avisos de CSP a
-  los Runtime Logs de Vercel. Habría cazado el mapa gris el primer día.
-- **CI** en GitHub Actions.
-- **Dos pilas de Terraform**: la híbrida (dominio, correo, CDN, el reloj de
-  Shopify) y la plataforma completa en AWS para cuando toque.
-- El repo **fuera de OneDrive**, que es lo que causaba los candados de git.
-- Un bug real arreglado: un regex con caracteres invisibles en
-  `normalizarBusqueda`.
+**El incidente de hoy.** La importación de la base de compradores fallaba porque
+el payload llevaba todas las columnas sin mapear del archivo en un campo que
+`at_recipients` no tiene. Un export de e-commerce trae 50-70 columnas y el mapeo
+usa seis. Arreglado, con lotes por peso del JSON, el bucle de productos ya no se
+traga los errores, y una importación a medias dice cuántas entraron.
 
-Y dos discrepancias entre el README y el código que nadie había visto — están
-en `docs/traspaso-claude-code-2026-08-16.md`, sección 3.bis.
+**63 tests unitarios pasando**, verificados ejecutándolos. Zonas y tarifas, hora
+de Medellín, formato de dinero, ordenamiento de ruta, marca, y 13 nuevos de
+importación — uno de ellos fija que el payload no vuelva a crecer con columnas
+que no se mapean.
+
+**43 tests contra la base**, escritos leyendo el SQL real de las migraciones:
+RLS por rol, máquina de estados, cobro, recaudo contraentrega y catálogo. Se
+saltan solos hasta que haya staging.
+
+**Observabilidad sin dependencias**: errores del navegador y avisos de CSP a los
+Runtime Logs de Vercel. Habría cazado el mapa gris el primer día.
+
+**CI** en GitHub Actions. **Dos pilas de Terraform** para AWS. El repo **fuera
+de OneDrive**, que causaba los candados de git. Y **25 notas de memoria** en la
+bóveda de Obsidian.
+
+Tres bugs reales encontrados y corregidos: el payload de la importación, el
+precio multiplicado por cien, y un regex con caracteres invisibles en
+`normalizarBusqueda`. Más dos discrepancias entre el README y el código que
+nadie había visto — están en `docs/traspaso-claude-code-2026-08-16.md`.

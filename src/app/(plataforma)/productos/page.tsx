@@ -24,15 +24,17 @@ import {
   FORMATOS_LEGIBLES,
   guessProductMapping,
   toProductPayload,
+  lotesQueQuepan,
   PRODUCT_FIELD_LABELS,
   PRODUCT_REQUIRED_FIELDS,
   type CsvRow,
   type ProductField,
 } from "@/lib/csv";
 import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
+import { reportarError } from "@/lib/observabilidad";
 import type { Product, SyncRecipientsResult } from "@/lib/types";
 
-const CHUNK = 400;
+// El tamaño de lote lo decide lotesQueQuepan() por peso del JSON.
 
 const PLANTILLA = [
   "producto,sku,precio,descripcion",
@@ -222,18 +224,32 @@ export default function ProductsPage() {
     setResult(null);
     const supabase = createClient();
     const payload = toProductPayload(rows, mapping);
+    const total = payload.length;
     const acumulado: SyncRecipientsResult = { creados: 0, actualizados: 0, omitidos: 0 };
 
-    for (let i = 0; i < payload.length; i += CHUNK) {
-      const { data, error } = await supabase.rpc("at_sync_products", {
-        p_rows: payload.slice(i, i + CHUNK),
-      });
+    // Por peso del JSON y no por número de filas: un catálogo con
+    // descripciones largas revienta la petición mucho antes de llegar a 400.
+    let hechas = 0;
+    for (const lote of lotesQueQuepan(payload)) {
+      const { data, error } = await supabase.rpc("at_sync_products", { p_rows: lote });
       if (error) {
-        setError(error.message);
+        reportarError(error, {
+          origen: "importar productos",
+          filas: total,
+          importadas: hechas,
+          lote: lote.length,
+        });
+        setError(
+          hechas > 0
+            ? `Se importaron ${hechas} de ${total} y ahí se detuvo: ${error.message}. ` +
+                `Vuelve a subir el mismo archivo para continuar; lo ya cargado no se duplica.`
+            : `No se pudo importar: ${error.message}`
+        );
         setBusy(false);
         load();
         return;
       }
+      hechas += lote.length;
       const r = data as SyncRecipientsResult;
       acumulado.creados += r.creados;
       acumulado.actualizados += r.actualizados;

@@ -33,10 +33,13 @@ import {
   type CsvRow,
   type RecipientField,
 } from "@/lib/csv";
+import { lotesQueQuepan } from "@/lib/csv";
 import { resolveZone } from "@/lib/zones";
+import { reportarError } from "@/lib/observabilidad";
 import type { Recipient, SyncRecipientsResult, Zone } from "@/lib/types";
 
-const CHUNK = 400;
+// El tamaño de lote ya no se fija aquí: lo decide lotesQueQuepan() por peso
+// del JSON, que es lo que de verdad limita una petición.
 
 const PLANTILLA = [
   "nombre,telefono,direccion,complemento,ciudad,notas,producto,sku,precio,descripcion",
@@ -337,32 +340,65 @@ export default function RecipientsPage() {
     const total = payload.length;
     const acumulado: SyncRecipientsResult = { creados: 0, actualizados: 0, omitidos: 0 };
 
-    for (let i = 0; i < total; i += CHUNK) {
-      setProgress({ done: i, total });
-      const { data, error } = await supabase.rpc("at_sync_recipients", {
-        p_rows: payload.slice(i, i + CHUNK),
-      });
+    // Lotes por PESO, no por número de filas: 400 filas de un archivo ancho
+    // son megabytes que no llegan. Ver lotesQueQuepan en lib/csv.ts.
+    const lotes = lotesQueQuepan(payload);
+    let hechas = 0;
+
+    for (const lote of lotes) {
+      setProgress({ done: hechas, total });
+      const { data, error } = await supabase.rpc("at_sync_recipients", { p_rows: lote });
+
       if (error) {
-        setError(error.message);
+        // Lo que ya entró, entró: cada lote es su propia transacción. Decirlo
+        // importa —el comercio necesita saber si tiene media base cargada— y
+        // volver a subir el MISMO archivo es seguro: la sincronización busca
+        // por nombre+dirección y actualiza en vez de duplicar.
+        reportarError(error, {
+          origen: "importar destinatarios",
+          filas: total,
+          importadas: hechas,
+          lote: lote.length,
+        });
+        setError(
+          hechas > 0
+            ? `Se importaron ${hechas} de ${total} y ahí se detuvo: ${error.message}. ` +
+                `Vuelve a subir el mismo archivo para continuar; lo ya cargado no se duplica.`
+            : `No se pudo importar: ${error.message}`
+        );
         setBusy(false);
         setProgress(null);
         load();
         return;
       }
+
       const r = data as SyncRecipientsResult;
       acumulado.creados += r.creados;
       acumulado.actualizados += r.actualizados;
       acumulado.omitidos += r.omitidos;
+      hechas += lote.length;
     }
 
-    // Sincronizar catálogo de productos si el archivo incluye columnas de producto
+    // Catálogo, si el archivo trae columnas de producto.
+    //
+    // Antes este bucle ignoraba el error: la pantalla decía que todo había ido
+    // bien y el catálogo se quedaba vacío. El comercio se enteraba al ir a
+    // despachar y no encontrar sus productos.
     const productMapping = guessProductMapping(headers);
     if (productMapping.name) {
       const productPayload = toProductPayload(rows, productMapping);
-      for (let i = 0; i < productPayload.length; i += CHUNK) {
-        await supabase.rpc("at_sync_products", {
-          p_rows: productPayload.slice(i, i + CHUNK),
-        });
+      for (const lote of lotesQueQuepan(productPayload)) {
+        const { error } = await supabase.rpc("at_sync_products", { p_rows: lote });
+        if (error) {
+          reportarError(error, { origen: "importar productos desde destinatarios" });
+          // Los compradores SÍ se cargaron: se dice lo que pasó y lo que no,
+          // en vez de dar por fallida la importación entera.
+          setError(
+            `Los compradores se importaron bien, pero el catálogo de productos no: ` +
+              `${error.message}. Puedes subirlo aparte desde la pantalla de Productos.`
+          );
+          break;
+        }
       }
     }
 

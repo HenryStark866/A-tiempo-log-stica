@@ -155,7 +155,26 @@ function TuRedSocial() {
 
 export default function MyProfilePage() {
   const profile = useProfile();
-  const esMensajero = profile.role === "mensajero";
+  /**
+   * Quien ya es mensajero, y quien se registró como tal y espera habilitación.
+   *
+   * La segunda mitad no estaba, y bloqueaba la contratación entera: alguien que
+   * se acaba de registrar tiene `role = 'pendiente'` con
+   * `requested_role = 'mensajero'`, así que esta pantalla no le mostraba nada.
+   * Y sin subir los documentos nadie puede revisárselos para habilitarlo.
+   *
+   * Los mensajeros que ya estaban en producción no lo notaron: la migración
+   * 0020 los promovió a 'mensajero' de una vez. El agujero solo aparece con
+   * gente que se registra después.
+   *
+   * La base lo permite desde la migración 0091, con la misma condición.
+   */
+  const esMensajero =
+    profile.role === "mensajero" ||
+    (profile.role === "pendiente" && profile.requested_role === "mensajero");
+
+  /** Todavía no lo ha habilitado nadie: sube papeles, pero aún no trabaja. */
+  const esperandoHabilitacion = profile.role === "pendiente";
   const [docs, setDocs] = useState<CourierDocument[]>([]);
   const [loading, setLoading] = useState(esMensajero);
   const [busy, setBusy] = useState<DocType | null>(null);
@@ -275,6 +294,15 @@ export default function MyProfilePage() {
                     .join(", ")}.`
                 : "Ya subiste todo. Un administrador está revisando tus documentos."}
             </p>
+            {/* Quien todavía es 'pendiente' necesita saber que sí va por buen
+                camino: ve esta pantalla para subir papeles, no porque algo
+                haya salido mal. */}
+            {esperandoHabilitacion && (
+              <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+                Tu cuenta está en revisión. Sube aquí tus documentos: en cuanto
+                estén, el CEDI te habilita y puedes empezar a recibir entregas.
+              </p>
+            )}
           </div>
         </div>
       )}

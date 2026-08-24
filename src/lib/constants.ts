@@ -221,7 +221,7 @@ export const COURIER_DOCS: {
   { value: "tecnomecanica",       label: "Tecnomecánica",        hint: "Obligatoria si el vehículo tiene más de 2 años.", expires: true },
   { value: "foto_vehiculo",       label: "Foto del vehículo",    hint: "Donde se vea la placa.",               expires: false },
   { value: "certificado_eps",     label: "Certificado de EPS",   hint: "Afiliación vigente a salud.",          expires: false },
-  { value: "antecedentes",        label: "Antecedentes",         hint: "Certificado de la Policía Nacional.",  expires: false },
+  { value: "antecedentes",        label: "Antecedentes judiciales", hint: "Certificado de la Policía Nacional.", expires: false },
 ];
 
 export const DOC_LABELS: Record<DocType, string> = Object.fromEntries(

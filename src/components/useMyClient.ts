@@ -45,6 +45,20 @@ export function useMyClient() {
     // una cadena vacía a una columna uuid provoca "invalid input syntax for
     // type uuid: """ en PostgreSQL.
     if (esAsesor && !profile.client_id) {
+      // Y se dice POR QUÉ. Antes se salía en silencio: la pantalla de
+      // destinatarios, la de productos y el buscador de /pedidos/nueva se
+      // quedaban vacíos, sin error y sin explicación, y el asesor no tenía
+      // forma de saber que el problema no era suyo.
+      //
+      // Pasó en producción: un asesor quedó sin comercio asignado porque la
+      // pantalla de Usuarios borraba el client_id al guardar cualquier rol
+      // distinto de «cliente». Ya está corregido, pero el hueco de la cuenta
+      // sin enlazar sigue siendo posible mientras su jefe no lo habilite desde
+      // Mi equipo.
+      setError(
+        "Tu cuenta todavía no está enlazada a un comercio. " +
+          "Pídele al dueño de la tienda que te habilite desde Mi equipo."
+      );
       setLoading(false);
       return;
     }

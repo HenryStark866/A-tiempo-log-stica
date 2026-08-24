@@ -1,30 +1,20 @@
 # Lo que falta, y por qué me toca a mí
 
-Estado al cierre del 2026-08-16.
+Estado al cierre del 2026-08-16, actualizado el 2026-08-24 desde `C:\dev`.
 
-Todo lo que se podía hacer sin credenciales ni terminal en tu máquina está
-hecho y verificado. Lo que queda son **tres acciones**, cada una con el motivo
-exacto por el que no la pude hacer yo.
+## 1 · Los commits ya están hechos
 
----
+Lo que el cierre del 16 de agosto dejó pendiente por un `.git` de solo
+lectura en aquel entorno ya se commiteó desde acá — `C:\dev` no tiene ese
+problema. Tres commits, en orden: la nota de dónde vive la memoria del
+proyecto, el arreglo del precio y de los documentos del mensajero (abajo), y
+la función nueva del rótulo (`Atendido por` + código de seguimiento en
+texto, migración `0092`). **No están pusheados** — eso queda para cuando
+decidas publicar.
 
-## 1 · Doble clic en `EJECUTAR-commit.bat`
+## 2 · Aplicar las migraciones `0090`, `0091` y `0092` en Supabase
 
-En la raíz del repo.
-
-Verifica primero —typecheck, lint, 63 tests, build— y **se para al primer fallo
-sin commitear nada**. Luego hace los commits **empezando por el arreglo de la
-importación**, que va solo para poder desplegarlo y revertirlo aparte del resto.
-Al final pregunta si publicar; al hacer push, Vercel despliega solo.
-
-> **Por qué no lo hago yo:** el `.git` del repo está montado en solo lectura
-> desde mi entorno — no puedo crear el `index.lock` que git necesita para
-> escribir. Lo comprobé también después de mover el repo a `C:\dev`, por si el
-> montaje nuevo se comportaba distinto: no.
-
-## 2 · Aplicar las migraciones `0090` y `0091` en Supabase
-
-**El despliegue no las aplica.** Es un paso aparte, y las dos llevan sus
+**El despliegue no las aplica.** Es un paso aparte, y las tres llevan sus
 propias aserciones: si algo falla, no se aplican.
 
 [supabase.com/dashboard](https://supabase.com/dashboard) → proyecto
@@ -41,10 +31,14 @@ Run:
    — sin ella, nadie que se registre como mensajero de aquí en adelante puede
    subir sus documentos (necesita estar habilitado para subir los papeles que
    hacen falta para habilitarlo).
+3. `supabase/migrations/0092_el_rotulo_dice_quien_atendio.sql` — sin ella,
+   `at_label_data` no trae el nombre del asesor y el rótulo no muestra
+   «Atendido por». (El código de seguimiento en texto no necesita nada nuevo:
+   ya viaja el `tracking_token` que el QR usa desde la migración 0023.)
 
-(Estas dos son las que quedaron pendientes del cierre del 16 de agosto;
-renumeradas de 0083/0084 a 0090/0091 porque esos números ya los usó el
-trabajo que se hizo mientras tanto en otra sesión.)
+(0090 y 0091 quedaron pendientes del cierre del 16 de agosto, renumeradas de
+0083/0084 porque esos números ya los usó el trabajo que se hizo mientras
+tanto en otra sesión. 0092 es nueva, del 2026-08-24.)
 
 > **Por qué no lo hago yo:** no tengo credenciales de base de datos para este
 > proyecto en este entorno — ni MCP de Supabase conectado, ni CLI enlazado,

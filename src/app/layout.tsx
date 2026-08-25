@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { RegistrarSW } from "@/components/RegistrarSW";
 import { CapturaDeErrores } from "@/components/CapturaDeErrores";
 import { Splash } from "@/components/Splash";
+import { SonidoDeArranque } from "@/components/SonidoDeArranque";
 import { MARCA } from "@/lib/marca";
 import "./globals.css";
 
@@ -68,6 +69,9 @@ export default async function RootLayout({
               contenido real ya está pintado debajo cuando el splash se
               retira, y nadie ve la app armándose. */}
           <Splash />
+          {/* Aparte del splash a propósito: el splash no lleva JavaScript para
+              poder retirarse pase lo que pase. Ver SonidoDeArranque.tsx. */}
+          <SonidoDeArranque />
           <RegistrarSW />
           <CapturaDeErrores />
         </ThemeProvider>

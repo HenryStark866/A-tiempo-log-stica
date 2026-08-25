@@ -325,7 +325,16 @@ select option {
 
    Los tiempos están escalonados para que se lea como una secuencia y no como
    cosas apareciendo a la vez: ruta (260ms) → postas en cascada (320ms, cada
-   110ms) → correo (380ms) → cascabel (900ms) → salida (1180ms).
+   110ms) → correo (380ms) → cascabel (900ms) → cascabel otra vez (1600ms) →
+   salida (2180ms).
+
+   El segundo cascabel y el segundo que se le añadió a la salida van juntos:
+   el cascabel ahora SUENA (ver SonidoDeArranque.tsx) y suena dos veces, así
+   que la pantalla tiene que durar lo suficiente para que se oiga entero el
+   par. Los 700ms que los separan están escritos en los dos sitios —aquí, en
+   el retraso de la segunda `atl-onda` que pinta Splash.tsx, y allá, en
+   PAUSA_ENTRE_CASCABELES—; no hay forma de que un archivo importe al otro,
+   así que si se toca uno hay que tocar el otro.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .atl-splash {
@@ -338,7 +347,7 @@ select option {
   pointer-events: none;
   /* Opaco: su trabajo es tapar la app hasta que esté lista. */
   background: #f2f2f7;
-  animation: atl-splash-salida 380ms ease-out 1180ms forwards;
+  animation: atl-splash-salida 380ms ease-out 2180ms forwards;
 }
 
 .dark .atl-splash {

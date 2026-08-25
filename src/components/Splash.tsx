@@ -4,7 +4,7 @@ import { MARCA } from "@/lib/marca";
 /**
  * El arranque de la app — la ruta de postas.
  *
- * Cuenta, en segundo y medio, de dónde viene el nombre. El «yam» mongol no era
+ * Cuenta, en dos segundos y medio, de dónde viene el nombre. El «yam» mongol no era
  * un mensajero cabalgando muy rápido: era una línea de postas cada 32-64 km
  * donde el correo cambiaba de caballo sin bajarse del oficio. Eso es lo que se
  * dibuja aquí, en este orden:
@@ -14,10 +14,12 @@ import { MARCA } from "@/lib/marca";
  *      alcanza: primero existe el camino, después el relevo.
  *   3. El correo —el cuadro naranja, el mismo que los paquetes de FondoInicio—
  *      la recorre de punta a punta.
- *   4. En la última posta se expande una onda. Es el cascabel que contó Marco
- *      Polo: en el cinturón del corredor, para que en la posta siguiente lo
- *      oyeran llegar y tuvieran el relevo listo antes de verlo. Una
- *      notificación anticipada, en el siglo XIII.
+ *   4. En la última posta se expande una onda, dos veces. Es el cascabel que
+ *      contó Marco Polo: en el cinturón del corredor, para que en la posta
+ *      siguiente lo oyeran llegar y tuvieran el relevo listo antes de verlo.
+ *      Una notificación anticipada, en el siglo XIII. Y ahora se oye de
+ *      verdad — el sonido lo pone `SonidoDeArranque`, que va aparte
+ *      justamente para no meter JavaScript aquí.
  *
  * ── Por qué no lleva una línea de JavaScript ──────────────────────────────
  *
@@ -113,19 +115,25 @@ export function Splash() {
             );
           })}
 
-          {/* 4. El cascabel: se oye antes de que el correo se vea llegar */}
-          <circle
-            cx={POSTAS[4].x}
-            cy={POSTAS[4].y}
-            r="16"
-            fill={NARANJA}
-            style={{
-              opacity: 0,
-              transformBox: "fill-box",
-              transformOrigin: "center",
-              animation: "atl-onda 620ms ease-out 900ms forwards",
-            }}
-          />
+          {/* 4. El cascabel: se oye antes de que el correo se vea llegar.
+                 Suena dos veces, y por eso se expanden dos ondas. El sonido lo
+                 pone SonidoDeArranque.tsx, acompasado con estos retrasos: si
+                 cambian aquí, cambian allá. */}
+          {[900, 1600].map((retraso) => (
+            <circle
+              key={retraso}
+              cx={POSTAS[4].x}
+              cy={POSTAS[4].y}
+              r="16"
+              fill={NARANJA}
+              style={{
+                opacity: 0,
+                transformBox: "fill-box",
+                transformOrigin: "center",
+                animation: `atl-onda 620ms ease-out ${retraso}ms forwards`,
+              }}
+            />
+          ))}
 
           {/* 3. El correo, por la misma curva que se acaba de dibujar */}
           <rect

@@ -48,30 +48,63 @@ export function desbloquearSonido() {
 // no como tres pitidos sueltos.
 const NOTAS = [783.99, 1046.5, 1318.51];
 
-export function reproducirSonidoNotificacion() {
+/**
+ * Ejecuta algo con el contexto ya despierto, o no lo ejecuta.
+ *
+ * `then` y no `await` para no volver async a quien llame: esto se dispara
+ * desde un manejador de Realtime y desde un efecto de React.
+ */
+function conContextoDespierto(hacer: (ctx: AudioContext) => void) {
   const ctx = obtenerContexto();
   if (!ctx) return;
 
   if (ctx.state === "running") {
-    tocar(ctx);
+    hacer(ctx);
     return;
   }
 
-  // Suspendido: casi siempre porque la pestaña estuvo un rato de fondo. Se
-  // despierta y suena. `then` y no `await` para no volver async una función a
-  // la que se llama desde un manejador de Realtime.
   void ctx
     .resume()
     .then(() => {
-      if (ctx.state === "running") tocar(ctx);
+      if (ctx.state === "running") hacer(ctx);
     })
     .catch(() => {
       /* el navegador aún no permite sonar: se queda callado, sin romper nada */
     });
 }
 
-function tocar(ctx: AudioContext) {
-  const ahora = ctx.currentTime;
+export function reproducirSonidoNotificacion() {
+  conContextoDespierto((ctx) => tocar(ctx));
+}
+
+/**
+ * Cuánto pasa entre el primer cascabel y el segundo, en segundos.
+ *
+ * Setecientos milisegundos: lo justo para que se lean como un par —un timbre
+ * que suena dos veces— y no como dos avisos distintos. Va acompasado con la
+ * segunda onda del splash; si cambia aquí, cambia también el retraso de
+ * `atl-onda` en globals.css.
+ */
+const PAUSA_ENTRE_CASCABELES = 0.7;
+
+/**
+ * El cascabel del arranque: el mismo sonido, dos veces seguidas.
+ *
+ * Las dos se programan de una sola vez sobre el reloj del audio en lugar de
+ * encadenar un `setTimeout`. Ese reloj no se desvía ni se atasca cuando el
+ * hilo principal está ocupado —y en el arranque lo está, montando la app
+ * entera—, así que la segunda cae exactamente donde debe. Con un temporizador
+ * llegaría tarde y desacompasada de la onda que la acompaña en pantalla.
+ */
+export function reproducirSonidoDeArranque() {
+  conContextoDespierto((ctx) => {
+    tocar(ctx);
+    tocar(ctx, PAUSA_ENTRE_CASCABELES);
+  });
+}
+
+function tocar(ctx: AudioContext, desfase = 0) {
+  const ahora = ctx.currentTime + desfase;
   const maestro = ctx.createGain();
   // Discreto a propósito: es un aviso de que algo pasó, no una alarma que
   // exige atención inmediata.

@@ -76,3 +76,68 @@ Tres bugs reales encontrados y corregidos: el payload de la importación, el
 precio multiplicado por cien, y un regex con caracteres invisibles en
 `normalizarBusqueda`. Más dos discrepancias entre el README y el código que
 nadie había visto — están en `docs/traspaso-claude-code-2026-08-16.md`.
+
+
+---
+
+# Cierre del 2026-08-24 (tarde)
+
+Lo de arriba sigue vigente. Esto es lo que se cerró y lo que quedó abierto en la
+sesión de la tarde, cuando *collar accesorios* pasó a ser el primer cliente real
+en producción.
+
+## Lo que quedó funcionando
+
+**El flujo completo, probado de punta a punta** contra la base real y deshecho
+con savepoints — sin dejar un solo pedido de prueba. Los siete pasos: la asesora
+crea el pedido (zona MED-CO, $13.500), pide la recogida, el CEDI asigna
+mensajero, el mensajero recoge, el CEDI recibe y zonifica, sale a ruta y
+entrega. Al final: $80.000 por girar, $13.500 de flete y 6 eventos de
+trazabilidad.
+
+**Cada quien ve solo lo suyo**, verificado suplantando usuarios reales contra el
+RLS (no leyendo el código): el asesor ve los pedidos de su comercio y CERO
+facturas, medios de cobro y liquidaciones; un comercio no ve ni un dato de otro;
+el admin lo ve todo.
+
+**Bugs encontrados y corregidos**, todos en producción:
+
+| Qué estaba roto | Desde cuándo |
+| --- | --- |
+| Editar ítems de factura llamaba a dos funciones que no existían (migración 0055 nunca aplicada) | siempre |
+| Un asesor aprobado por el admin nacía sin comercio, y sin comercio no ve nada | le pasó a 2 personas |
+| Un pedido sin zona se facturaba en CERO, sin error ni aviso | siempre, por cualquier vía que no fuera la pantalla |
+| `at_comercios_sin_zona` exponía nombre, dirección y teléfono de todos los comercios a `anon` | desde la 0056 |
+| El CEDI podía dar recogidas por recibidas sin tocar una guía (0033 nunca aplicada) | siempre |
+| Ningún comercio nacía con sede principal | siempre |
+
+## Lo que falta, y en qué está bloqueado
+
+| Qué | Por qué importa | Bloqueado en |
+| --- | --- | --- |
+| **Medio de cobro de *collar accesorios*** | **Sin número de cuenta no hay a dónde girarles el contraentrega.** Es lo más urgente de la lista | Que ellos lo registren en Mi perfil → Mi comercio |
+| `OPENWA_API_URL`, `OPENWA_API_KEY`, `OPENWA_SESSION_NAME` en Vercel | Sin ellas el botón «Enviar» del código avisa de que el puente no está configurado | Falta una URL **pública** del gateway (túnel o VPS). `localhost` no sirve desde Vercel |
+| Probar el envío automático | El pedido **ATL-100163** está creado, con su código encolado al 3196070176, esperando | Que el gateway OpenWA esté encendido |
+| Logo de *collar accesorios* | El rótulo sale sin marca. El sistema ya lo soporta | No tengo el archivo, y el bucket solo acepta escrituras con sesión del propio comercio |
+| Tres sedes sin dirección | Se crearon con los datos que el comercio tenía, y esos tres no la tienen registrada | Que cada comercio complete sus datos |
+
+## Una decisión que conviene repasar
+
+La migración **0089** (las diez subzonas) dejó **inactivas las cinco zonas
+reales** de la operación — Zona 1 · Sur Metropolitano, Zona 2 · Centro Sur, etc.,
+con sus tarifas de $11.500 a $22.000 — y activó en su lugar diez subzonas cuyo
+propio comentario admite que son «geografía inferida, no dato de la operación».
+
+**Nada se borró**: las cinco siguen ahí, solo desactivadas y con el `sort_order`
+desplazado 90 posiciones. Volver atrás es reactivarlas, desactivar las diez y
+re-zonificar. Si las tarifas que manda hoy la app no son las que cobra la
+operación de verdad, esto es lo primero que hay que mirar.
+
+## Higiene del proceso
+
+Las migraciones **0090, 0091 y 0092 están en la base pero NO en
+`supabase_migrations`**: se aplicaron desde el editor SQL en vez de por
+`apply_migration`, así que sus funciones existen y funcionan —verificadas una a
+una— pero el historial no las registra. Quien audite el historial va a creer que
+faltan. Conviene aplicar siempre por `apply_migration` para que el registro no
+mienta.

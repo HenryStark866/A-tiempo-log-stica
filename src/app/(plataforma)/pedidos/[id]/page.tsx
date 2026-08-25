@@ -339,8 +339,8 @@ export default function GuideDetailPage() {
               <h2 className="mb-4 font-bold text-slate-900 dark:text-white">Acciones</h2>
 
               {canAssign && (
-                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">
+                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/[0.08] dark:bg-white/[0.04]">
+                  <p className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
                     Picking y zonificación (Fase 3): asignar mensajero
                   </p>
                   <div className="flex flex-wrap gap-2">

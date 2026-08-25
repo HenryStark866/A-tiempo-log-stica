@@ -188,7 +188,7 @@ function Fleet() {
     return (
       <div className="pb-10 font-sans">
         <h1 className="text-[28px] font-bold text-slate-900 dark:text-white">Mapa</h1>
-        <p className="mt-6 text-slate-500">Esta sección es del personal de operaciones.</p>
+        <p className="mt-6 text-slate-500 dark:text-slate-400">Esta sección es del personal de operaciones.</p>
       </div>
     );
   }

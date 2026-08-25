@@ -110,7 +110,7 @@ export function FichaUsuario({ userId, onClose }: { userId: string; onClose: () 
           )}
 
           {!ficha && !error ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
+            <div className="flex items-center justify-center gap-2 py-12 text-slate-500 dark:text-slate-400">
               <LoaderCircle className="size-5 animate-spin" /> Cargando la ficha…
             </div>
           ) : ficha ? (

@@ -7,6 +7,7 @@ import type {
   InvoiceStatus,
   PackageSize,
   PackageType,
+  PaymentKind,
   PickupStatus,
   Role,
   SecurityEventType,
@@ -134,24 +135,396 @@ export const OPS_ROLES: Role[] = ["admin", "coordinador"];
 // El resto (operario, coordinador, admin) se asignan internamente desde Usuarios.
 export const REQUESTABLE_ROLES: Extract<Role, "cliente" | "mensajero">[] = ["cliente", "mensajero"];
 
-// Medios de pago que el comercio puede publicar en el QR de pago.
-// `hint` es lo que se le pide escribir en el campo del identificador.
-export const PAYMENT_KINDS = [
-  { value: "nequi",       label: "Nequi",             hint: "Número de celular" },
-  { value: "daviplata",   label: "Daviplata",         hint: "Número de celular" },
-  { value: "bancolombia", label: "Bancolombia",       hint: "Número de cuenta" },
-  { value: "otro_banco",  label: "Otro banco",        hint: "Banco y número de cuenta" },
-  { value: "link",        label: "Link de pago",      hint: "https://…" },
-  { value: "efectivo",    label: "Efectivo al mensajero", hint: "" },
+// ── Medios de pago que el comercio publica en el QR de pago ────────────
+//
+// La tabla `at_payment_methods` guarda dos campos para esto: `kind`, un código
+// de una lista cerrada por un CHECK, e `identifier`, un texto libre. El
+// formulario, en cambio, pregunta por partes —banco, tipo de cuenta, número;
+// o plataforma y llave; o descripción y enlace— porque preguntarlo todo junto
+// en una casilla es lo que hacía imposible exigir que un número de cuenta
+// fuera un número.
+//
+// Aquí vive la traducción entre las dos formas, en un solo lugar, para que el
+// modal de Mi perfil y la vista pública del QR no la reinventen cada uno por
+// su lado y terminen en desacuerdo.
+
+// ── 1. Lo que se elige en pantalla ─────────────────────────────────────
+
+/** La primera pregunta del modal: qué clase de medio se va a registrar. */
+export type CategoriaDePago = "cuenta" | "billetera" | "enlace";
+
+export const CATEGORIAS_DE_PAGO: { value: CategoriaDePago; label: string }[] = [
+  { value: "cuenta", label: "Cuenta Bancaria" },
+  { value: "billetera", label: "Billetera Digital / Llave" },
+  { value: "enlace", label: "Enlace de Pago / Otro" },
+];
+
+/**
+ * Bancos de la lista. `Otro` al final deja escribir el nombre a mano: la lista
+ * cubre lo que se usa a diario sin pretender ser el registro completo de la
+ * Superintendencia.
+ */
+export const BANCOS = [
+  "Bancolombia",
+  "Davivienda",
+  "Banco de Bogotá",
+  "BBVA",
+  "Banco Caja Social",
+  "Scotiabank Colpatria",
+  "AV Villas",
+  "Banco Popular",
+  "Banco de Occidente",
+  "Nu Bank",
+  "Itaú",
+  "Bancoomeva",
+  "Serfinanza",
+  "Lulo Bank",
+  "Otro",
 ] as const;
 
-export const PAYMENT_KIND_LABELS: Record<string, string> = Object.fromEntries(
-  PAYMENT_KINDS.map((k) => [k.value, k.label])
-);
+export const BANCO_OTRO = "Otro";
+
+export const TIPOS_DE_CUENTA = ["Ahorros", "Corriente"] as const;
+export type TipoDeCuenta = (typeof TIPOS_DE_CUENTA)[number];
+
+export const BILLETERAS = ["Nequi", "Daviplata", "Transfiya", "Dale!", "NuBank", "Otra"] as const;
+
+export const BILLETERA_OTRA = "Otra";
+
+export const LARGO_MAXIMO = {
+  marca: 40,
+  numero: 20,
+  llave: 60,
+  descripcion: 40,
+  enlace: 300,
+};
+
+// ── 2. Lo que se guarda en la base ─────────────────────────────────────
+
+/**
+ * Los códigos de `kind`. Son una casilla gruesa, no la marca: el CHECK de la
+ * base solo admite estos ocho valores, así que un Dale! o un Wompi no caben
+ * ahí — su nombre viaja adelante del identificador.
+ */
+export const PAYMENT_KIND_LABELS: Record<string, string> = {
+  nequi: "Nequi",
+  daviplata: "Daviplata",
+  bancolombia: "Bancolombia",
+  otro_banco: "Cuenta bancaria",
+  billetera: "Billetera digital",
+  link: "Link de pago",
+  otro: "Otro medio",
+  efectivo: "Efectivo al mensajero",
+};
+
+/**
+ * Lo que une las partes dentro de `identifier`.
+ *
+ * Los espacios alrededor del guion no son decoración: son lo que permite
+ * volver a separarlas al editar. Por eso las marcas y descripciones se guardan
+ * sin guiones (ver `limpiarMarca`) — si alguien escribiera «Banco - Pop» la
+ * partición saldría mal.
+ */
+export const SEPARADOR = " - ";
+
+/**
+ * La regla de todo el formato, en una frase: **la última parte es siempre el
+ * dato con el que se paga, y todo lo de antes es contexto.**
+ *
+ *   «Davivienda - Ahorros - 12345678»  → contexto: Davivienda, Ahorros
+ *   «Ahorros - 12345678»               → contexto: Ahorros (el banco lo dice el kind)
+ *   «3001234567»                       → sin contexto
+ *   «Dale! - 3001234567»               → contexto: Dale!
+ *   «Link de Wompi - https://…»        → contexto: Link de Wompi
+ *
+ * Gracias a eso el QR público puede mostrar el contexto pequeño, el dato
+ * grande, y copiar SOLO el dato — que es lo único que sirve pegado en la app
+ * del banco.
+ */
+export function armarDato(contexto: string[], dato: string): string | null {
+  const partes = [...contexto.map((c) => c.trim()).filter(Boolean), dato.trim()].filter(Boolean);
+  return partes.join(SEPARADOR) || null;
+}
+
+export function partirDato(identifier: string | null | undefined): {
+  contexto: string[];
+  dato: string;
+} {
+  const crudo = (identifier ?? "").trim();
+  if (!crudo) return { contexto: [], dato: "" };
+  const partes = crudo.split(SEPARADOR).map((p) => p.trim()).filter(Boolean);
+  return { contexto: partes.slice(0, -1), dato: partes[partes.length - 1] ?? "" };
+}
+
+// ── 3. De los campos de pantalla al par (kind, identifier) ─────────────
+
+/** Todo lo que el modal captura, sin importar la categoría. */
+export interface CamposDePago {
+  categoria: CategoriaDePago;
+  /** Cuenta: banco de la lista, y el nombre escrito a mano si eligió «Otro». */
+  banco: string;
+  bancoOtro: string;
+  tipo: TipoDeCuenta;
+  numero: string;
+  /** Billetera: plataforma de la lista, y el nombre a mano si eligió «Otra». */
+  plataforma: string;
+  plataformaOtra: string;
+  llave: string;
+  /** Enlace / otro. */
+  descripcion: string;
+  enlace: string;
+}
+
+export const CAMPOS_DE_PAGO_VACIOS: CamposDePago = {
+  categoria: "cuenta",
+  banco: "Bancolombia",
+  bancoOtro: "",
+  tipo: "Ahorros",
+  numero: "",
+  plataforma: "Nequi",
+  plataformaOtra: "",
+  llave: "",
+  descripcion: "",
+  enlace: "",
+};
+
+/** El nombre que el comercio eligió, ya resuelto el caso «Otro». */
+export function marcaElegida(c: CamposDePago): string {
+  if (c.categoria === "cuenta") {
+    return (c.banco === BANCO_OTRO ? c.bancoOtro : c.banco).trim();
+  }
+  if (c.categoria === "billetera") {
+    return (c.plataforma === BILLETERA_OTRA ? c.plataformaOtra : c.plataforma).trim();
+  }
+  return c.descripcion.trim();
+}
+
+/**
+ * La casilla de `kind` que le toca. Se elige por la marca cuando la base tiene
+ * un código propio para ella —Bancolombia, Nequi, Daviplata—, y si no, por la
+ * categoría.
+ *
+ * En «Enlace de Pago / Otro» decide el dato mismo: si empieza por http es un
+ * link y el QR lo muestra como botón; si no hay dato, es que se cobra sin
+ * dato, o sea efectivo.
+ */
+export function kindDeLosCampos(c: CamposDePago): PaymentKind {
+  const marca = marcaElegida(c).toLowerCase();
+
+  if (c.categoria === "cuenta") {
+    return marca === "bancolombia" ? "bancolombia" : "otro_banco";
+  }
+  if (c.categoria === "billetera") {
+    if (marca === "nequi") return "nequi";
+    if (marca === "daviplata") return "daviplata";
+    return "billetera";
+  }
+  const dato = c.enlace.trim();
+  if (!dato) return "efectivo";
+  return /^https?:\/\//i.test(dato) ? "link" : "otro";
+}
+
+/**
+ * El texto que va a `identifier`. Deja fuera la marca cuando el `kind` ya la
+ * dice, para que el QR no muestre «Bancolombia · Bancolombia».
+ */
+export function identifierDeLosCampos(c: CamposDePago): string | null {
+  const kind = kindDeLosCampos(c);
+  const marca = marcaElegida(c);
+  const marcaEnElKind = kind === "bancolombia" || kind === "nequi" || kind === "daviplata";
+  const contexto = marcaEnElKind ? [] : [marca];
+
+  if (c.categoria === "cuenta") return armarDato([...contexto, c.tipo], c.numero);
+  if (c.categoria === "billetera") return armarDato(contexto, c.llave);
+  return armarDato(contexto, c.enlace);
+}
+
+/**
+ * El camino de vuelta: de lo guardado a los campos del formulario, para poder
+ * editar. Tolera lo que hay de antes —medios escritos en una sola línea,
+ * cuando el formulario todavía no preguntaba por partes—: en ese caso el dato
+ * que no encaja se devuelve aparte, en `sinUbicar`, y la pantalla se lo enseña
+ * al comercio en vez de adivinar o de borrárselo.
+ */
+export function camposDeUnMedio(
+  kind: PaymentKind,
+  identifier: string | null | undefined
+): { campos: CamposDePago; sinUbicar: string | null } {
+  const { contexto, dato } = partirDato(identifier);
+  const c: CamposDePago = { ...CAMPOS_DE_PAGO_VACIOS };
+
+  const enLista = (lista: readonly string[], valor: string) =>
+    lista.find((x) => x.toLowerCase() === valor.toLowerCase()) ?? "";
+
+  if (kind === "bancolombia" || kind === "otro_banco") {
+    c.categoria = "cuenta";
+    // Contexto de una cuenta: [banco?, tipo]. El banco falta cuando lo dice el kind.
+    const tipoTexto = contexto[contexto.length - 1] ?? "";
+    const tipo = enLista(TIPOS_DE_CUENTA, tipoTexto) as TipoDeCuenta | "";
+    const bancoTexto =
+      kind === "bancolombia" ? "Bancolombia" : contexto.slice(0, tipo ? -1 : undefined).join(SEPARADOR);
+
+    const bancoConocido = enLista(BANCOS, bancoTexto);
+    c.banco = bancoConocido || (bancoTexto ? BANCO_OTRO : "Bancolombia");
+    c.bancoOtro = bancoConocido ? "" : bancoTexto;
+    c.tipo = tipo || "Ahorros";
+    c.numero = /^\d+$/.test(dato) ? dato : "";
+    // Si el número no era un número, o no se reconoció el tipo, lo guardado no
+    // tenía esta forma: se devuelve entero para que lo reescriba.
+    const encaja = c.numero !== "" && tipo !== "";
+    return { campos: c, sinUbicar: encaja ? null : (identifier ?? "") || null };
+  }
+
+  if (kind === "nequi" || kind === "daviplata" || kind === "billetera") {
+    c.categoria = "billetera";
+    const marca = kind === "nequi" ? "Nequi" : kind === "daviplata" ? "Daviplata" : contexto[0] ?? "";
+    const conocida = enLista(BILLETERAS, marca);
+    c.plataforma = conocida || (marca ? BILLETERA_OTRA : "Nequi");
+    c.plataformaOtra = conocida ? "" : marca;
+    c.llave = dato;
+    return { campos: c, sinUbicar: null };
+  }
+
+  c.categoria = "enlace";
+  if (kind === "efectivo") {
+    // En efectivo no hay dato de cobro: lo guardado, si hay algo, ES el nombre.
+    c.descripcion = (identifier ?? "").trim() || "Efectivo al mensajero";
+    c.enlace = "";
+  } else {
+    c.descripcion = contexto.join(SEPARADOR);
+    c.enlace = dato;
+  }
+  return { campos: c, sinUbicar: null };
+}
+
+// ── 4. Filtros de tecleo ───────────────────────────────────────────────
+// Corren en cada pulsación, así que tienen que aguantar lo que está a medio
+// escribir.
+
+/** Número de cuenta: un número. Ni el banco, ni «ahorros», ni guiones. */
+export function limpiarNumero(valor: string): string {
+  return valor.replace(/\D/g, "").slice(0, LARGO_MAXIMO.numero);
+}
+
+/**
+ * Marcas y descripciones: letras, números, espacio, punto y signos de nombre
+ * comercial. El guion queda fuera a propósito, porque es el separador con el
+ * que se arma `identifier`.
+ */
+export function limpiarMarca(valor: string, tope: number): string {
+  return valor
+    .replace(/[^\p{L}\p{N} .&!']/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .slice(0, tope);
+}
+
+/**
+ * Llave de billetera: alfanumérico normal. Cabe un celular, un @usuario, un
+ * correo o una llave Bre-B. Sin guiones, para no chocar con el separador.
+ */
+export function limpiarLlave(valor: string): string {
+  return valor
+    .replace(/[^\p{L}\p{N} .@_+]/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .slice(0, LARGO_MAXIMO.llave);
+}
+
+/**
+ * El enlace NO se limpia tecla a tecla: quitarle los dos puntos y las barras
+ * impediría escribir «https://». Se revisa entero al guardar.
+ */
+export function limpiarEnlace(valor: string): string {
+  return valor.slice(0, LARGO_MAXIMO.enlace);
+}
+
+// ── 5. Revisión al guardar ─────────────────────────────────────────────
+
+/**
+ * Devuelve el reclamo para mostrar, o `null` si el medio está bien. Vive junto
+ * a todo lo demás para que el formulario y la restricción de la base
+ * (migración 0099) cuenten exactamente la misma historia: si aquí se dejara
+ * pasar algo que allá se rechaza, el comercio se llevaría un error crudo de
+ * Postgres en vez de una frase en español.
+ */
+export function revisarMedioDePago(c: CamposDePago): string | null {
+  if (c.categoria === "cuenta") {
+    if (c.banco === BANCO_OTRO && !c.bancoOtro.trim()) return "Escribe el nombre del banco.";
+    if (!c.tipo) return "Elige si la cuenta es de ahorros o corriente.";
+    const numero = c.numero.trim();
+    if (!numero) return "Falta el número de cuenta.";
+    if (numero.length < 6) return "El número de cuenta se ve incompleto: son al menos 6 dígitos.";
+    return null;
+  }
+
+  if (c.categoria === "billetera") {
+    if (c.plataforma === BILLETERA_OTRA && !c.plataformaOtra.trim()) {
+      return "Escribe el nombre de la billetera.";
+    }
+    if (!c.llave.trim()) return "Falta el número o la llave con la que te pagan.";
+    return null;
+  }
+
+  if (!c.descripcion.trim()) return "Ponle un nombre a este medio de pago.";
+  const dato = c.enlace.trim();
+  if (dato && /^https?:\/\//i.test(dato) && !/^https?:\/\/\S{3,}$/i.test(dato)) {
+    // El espacio en la mitad delata un link pegado a medias. Es la misma
+    // condición que exige la base, palabra por palabra.
+    return "El enlace está incompleto o lleva espacios en la mitad.";
+  }
+  return null;
+}
+
+// ── 6. Cómo se muestra al público ──────────────────────────────────────
+
+/**
+ * El título que lee quien va a pagar.
+ *
+ * Manda la marca guardada en el identificador —«Davivienda», «Dale!», «Link de
+ * Wompi»— y solo cuando no hay ninguna se usa la etiqueta del código. Así el
+ * destinatario ve el nombre del banco de verdad y no un genérico «Cuenta
+ * bancaria», sin que la base tenga que conocer todas las marcas del país.
+ */
+export function tituloDelMedio(kind: PaymentKind, identifier: string | null | undefined): string {
+  const { contexto } = partirDato(identifier);
+  return contexto[0] || PAYMENT_KIND_LABELS[kind] || kind;
+}
+
+/** El contexto que va debajo del título: el tipo de cuenta y demás. */
+export function detalleDelMedio(kind: PaymentKind, identifier: string | null | undefined): string {
+  const { contexto } = partirDato(identifier);
+  return contexto.slice(1).join(" · ");
+}
+
+/**
+ * Lo que el botón «copiar» le entrega a quien va a pagar: SOLO el dato. Pegar
+ * «Ahorros - 12345» en la app del banco no sirve, y quien está en la puerta
+ * con el paquete en la mano no está para editar texto.
+ */
+export function datoParaCopiar(identifier: string | null | undefined): string {
+  return partirDato(identifier).dato;
+}
+
+/** La URL a la que lleva el botón, si de verdad hay una. */
+export function enlaceDelMedio(identifier: string | null | undefined): string | null {
+  const { dato } = partirDato(identifier);
+  return /^https?:\/\/\S{3,}$/i.test(dato) ? dato : null;
+}
+
+/**
+ * Parte un celular de diez dígitos en «300 123 4567» para poder leerlo o
+ * dictarlo sin perder uno. Es solo presentación: lo que se guarda y lo que
+ * copia el botón del QR sigue siendo la tira de dígitos seguidos. Cualquier
+ * otro valor sale tal cual.
+ */
+export function agruparDigitos(valor: string | null | undefined): string {
+  const v = valor ?? "";
+  if (!/^\d{10}$/.test(v)) return v;
+  return `${v.slice(0, 3)} ${v.slice(3, 6)} ${v.slice(6)}`;
+}
 
 // ── Mi perfil: la red social que cada quien elige mostrar ───────────────
 // Un enlace por persona, no una lista — por eso es texto libre con un tipo
-// fijo al lado, igual que PAYMENT_KINDS arriba, y no una tabla aparte.
+// fijo al lado, igual que los medios de pago de arriba, y no una tabla aparte.
 
 export const SOCIAL_PLATFORMS: { value: SocialPlatform; label: string; hint: string }[] = [
   { value: "whatsapp", label: "WhatsApp", hint: "Número con indicativo, ej: 573001234567" },

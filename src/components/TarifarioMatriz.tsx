@@ -97,7 +97,7 @@ export function TarifarioMatriz({ facilityId }: { facilityId?: string }) {
     return (
       // Translucida y con blur (patron probado en produccion: /90 sin blur no se
       // notaba). Es el estado vacío, hace las veces de tarjeta principal aquí.
-      <p className="rounded-2xl bg-[#FFFFFF]/75 p-5 text-center text-sm text-slate-500 backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+      <p className="rounded-2xl bg-[#FFFFFF]/75 p-5 text-center text-sm text-slate-500 dark:text-slate-400 backdrop-blur-xl dark:bg-[#2C2C2E]/75">
         Este CEDI todavía no tiene zonas.
       </p>
     );

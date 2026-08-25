@@ -101,8 +101,8 @@ function TuRedSocial() {
             )}
           </span>
           <div>
-            <p className="font-semibold text-slate-900">Tu red social</p>
-            <p className="text-sm text-slate-500">
+            <p className="font-semibold text-slate-900 dark:text-white">Tu red social</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               La que elijas queda en tu perfil. Es opcional.
             </p>
           </div>
@@ -376,7 +376,7 @@ export default function MyProfilePage() {
                     </p>
                   )}
                   {actual?.status === "pendiente" && (
-                    <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500">
+                    <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
                       <Clock className="size-4 shrink-0" />
                       Subido el {formatDateTime(actual.uploaded_at)}
                     </p>

@@ -327,13 +327,25 @@ export interface Product {
   created_at: string;
 }
 
-/** Cómo quiere el comercio que le paguen lo que se recauda contraentrega. */
+/**
+ * Cómo quiere el comercio que le paguen lo que se recauda contraentrega.
+ *
+ * Es la casilla gruesa, no la marca: la marca exacta —Davivienda, Dale!,
+ * Wompi— viaja adelante del identificador (ver `armarDato` en
+ * `lib/constants.ts`). Estos valores los exige un CHECK en la base, así que
+ * agregar uno aquí obliga a una migración (0017 los creó, 0099 sumó
+ * `billetera` y `otro`).
+ */
 export type PaymentKind =
   | "nequi"
   | "daviplata"
   | "bancolombia"
   | "otro_banco"
+  /** Billetera que no es Nequi ni Daviplata: Transfiya, Dale!, otra. */
+  | "billetera"
   | "link"
+  /** Un dato de cobro que no es cuenta, ni billetera, ni link. */
+  | "otro"
   | "efectivo";
 
 export interface PaymentMethod {

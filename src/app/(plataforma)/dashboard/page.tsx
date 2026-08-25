@@ -154,6 +154,22 @@ export default function DashboardPage() {
   const profile = useProfile();
   // El cliente ve solo lo suyo: sin métricas internas de tesorería ni de flota.
   const esCliente = ROLES_DEL_COMERCIO.includes(profile.role);
+
+  /**
+   * El asesor trabaja PARA el comercio, no es su dueño.
+   *
+   * Su labor es operativa —crear pedidos y programar recogidas— y para eso le
+   * sirven las guías del día, el lead time y el reparto por estado. La plata
+   * pendiente de recaudo y la tasa de devoluciones son otra cosa: son la salud
+   * financiera del negocio de otra persona. Se comparan contra el rol y no
+   * contra `ROLES_DEL_COMERCIO`, que agrupa al dueño con su asesor y aquí hace
+   * falta separarlos. En la base la misma distinción la hace `at_soy_dueno()`.
+   *
+   * Esconderlas aquí es la mitad del trabajo: la RPC `at_dashboard_kpis`
+   * todavía manda esos dos números al navegador del asesor. La migración 0100
+   * es la que de verdad deja de enviárselos.
+   */
+  const esAsesor = profile.role === "asesor";
   const puede = (destino: keyof typeof ALCANCE) => ALCANCE[destino].includes(profile.role);
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
 
@@ -217,30 +233,38 @@ export default function DashboardPage() {
           href={puede("recogidas") ? "/recogidas?estado=completada" : undefined}
           accion="Ver recogidas"
         />
-        <Kpi
-          icon={RotateCcw}
-          label="Tasa de Logística Inversa (TLI)"
-          value={kpis.tli_pct != null ? `${kpis.tli_pct}%` : "—"}
-          hint="% de guías finalizadas en devolución (30 días)"
-          href={verGuias ? "/pedidos?estado=devuelta" : undefined}
-          accion="Ver devueltas"
-        />
-        <Kpi
-          icon={Banknote}
-          label={esCliente ? "Recaudo contraentrega pendiente" : "Recaudo por consignar"}
-          value={formatCOP(kpis.cod_pending)}
-          hint={esCliente ? "De tus guías entregadas, aún sin liquidar" : `${kpis.settlements_pending} cierre(s) de caja en proceso`}
-          /* El comercio no entra a tesorería: su plata pendiente son sus propias
-             guías entregadas sin liquidar, y eso lo ve en su listado de guías. */
-          href={
-            esCliente
-              ? "/pedidos?estado=entregada&cod=pendiente"
-              : puede("recaudo")
-                ? "/recaudo?filtro=sin-consignar"
-                : undefined
-          }
-          accion={esCliente ? "Ver guías" : "Ver recaudo"}
-        />
+        {/* Las dos métricas del dueño. La rejilla es `grid` con flujo
+            automático, así que al no montarse estas tarjetas las demás se
+            recorren solas y no queda ningún hueco: el asesor ve tres tarjetas
+            que llenan exactamente la fila de `xl:grid-cols-3`. */}
+        {!esAsesor && (
+          <Kpi
+            icon={RotateCcw}
+            label="Tasa de Logística Inversa (TLI)"
+            value={kpis.tli_pct != null ? `${kpis.tli_pct}%` : "—"}
+            hint="% de guías finalizadas en devolución (30 días)"
+            href={verGuias ? "/pedidos?estado=devuelta" : undefined}
+            accion="Ver devueltas"
+          />
+        )}
+        {!esAsesor && (
+          <Kpi
+            icon={Banknote}
+            label={esCliente ? "Recaudo contraentrega pendiente" : "Recaudo por consignar"}
+            value={formatCOP(kpis.cod_pending)}
+            hint={esCliente ? "De tus guías entregadas, aún sin liquidar" : `${kpis.settlements_pending} cierre(s) de caja en proceso`}
+            /* El comercio no entra a tesorería: su plata pendiente son sus propias
+               guías entregadas sin liquidar, y eso lo ve en su listado de guías. */
+            href={
+              esCliente
+                ? "/pedidos?estado=entregada&cod=pendiente"
+                : puede("recaudo")
+                  ? "/recaudo?filtro=sin-consignar"
+                  : undefined
+            }
+            accion={esCliente ? "Ver guías" : "Ver recaudo"}
+          />
+        )}
         {!esCliente && (
           <Kpi
             icon={Bike}

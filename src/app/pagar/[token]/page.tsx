@@ -7,7 +7,13 @@ import { Banknote, Check, Copy, ExternalLink, LoaderCircle, PackageX } from "luc
 import { createClient } from "@/lib/supabase/client";
 import { DemasiadasSolicitudes } from "@/components/DemasiadasSolicitudes";
 import { Logo } from "@/components/Logo";
-import { PAYMENT_KIND_LABELS } from "@/lib/constants";
+import {
+  agruparDigitos,
+  datoParaCopiar,
+  detalleDelMedio,
+  enlaceDelMedio,
+  tituloDelMedio,
+} from "@/lib/constants";
 import { formatCOP, esDemasiadasSolicitudes } from "@/lib/utils";
 import type { PaymentInfo } from "@/lib/types";
 
@@ -145,12 +151,32 @@ function Contenido({ info }: { info: PaymentInfo }) {
 
 function MedioDePago({ metodo }: { metodo: PaymentInfo["methods"][number] }) {
   const [copiado, setCopiado] = useState(false);
-  const esLink = metodo.kind === "link" && metodo.identifier;
+
+  // Lo guardado viene como «contexto - contexto - dato»: por ejemplo
+  // «Davivienda - Ahorros - 12345678». El título es la marca de verdad —lo que
+  // el destinatario reconoce—, el resto del contexto va pequeño debajo, y el
+  // dato va grande y solo, que es lo que se pega en la app del banco.
+  const titulo = tituloDelMedio(metodo.kind, metodo.identifier);
+  const detalle = detalleDelMedio(metodo.kind, metodo.identifier);
+
+  /**
+   * Lo que se copia NO es todo lo que se ve: solo el dato. Pegar «Ahorros -
+   * 12345» en la app del banco no sirve, y quien está en la puerta con el
+   * paquete en la mano no está para editar texto.
+   */
+  const paraCopiar = datoParaCopiar(metodo.identifier);
+
+  /**
+   * El botón de abrir sale cuando el dato es de verdad una URL, y no cuando el
+   * medio se llama «link». Un medio mal clasificado no puede terminar en un
+   * enlace roto delante de quien está por pagar.
+   */
+  const enlace = enlaceDelMedio(metodo.identifier);
 
   async function copiar() {
-    if (!metodo.identifier) return;
+    if (!paraCopiar) return;
     try {
-      await navigator.clipboard.writeText(metodo.identifier);
+      await navigator.clipboard.writeText(paraCopiar);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2000);
     } catch {
@@ -167,22 +193,29 @@ function MedioDePago({ metodo }: { metodo: PaymentInfo["methods"][number] }) {
 
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
-            {PAYMENT_KIND_LABELS[metodo.kind] ?? metodo.kind}
+            {titulo}
           </p>
 
-          {metodo.identifier && (
-            esLink ? (
-              <a
-                href={metodo.identifier}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="mt-1 inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#ff812c] break-all active:opacity-70"
-              >
-                Abrir link de pago <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-              </a>
-            ) : (
-              <p className="mt-0.5 text-[17px] font-bold tracking-tight text-slate-900 dark:text-white break-all">
-                {metodo.identifier}
+          {detalle && (
+            <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">{detalle}</p>
+          )}
+
+          {enlace ? (
+            <a
+              href={enlace}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="mt-1 inline-flex items-center gap-1.5 text-[15px] font-semibold text-[#ff812c] break-all active:opacity-70"
+            >
+              Abrir link de pago <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            </a>
+          ) : (
+            paraCopiar && (
+              // Agrupado solo para leerlo con el paquete en la mano. Lo que
+              // entrega el botón de copiar va sin espacios, que es como la app
+              // del banco lo espera pegado.
+              <p className="mt-0.5 text-[17px] font-bold tabular-nums tracking-tight text-slate-900 dark:text-white break-all">
+                {agruparDigitos(paraCopiar)}
               </p>
             )
           )}
@@ -199,11 +232,11 @@ function MedioDePago({ metodo }: { metodo: PaymentInfo["methods"][number] }) {
           )}
         </div>
 
-        {metodo.identifier && !esLink && (
+        {paraCopiar && !enlace && (
           <button
             type="button"
             onClick={copiar}
-            aria-label={`Copiar ${PAYMENT_KIND_LABELS[metodo.kind] ?? metodo.kind}`}
+            aria-label={`Copiar ${titulo}`}
             className="shrink-0 w-9 h-9 inline-flex items-center justify-center rounded-full text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-700 active:opacity-70 transition-colors"
           >
             {copiado ? (

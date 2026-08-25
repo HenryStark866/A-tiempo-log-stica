@@ -215,7 +215,7 @@ export default function EditGuidePage() {
   if (!esCliente && !esStaff) {
     return (
       <div className="pb-10 max-w-2xl mx-auto w-full font-sans px-4">
-        <p className="text-slate-500 text-center py-20">No tienes permiso para editar esta guía.</p>
+        <p className="text-slate-500 dark:text-slate-400 text-center py-20">No tienes permiso para editar esta guía.</p>
       </div>
     );
   }

@@ -180,7 +180,7 @@ export default function DeliveryCodesPage() {
       <>
         <PageHeader title="Códigos de entrega" />
         <Card>
-          <p className="p-6 text-center text-slate-500">No tienes acceso a esta sección.</p>
+          <p className="p-6 text-center text-slate-500 dark:text-slate-400">No tienes acceso a esta sección.</p>
         </Card>
       </>
     );
@@ -263,7 +263,7 @@ export default function DeliveryCodesPage() {
                         <Send className="size-3" /> Enviado
                       </span>
                     ) : (
-                      <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:border-white/[0.12] dark:text-slate-300">
                         En cola de envío
                       </span>
                     )}

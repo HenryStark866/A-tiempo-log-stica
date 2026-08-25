@@ -83,7 +83,7 @@ export default function CouriersPage() {
       <>
         <PageHeader title="Mensajeros" />
         <Card>
-          <p className="p-6 text-center text-slate-500">No tienes acceso a esta sección.</p>
+          <p className="p-6 text-center text-slate-500 dark:text-slate-400">No tienes acceso a esta sección.</p>
         </Card>
       </>
     );
@@ -185,7 +185,7 @@ export default function CouriersPage() {
                 {expandido && (
                   <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800">
                     {suyos.length === 0 ? (
-                      <p className="py-3 text-sm text-slate-500">
+                      <p className="py-3 text-sm text-slate-500 dark:text-slate-400">
                         Todavía no ha subido ningún documento.
                       </p>
                     ) : (
@@ -211,7 +211,7 @@ export default function CouriersPage() {
                                   {DOC_STATUS_LABELS[d.status]}
                                 </span>
                               </div>
-                              <p className="mt-0.5 text-xs text-slate-500">
+                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                                 Subido {formatDateTime(d.uploaded_at)}
                                 {d.expires_on && ` · vence ${d.expires_on}`}
                                 {d.review_notes && ` · ${d.review_notes}`}
@@ -275,7 +275,7 @@ export default function CouriersPage() {
               className={inputCls}
             />
           </Field>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             El mensajero recibe este mensaje y puede volver a subir el documento corregido.
           </p>
           <Button
@@ -332,7 +332,7 @@ export default function CouriersPage() {
               className={inputCls}
             />
           </Field>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             Si cambias el tipo a colaborativo se le exigen también tarjeta de propiedad y SOAT; si
             no están aprobados, la base rechazará la habilitación.
           </p>
@@ -367,7 +367,7 @@ export default function CouriersPage() {
               className={inputCls}
             />
           </Field>
-          <p className="mb-3 text-sm text-slate-500">
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
             No se borra nada: conserva su historial y sus documentos, solo deja de recibir trabajo
             hasta que lo habilites de nuevo.
           </p>

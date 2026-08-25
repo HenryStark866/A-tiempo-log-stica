@@ -198,7 +198,7 @@ export default function TrackingByTokenPage() {
                       >
                         {GUIDE_STATUS_LABELS[ev.status]}
                       </p>
-                      <p className="text-[14px] text-slate-500 mt-0.5">
+                      <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">
                         {formatDateTime(ev.created_at)}
                       </p>
                     </div>

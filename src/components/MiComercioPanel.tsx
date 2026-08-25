@@ -25,10 +25,32 @@ import { ShopifyConnect } from "@/components/ShopifyConnect";
 import { MarcaDelComercio } from "@/components/MarcaDelComercio";
 import { SedesDelComercio } from "@/components/SedesDelComercio";
 import { EquipoDelComercio } from "@/components/EquipoDelComercio";
-import { PAYMENT_KINDS, PAYMENT_KIND_LABELS } from "@/lib/constants";
+import {
+  BANCOS,
+  BANCO_OTRO,
+  BILLETERAS,
+  BILLETERA_OTRA,
+  CAMPOS_DE_PAGO_VACIOS,
+  CATEGORIAS_DE_PAGO,
+  LARGO_MAXIMO,
+  TIPOS_DE_CUENTA,
+  agruparDigitos,
+  camposDeUnMedio,
+  datoParaCopiar,
+  detalleDelMedio,
+  identifierDeLosCampos,
+  kindDeLosCampos,
+  limpiarEnlace,
+  limpiarLlave,
+  limpiarMarca,
+  limpiarNumero,
+  revisarMedioDePago,
+  tituloDelMedio,
+} from "@/lib/constants";
+import type { CamposDePago, CategoriaDePago, TipoDeCuenta } from "@/lib/constants";
 import { formatCOP } from "@/lib/utils";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
-import type { PaymentKind, PaymentMethod, TarifaDestino, Zone } from "@/lib/types";
+import type { PaymentMethod, TarifaDestino, Zone } from "@/lib/types";
 
 const NEGOCIO_VACIO = {
   business_name: "",
@@ -40,10 +62,20 @@ const NEGOCIO_VACIO = {
   zone_id: "",
 };
 
+/**
+ * El formulario del medio de pago no tiene la forma de la tabla, y está bien.
+ *
+ * La base guarda un código de casilla (`kind`) y un texto (`identifier`). La
+ * pantalla, en cambio, pregunta por partes —banco, tipo de cuenta y número; o
+ * plataforma y llave; o descripción y enlace— porque preguntarlo todo junto en
+ * una casilla es lo que hacía imposible exigir que un número de cuenta fuera
+ * un número. La traducción entre las dos formas vive entera en
+ * `lib/constants.ts`: `kindDeLosCampos` + `identifierDeLosCampos` para
+ * guardar, `camposDeUnMedio` para volver a editar.
+ */
 const MEDIO_VACIO = {
-  kind: "nequi" as PaymentKind,
+  ...CAMPOS_DE_PAGO_VACIOS,
   holder: "",
-  identifier: "",
   instructions: "",
 };
 
@@ -63,6 +95,14 @@ export function MiComercioPanel() {
   const [guardandoMedio, setGuardandoMedio] = useState(false);
   const [medioError, setMedioError] = useState<string | null>(null);
   const [borrando, setBorrando] = useState<PaymentMethod | null>(null);
+
+  /**
+   * Lo que había guardado en un medio viejo cuyo dato no se pudo repartir en
+   * los campos nuevos (por ejemplo «Bancolombia ahorros 4567 890», todo en una
+   * línea). Se le muestra al comercio para que lo reescriba, en vez de que lo
+   * descubra borrado después de guardar.
+   */
+  const [datoSinSeparar, setDatoSinSeparar] = useState<string | null>(null);
 
   // El logo y el permiso de portada se llevan aparte del formulario: se guardan
   // solos al momento, sin pasar por el botón de "Guardar datos".
@@ -207,16 +247,19 @@ export function MiComercioPanel() {
     setEditando("nuevo");
     setForm({ ...MEDIO_VACIO });
     setMedioError(null);
+    setDatoSinSeparar(null);
   }
 
   function abrirEdicionMedio(m: PaymentMethod) {
+    const { campos, sinUbicar } = camposDeUnMedio(m.kind, m.identifier);
     setEditando(m);
     setForm({
-      kind: m.kind,
+      ...campos,
       holder: m.holder ?? "",
-      identifier: m.identifier ?? "",
       instructions: m.instructions ?? "",
     });
+    // Si lo guardado no tenía esta forma, no se adivina: se le enseña tal cual.
+    setDatoSinSeparar(sinUbicar);
     setMedioError(null);
   }
 
@@ -225,13 +268,14 @@ export function MiComercioPanel() {
     if (!clientId) return;
     setMedioError(null);
 
-    // Efectivo es el único que no necesita un dato de cobro.
-    if (form.kind !== "efectivo" && !form.identifier.trim()) {
-      setMedioError("Falta el dato con el que te van a pagar.");
-      return;
-    }
-    if (form.kind === "link" && !/^https?:\/\//i.test(form.identifier.trim())) {
-      setMedioError("El link de pago debe empezar por https://");
+    // El medio se revisa con la regla de su categoría: una cuenta necesita
+    // banco, tipo y un número que sea un número; una billetera, plataforma y
+    // llave. La misma regla la exige la base (migración 0099), porque este
+    // formulario no es la única puerta a la tabla: con la sesión abierta se
+    // puede escribir por PostgREST.
+    const reclamo = revisarMedioDePago(form);
+    if (reclamo) {
+      setMedioError(reclamo);
       return;
     }
 
@@ -239,9 +283,12 @@ export function MiComercioPanel() {
     const supabase = createClient();
     const payload = {
       client_id: clientId,
-      kind: form.kind,
+      // Aquí es donde los campos de pantalla vuelven a ser el par (kind,
+      // identifier) que la tabla y el QR público esperan. Las columnas no
+      // cambiaron; lo único que cambió es qué se escribe en ellas.
+      kind: kindDeLosCampos(form),
+      identifier: identifierDeLosCampos(form),
       holder: form.holder.trim() || null,
-      identifier: form.identifier.trim() || null,
       instructions: form.instructions.trim() || null,
     };
 
@@ -311,7 +358,15 @@ export function MiComercioPanel() {
   const fieldLabel =
     "w-[110px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0";
 
-  const hint = PAYMENT_KINDS.find((k) => k.value === form.kind)?.hint ?? "";
+  // La categoría decide qué campos se dibujan. Un solo `switch` visual, sin
+  // condiciones sueltas repartidas por el formulario.
+  const categoria = form.categoria;
+
+  /** Cambia un campo del formulario y borra el reclamo anterior. */
+  function cambiar(parche: Partial<CamposDePago>) {
+    setForm((f) => ({ ...f, ...parche }));
+    setMedioError(null);
+  }
 
   return (
     <div className="space-y-10 pb-10">
@@ -668,13 +723,21 @@ export function MiComercioPanel() {
           </div>
         ) : (
           <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
-            {medios.map((m) => (
+            {medios.map((m) => {
+              // Se muestra igual que en el QR público: la marca de título, el
+              // resto del contexto pequeño y el dato grande, que es lo que de
+              // verdad se busca de un vistazo.
+              const titulo = tituloDelMedio(m.kind, m.identifier);
+              const detalle = detalleDelMedio(m.kind, m.identifier);
+              const dato = datoParaCopiar(m.identifier);
+
+              return (
               <li key={m.id} className={`px-4 py-4 ${m.active ? "" : "opacity-50"}`}>
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                        {PAYMENT_KIND_LABELS[m.kind] ?? m.kind}
+                        {titulo}
                       </p>
                       {!m.active && (
                         <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -682,9 +745,14 @@ export function MiComercioPanel() {
                         </span>
                       )}
                     </div>
-                    {m.identifier && (
-                      <p className="mt-0.5 text-[15px] text-slate-600 dark:text-slate-300 break-all">
-                        {m.identifier}
+                    {detalle && (
+                      <p className="mt-0.5 text-[13px] text-slate-400 dark:text-slate-500">
+                        {detalle}
+                      </p>
+                    )}
+                    {dato && (
+                      <p className="mt-0.5 text-[15px] tabular-nums text-slate-600 dark:text-slate-300 break-all">
+                        {agruparDigitos(dato)}
                       </p>
                     )}
                     {m.holder && (
@@ -719,7 +787,8 @@ export function MiComercioPanel() {
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>
@@ -759,40 +828,215 @@ export function MiComercioPanel() {
 
             <form onSubmit={guardarMedio}>
               <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm">
+                {/* ── 1. Qué clase de medio es ──
+                    Esta pregunta manda sobre todo lo demás: cambia qué campos
+                    se piden abajo y en qué casilla se guarda al final. */}
                 <div className={fieldRow}>
-                  <label className={fieldLabel}>Medio</label>
+                  <label className={fieldLabel} htmlFor="tipo-de-medio">
+                    Tipo de medio
+                  </label>
                   <select
-                    value={form.kind}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, kind: e.target.value as PaymentKind }))
-                    }
+                    id="tipo-de-medio"
+                    value={categoria}
+                    onChange={(e) => cambiar({ categoria: e.target.value as CategoriaDePago })}
                     className={`${fieldInput} appearance-none cursor-pointer`}
                   >
-                    {PAYMENT_KINDS.map((k) => (
-                      <option key={k.value} value={k.value} className="text-slate-900">
-                        {k.label}
+                    {CATEGORIAS_DE_PAGO.map((c) => (
+                      <option key={c.value} value={c.value} className="text-slate-900">
+                        {c.label}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {form.kind !== "efectivo" && (
-                  <div className={fieldRow}>
-                    <label className={fieldLabel}>
-                      {form.kind === "link" ? "Link" : "Dato"}
-                    </label>
-                    <input
-                      value={form.identifier}
-                      onChange={(e) => setForm((f) => ({ ...f, identifier: e.target.value }))}
-                      className={fieldInput}
-                      placeholder={hint}
-                      inputMode={
-                        form.kind === "nequi" || form.kind === "daviplata" ? "tel" : "text"
-                      }
-                    />
-                  </div>
+                {/* ── 2a. Cuenta bancaria ── */}
+                {categoria === "cuenta" && (
+                  <>
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="banco">
+                        Banco
+                      </label>
+                      <select
+                        id="banco"
+                        value={form.banco}
+                        onChange={(e) => cambiar({ banco: e.target.value })}
+                        className={`${fieldInput} appearance-none cursor-pointer`}
+                      >
+                        {BANCOS.map((b) => (
+                          <option key={b} value={b} className="text-slate-900">
+                            {b}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* La lista cubre lo que se usa a diario, no el registro
+                        completo de la Superintendencia: «Otro» es la salida
+                        para el resto. */}
+                    {form.banco === BANCO_OTRO && (
+                      <div className={fieldRow}>
+                        <label className={fieldLabel} htmlFor="banco-otro">
+                          ¿Cuál?
+                        </label>
+                        <input
+                          id="banco-otro"
+                          value={form.bancoOtro}
+                          onChange={(e) =>
+                            cambiar({ bancoOtro: limpiarMarca(e.target.value, LARGO_MAXIMO.marca) })
+                          }
+                          className={fieldInput}
+                          placeholder="Nombre del banco"
+                          maxLength={LARGO_MAXIMO.marca}
+                          autoComplete="off"
+                        />
+                      </div>
+                    )}
+
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="tipo-de-cuenta">
+                        Tipo de cuenta
+                      </label>
+                      <select
+                        id="tipo-de-cuenta"
+                        value={form.tipo}
+                        onChange={(e) => cambiar({ tipo: e.target.value as TipoDeCuenta })}
+                        className={`${fieldInput} appearance-none cursor-pointer`}
+                      >
+                        {TIPOS_DE_CUENTA.map((t) => (
+                          <option key={t} value={t} className="text-slate-900">
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="numero-de-cuenta">
+                        Número
+                      </label>
+                      <input
+                        id="numero-de-cuenta"
+                        value={form.numero}
+                        onChange={(e) => cambiar({ numero: limpiarNumero(e.target.value) })}
+                        className={fieldInput}
+                        placeholder="Solo números"
+                        // `inputMode` abre el teclado numérico del celular y
+                        // `pattern` avisa al navegador. El filtro de verdad es
+                        // limpiarNumero: los dos de arriba son sugerencias que
+                        // un teclado físico se salta.
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={LARGO_MAXIMO.numero}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </>
                 )}
 
+                {/* ── 2b. Billetera digital ── */}
+                {categoria === "billetera" && (
+                  <>
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="plataforma">
+                        Plataforma
+                      </label>
+                      <select
+                        id="plataforma"
+                        value={form.plataforma}
+                        onChange={(e) => cambiar({ plataforma: e.target.value })}
+                        className={`${fieldInput} appearance-none cursor-pointer`}
+                      >
+                        {BILLETERAS.map((b) => (
+                          <option key={b} value={b} className="text-slate-900">
+                            {b}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {form.plataforma === BILLETERA_OTRA && (
+                      <div className={fieldRow}>
+                        <label className={fieldLabel} htmlFor="plataforma-otra">
+                          ¿Cuál?
+                        </label>
+                        <input
+                          id="plataforma-otra"
+                          value={form.plataformaOtra}
+                          onChange={(e) =>
+                            cambiar({
+                              plataformaOtra: limpiarMarca(e.target.value, LARGO_MAXIMO.marca),
+                            })
+                          }
+                          className={fieldInput}
+                          placeholder="Nombre de la billetera"
+                          maxLength={LARGO_MAXIMO.marca}
+                          autoComplete="off"
+                        />
+                      </div>
+                    )}
+
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="llave">
+                        Número / Llave
+                      </label>
+                      <input
+                        id="llave"
+                        value={form.llave}
+                        onChange={(e) => cambiar({ llave: limpiarLlave(e.target.value) })}
+                        className={fieldInput}
+                        placeholder="Celular, correo o llave"
+                        maxLength={LARGO_MAXIMO.llave}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* ── 2c. Enlace de pago u otro ── */}
+                {categoria === "enlace" && (
+                  <>
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="descripcion">
+                        Nombre
+                      </label>
+                      <input
+                        id="descripcion"
+                        value={form.descripcion}
+                        onChange={(e) =>
+                          cambiar({
+                            descripcion: limpiarMarca(e.target.value, LARGO_MAXIMO.descripcion),
+                          })
+                        }
+                        className={fieldInput}
+                        placeholder="Ej. Link de Wompi, Efectivo"
+                        maxLength={LARGO_MAXIMO.descripcion}
+                        autoComplete="off"
+                      />
+                    </div>
+
+                    <div className={fieldRow}>
+                      <label className={fieldLabel} htmlFor="enlace">
+                        Enlace o dato
+                      </label>
+                      <input
+                        id="enlace"
+                        value={form.enlace}
+                        onChange={(e) => cambiar({ enlace: limpiarEnlace(e.target.value) })}
+                        className={fieldInput}
+                        placeholder="https://… (opcional)"
+                        inputMode="url"
+                        maxLength={LARGO_MAXIMO.enlace}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* ── 3. Comunes a los tres ── */}
                 <div className={fieldRow}>
                   <label className={fieldLabel}>Titular</label>
                   <input
@@ -813,6 +1057,22 @@ export function MiComercioPanel() {
                   />
                 </div>
               </div>
+
+              {/* Un medio sin enlace es válido —«Efectivo», por ejemplo— pero
+                  no es obvio, así que se dice. */}
+              {categoria === "enlace" && !form.enlace.trim() && (
+                <p className="mt-2 ml-1 text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+                  Si lo dejas sin enlace, el QR mostrará solo el nombre. Sirve para cobros
+                  que no tienen un dato, como el efectivo al mensajero.
+                </p>
+              )}
+
+              {datoSinSeparar && (
+                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[13px] leading-relaxed text-amber-700 dark:bg-amber-500/10 dark:text-amber-400">
+                  Antes tenías guardado «{datoSinSeparar}» en una sola línea. Escríbelo
+                  arriba en los campos separados para dejarlo en orden.
+                </p>
+              )}
 
               {medioError && (
                 <p className="mt-3 text-[14px] text-rose-600 dark:text-rose-400">{medioError}</p>
@@ -836,7 +1096,7 @@ export function MiComercioPanel() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm atl-superficie rounded-2xl p-5 text-center">
             <p className="text-[17px] font-bold text-slate-900 dark:text-white">
-              ¿Eliminar {PAYMENT_KIND_LABELS[borrando.kind] ?? borrando.kind}?
+              ¿Eliminar {tituloDelMedio(borrando.kind, borrando.identifier)}?
             </p>
             <p className="mt-2 text-[14px] text-slate-500 dark:text-slate-400">
               Dejará de aparecer en el QR de pago de todas tus guías.

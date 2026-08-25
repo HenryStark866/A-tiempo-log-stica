@@ -76,6 +76,51 @@ export default function DeliveryCodesPage() {
    * eso lo hace el botón de confirmar, porque desde aquí no hay forma de saber
    * si la persona llegó a pulsar «enviar» o cerró la ventana.
    */
+  /**
+   * Envío automático por el puente de WhatsApp de la operación.
+   *
+   * Todo ocurre en el servidor (/api/whatsapp/enviar): el navegador solo dice
+   * QUÉ pedido. Ni la llave del puente ni el texto del código —que es lo que
+   * firma una entrega— pasan por aquí.
+   *
+   * Si el puente no está disponible NO se trata como error de la app: se
+   * muestra el motivo y queda el botón de siempre para mandarlo a mano. El
+   * equipo del puente puede estar apagado, y la operación no puede depender de
+   * eso.
+   */
+  async function enviarAutomatico(guideId: string) {
+    setBusy(guideId);
+    setError(null);
+    try {
+      const res = await fetch("/api/whatsapp/enviar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guideId }),
+      });
+      const r = (await res.json()) as {
+        ok: boolean;
+        motivo?: string;
+        aviso?: string;
+        puedeManual?: boolean;
+      };
+      setBusy(null);
+
+      if (r.ok) {
+        if (r.aviso) setError(r.aviso);
+        load();
+        return;
+      }
+      setError(
+        r.puedeManual
+          ? `${r.motivo} Puedes mandarlo a mano con el botón de al lado.`
+          : (r.motivo ?? "No se pudo enviar.")
+      );
+    } catch {
+      setBusy(null);
+      setError("No se pudo hablar con el servidor. Mándalo a mano por ahora.");
+    }
+  }
+
   async function abrirWhatsapp(guideId: string) {
     setBusy(guideId);
     setError(null);
@@ -244,14 +289,29 @@ export default function DeliveryCodesPage() {
                       </Button>
                     ) : (
                       !r.algun_envio_ok && (
-                        <Button
-                          variant="secondary"
-                          disabled={busy === r.guide_id}
-                          onClick={() => abrirWhatsapp(r.guide_id)}
-                        >
-                          <MessageCircle className="size-4" />
-                          WhatsApp
-                        </Button>
+                        <>
+                          {/* El automático primero: es el camino corto. Sale
+                              por el WhatsApp de la operación sin que nadie
+                              abra nada. Si el puente está caído, avisa y queda
+                              el de al lado. */}
+                          <Button
+                            disabled={busy === r.guide_id}
+                            onClick={() => enviarAutomatico(r.guide_id)}
+                            title="Enviar el código por el WhatsApp de la operación"
+                          >
+                            <Send className="size-4" />
+                            Enviar
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            disabled={busy === r.guide_id}
+                            onClick={() => abrirWhatsapp(r.guide_id)}
+                            title="Abrir WhatsApp y mandarlo a mano"
+                          >
+                            <MessageCircle className="size-4" />
+                            A mano
+                          </Button>
+                        </>
                       )
                     )}
                     <Button

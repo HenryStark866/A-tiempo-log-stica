@@ -147,6 +147,23 @@ export function descartar(id: string): Promise<void> {
 
 // ── Ejecutores: el mismo camino que ya usaba cada pantalla ──────────────
 
+/**
+ * ¿El servidor rechazó esto porque YA existía?
+ *
+ * Es el caso de «se ejecutó y no me enteré»: la petición llegó, se guardó, y la
+ * respuesta se perdió en el camino de vuelta. Al reintentar, el índice único
+ * sobre client_request_id la rechaza con 23505. No es un error: es la prueba de
+ * que el trabajo ya está hecho, así que la acción se da por cumplida.
+ */
+function esDuplicado(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  return (
+    e.code === "23505" ||
+    /duplicate key|client_request_id/i.test(e.message ?? "")
+  );
+}
+
 async function ejecutar(accion: AccionEnCola): Promise<void> {
   const supabase = createClient();
 
@@ -208,13 +225,27 @@ async function ejecutar(accion: AccionEnCola): Promise<void> {
     }
     case "crear_guia": {
       const p = accion.payload as PayloadCrearGuia;
-      const { error } = await supabase.from("at_guides").insert(p.fila);
-      if (error) throw error;
+      // El id de la acción viaja como identificador de la petición. Si esta
+      // misma ya se ejecutó —porque llegó al servidor y la respuesta se
+      // perdió de vuelta—, el índice único la rechaza y eso es exactamente lo
+      // que queremos: significa que el pedido YA existe.
+      const { error } = await supabase
+        .from("at_guides")
+        .insert({ ...p.fila, client_request_id: accion.id });
+      if (error) {
+        if (esDuplicado(error)) return; // ya se había creado: nada que hacer
+        throw error;
+      }
       return;
     }
     case "solicitar_recogida": {
       const p = accion.payload as PayloadSolicitarRecogida;
-      const { error } = await supabase.rpc("at_request_pickup", p.args);
+      // Aquí no hace falta atrapar el duplicado: la función devuelve la
+      // recogida que ya existía en vez de crear otra (migración 0099).
+      const { error } = await supabase.rpc("at_request_pickup", {
+        ...p.args,
+        p_request_id: accion.id,
+      });
       if (error) throw error;
       return;
     }

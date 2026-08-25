@@ -234,7 +234,7 @@ export function PermisosTurno() {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center sm:p-0">
-      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-[32px] bg-[#FFFFFF] shadow-2xl duration-300 animate-in slide-in-from-bottom-8 sm:zoom-in-95 dark:bg-[#2C2C2E]">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-[32px] atl-superficie shadow-2xl duration-300 animate-in slide-in-from-bottom-8 sm:zoom-in-95 ">
         <div className="space-y-1 p-6 pb-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff812c]/10">
             <ShieldCheck className="h-6 w-6 text-[#ff812c]" />

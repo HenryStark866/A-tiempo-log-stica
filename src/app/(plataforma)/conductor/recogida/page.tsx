@@ -605,7 +605,7 @@ export default function CourierPickupPage() {
 
       {eligiendo && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-sm rounded-3xl bg-[#FFFFFF] p-6 shadow-2xl dark:bg-[#2C2C2E]">
+          <div className="w-full max-w-sm rounded-3xl atl-superficie p-6 shadow-2xl ">
             <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
               ¿Con qué app navegas?
             </h3>
@@ -641,7 +641,7 @@ export default function CourierPickupPage() {
           le cabe en la moto. */}
       {directa && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
+          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] atl-superficie shadow-2xl ">
             <div className="shrink-0 border-b border-slate-900/[0.06] px-6 pt-6 pb-4 dark:border-white/[0.08]">
               <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff812c]/10">
                 <Navigation2 className="h-5 w-5 text-[#ff812c]" />

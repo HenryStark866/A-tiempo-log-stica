@@ -202,7 +202,7 @@ export function ShopifyConnect() {
           )}
         </>
       ) : (
-        <form onSubmit={conectar} className="rounded-2xl bg-[#FFFFFF] p-5 shadow-sm dark:bg-[#2C2C2E]">
+        <form onSubmit={conectar} className="rounded-2xl atl-superficie p-5 shadow-sm ">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-[#ff812c]/10 p-2 text-[#ff812c]">
               <Store className="h-5 w-5" />

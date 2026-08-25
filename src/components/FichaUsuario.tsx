@@ -287,7 +287,7 @@ export function FichaUsuario({ userId, onClose }: { userId: string; onClose: () 
 
 function Bloque({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl bg-[#FFFFFF] p-4 shadow-sm dark:bg-[#2C2C2E]">
+    <section className="rounded-2xl atl-superficie p-4 shadow-sm ">
       <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
         {titulo}
       </h3>

@@ -252,7 +252,7 @@ export function NotificationBell({
           campana— y no hay nada que capturarlo. */}
       {abierto && esEscritorio && (
         <div
-          className={`absolute z-[60] mt-2 flex max-h-[min(28rem,calc(100dvh-6rem))] w-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900/[0.06] bg-[#FFFFFF] shadow-2xl dark:border-white/[0.08] dark:bg-[#2C2C2E] ${
+          className={`absolute z-[60] mt-2 flex max-h-[min(28rem,calc(100dvh-6rem))] w-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900/[0.06] atl-superficie shadow-2xl dark:border-white/[0.08]  ${
             align === "left" ? "left-0" : "right-0"
           }`}
         >
@@ -274,7 +274,7 @@ export function NotificationBell({
             />
             <div
               ref={hoja}
-              className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t border-slate-900/[0.06] bg-[#FFFFFF] pb-safe shadow-2xl dark:border-white/[0.08] dark:bg-[#2C2C2E]"
+              className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t border-slate-900/[0.06] atl-superficie pb-safe shadow-2xl dark:border-white/[0.08] "
             >
               {/* Asa: indica que la hoja se puede cerrar deslizando. */}
               <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600" />

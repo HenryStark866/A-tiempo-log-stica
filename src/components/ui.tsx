@@ -196,8 +196,8 @@ export function Modal({
       <div
         className={cn(
           "relative flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:rounded-3xl",
-          "border-slate-900/[0.06] bg-[#F2F2F7]/95 backdrop-blur-2xl",
-          "dark:border-white/[0.08] dark:bg-[#1C1C1E]/95 border"
+          "border-slate-900/[0.06] atl-superficie ",
+          "dark:border-white/[0.08] border"
         )}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-900/[0.06] px-5 py-4 dark:border-white/[0.08]">

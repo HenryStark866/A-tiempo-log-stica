@@ -277,7 +277,7 @@ export default function UsersPage() {
               return (
                 <div
                   key={p.id}
-                  className="bg-white dark:bg-[#2C2C2E] rounded-3xl shadow-sm p-5 flex flex-col gap-4 border border-[#ff812c]/20"
+                  className="atl-superficie  rounded-3xl shadow-sm p-5 flex flex-col gap-4 border border-[#ff812c]/20"
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${isClient ? "bg-[#ff812c]/10 text-[#ff812c]" : "bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400"}`}>

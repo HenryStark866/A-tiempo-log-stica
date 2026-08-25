@@ -189,7 +189,7 @@ export default function RoutingPage() {
               return (
                 <div
                   key={z.zone_id}
-                  className="overflow-hidden rounded-3xl bg-[#FFFFFF] shadow-sm dark:bg-[#2C2C2E]"
+                  className="overflow-hidden rounded-3xl atl-superficie shadow-sm "
                 >
                   <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
                     <button

@@ -287,7 +287,7 @@ export function EquipoDelComercio() {
       {/* Elegir sede, al habilitar o al cambiarla */}
       {eligiendoSede && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-md overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
+          <div className="w-full max-w-md overflow-hidden rounded-[32px] atl-superficie shadow-2xl ">
             <div className="border-b border-slate-900/[0.06] px-6 pt-6 pb-4 dark:border-white/[0.08]">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                 ¿En qué sede trabaja?

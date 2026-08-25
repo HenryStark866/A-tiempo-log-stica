@@ -38,7 +38,7 @@ export default function MantenimientoPage() {
           <Logo />
         </div>
 
-        <div className="rounded-3xl bg-[#FFFFFF] p-8 shadow-sm dark:bg-[#2C2C2E]">
+        <div className="rounded-3xl atl-superficie p-8 shadow-sm ">
           <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#ff812c]/10">
             <Wrench className="h-8 w-8 text-[#ff812c]" />
           </div>

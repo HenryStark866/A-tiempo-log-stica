@@ -56,7 +56,7 @@ export default function RastreoPage() {
           </p>
         </div>
 
-        <section className="rounded-3xl bg-[#FFFFFF] p-6 shadow-sm transition-colors duration-300 dark:bg-[#2C2C2E]">
+        <section className="rounded-3xl atl-superficie p-6 shadow-sm transition-colors duration-300 ">
           <BuscadorGuia autoFocus />
         </section>
 

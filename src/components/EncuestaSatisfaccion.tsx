@@ -71,7 +71,7 @@ export function EncuestaSatisfaccion() {
   }
 
   return (
-    <div className="rounded-3xl bg-[#FFFFFF] p-5 shadow-sm dark:bg-[#2C2C2E]">
+    <div className="rounded-3xl atl-superficie p-5 shadow-sm ">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#ff812c]/10">
           <MessageSquareHeart className="h-5 w-5 text-[#ff812c]" />

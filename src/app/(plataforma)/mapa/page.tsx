@@ -273,7 +273,7 @@ function Fleet() {
         </div>
         <button
           onClick={load}
-          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-[#FFFFFF] px-4 text-[14px] font-semibold text-slate-600 shadow-sm transition-transform active:scale-[0.98] dark:bg-[#2C2C2E] dark:text-slate-300"
+          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl atl-superficie px-4 text-[14px] font-semibold text-slate-600 shadow-sm transition-transform active:scale-[0.98]  dark:text-slate-300"
         >
           <RefreshCw className="h-4 w-4" /> Actualizar
         </button>

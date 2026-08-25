@@ -129,13 +129,13 @@ export default async function BienvenidoPage() {
             {/* El párrafo emotivo va aquí, entre el saludo y las tareas: quien
                 llega quiere primero saber que llegó bien, y solo después qué
                 tiene que hacer. */}
-            <div className="mt-6 rounded-3xl border-l-4 border-[#ff812c] bg-[#FFFFFF] px-5 py-5 shadow-sm dark:bg-[#2C2C2E]">
+            <div className="mt-6 rounded-3xl border-l-4 border-[#ff812c] atl-superficie px-5 py-5 shadow-sm ">
               <p className="text-[16px] leading-relaxed text-slate-700 dark:text-slate-200">
                 {config.emotivo}
               </p>
             </div>
 
-            <ul className="mt-6 divide-y divide-slate-900/[0.06] overflow-hidden rounded-2xl bg-[#FFFFFF] shadow-sm dark:divide-white/[0.08] dark:bg-[#2C2C2E]">
+            <ul className="mt-6 divide-y divide-slate-900/[0.06] overflow-hidden rounded-2xl atl-superficie shadow-sm dark:divide-white/[0.08] ">
               {config.pasos.map((paso) => (
                 <li key={paso.titulo} className="flex items-start gap-3 px-4 py-4">
                   <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ff812c]/10">
@@ -164,7 +164,7 @@ export default async function BienvenidoPage() {
              el acceso lo abre un administrador. Se dice claro para que nadie se
              quede intentando entrar y creyendo que algo se rompió. */
           <div className="mt-6 space-y-6">
-            <div className="flex items-start gap-3 rounded-2xl bg-[#FFFFFF] px-4 py-5 shadow-sm dark:bg-[#2C2C2E]">
+            <div className="flex items-start gap-3 rounded-2xl atl-superficie px-4 py-5 shadow-sm ">
               <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
                 <Clock className="h-[18px] w-[18px] text-amber-500" />
               </span>
@@ -192,7 +192,7 @@ export default async function BienvenidoPage() {
         {/* De dónde viene el nombre. Va al final: quien tenía prisa ya se fue
             por el botón de arriba, y a quien se quedó le contamos en qué
             cadena de relevos acaba de entrar. */}
-        <section className="mt-10 rounded-3xl bg-[#FFFFFF] p-6 shadow-sm dark:bg-[#2C2C2E]">
+        <section className="mt-10 rounded-3xl atl-superficie p-6 shadow-sm ">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
             Siglo XIII
           </p>

@@ -290,7 +290,7 @@ export function RemesasRecaudo() {
           onClick={() => setGirando(null)}
         >
           <div
-            className="w-full max-w-sm rounded-3xl bg-[#FFFFFF] p-5 shadow-2xl dark:bg-[#2C2C2E]"
+            className="w-full max-w-sm rounded-3xl atl-superficie p-5 shadow-2xl "
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-[17px] font-bold text-slate-900 dark:text-white">

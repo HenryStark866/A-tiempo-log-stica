@@ -74,7 +74,7 @@ function KpiCard({
     blue: "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
   };
   return (
-    <div className="bg-white dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-3 transition-colors">
+    <div className="atl-superficie  rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-3 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 truncate">{label}</p>
@@ -142,7 +142,7 @@ function GuideNovedadCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-[#2C2C2E] rounded-3xl shadow-sm overflow-hidden transition-all">
+    <div className="atl-superficie  rounded-3xl shadow-sm overflow-hidden transition-all">
       {/* Header */}
       <div
         className="flex items-start justify-between gap-4 p-5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
@@ -281,7 +281,7 @@ function ActionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-white dark:bg-[#2C2C2E] rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto atl-superficie  rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -497,7 +497,7 @@ export default function NovedadesPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] border border-slate-900/[0.06] dark:border-white/[0.10] hover:border-[#ff812c] hover:text-[#ff812c] rounded-2xl px-4 py-2.5 transition-all active:scale-95 self-start sm:self-end"
+          className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400 atl-superficie  border border-slate-900/[0.06] dark:border-white/[0.10] hover:border-[#ff812c] hover:text-[#ff812c] rounded-2xl px-4 py-2.5 transition-all active:scale-95 self-start sm:self-end"
         >
           <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Actualizar
@@ -566,7 +566,7 @@ export default function NovedadesPage() {
                 className={`flex items-center gap-1.5 whitespace-nowrap text-[12px] font-semibold px-3.5 py-2 rounded-full border transition-all ${
                   filterStatus === f.value
                     ? "bg-amber-500 border-amber-500 text-white"
-                    : "border-slate-900/[0.06] dark:border-white/[0.10] text-slate-500 dark:text-slate-400 hover:border-amber-400 bg-white dark:bg-[#2C2C2E]"
+                    : "border-slate-900/[0.06] dark:border-white/[0.10] text-slate-500 dark:text-slate-400 hover:border-amber-400 atl-superficie "
                 }`}
               >
                 {f.label}
@@ -588,7 +588,7 @@ export default function NovedadesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar guía, destinatario, dirección…"
-          className="w-full sm:w-72 sm:shrink-0 text-[13px] px-4 py-2.5 rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.10] bg-white dark:bg-[#2C2C2E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+          className="w-full sm:w-72 sm:shrink-0 text-[13px] px-4 py-2.5 rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.10] atl-superficie  text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
         />
       </div>
 

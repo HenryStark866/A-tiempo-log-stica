@@ -73,7 +73,7 @@ export function FichaUsuario({ userId, onClose }: { userId: string; onClose: () 
       onClick={onClose}
     >
       <div
-        className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-[#F2F2F7] shadow-2xl dark:bg-[#1C1C1E] sm:rounded-3xl"
+        className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl atl-relleno shadow-2xl  sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-900/[0.06] px-5 py-4 dark:border-white/[0.08]">

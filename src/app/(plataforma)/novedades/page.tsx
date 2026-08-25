@@ -346,7 +346,7 @@ function ActionModal({
             onChange={(e) => setExtra(e.target.value)}
             rows={2}
             placeholder={isReprogramar ? "Ej: Cliente disponible a partir de las 3pm..." : "Ej: Paquete en buen estado, sin abrir..."}
-            className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.10] bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+            className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.10] atl-relleno  text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
           />
         </div>
 

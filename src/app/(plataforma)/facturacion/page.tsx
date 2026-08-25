@@ -395,7 +395,7 @@ export default function BillingPage() {
               esta pantalla (nueva factura, detalle, rechazar pago) se quedan
               opacos: aíslan una decisión, y sus bloques internos no se tocan
               para no multiplicar la opacidad. */}
-          <ul className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm dark:bg-[#2C2C2E]/75 backdrop-blur-xl divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
+          <ul className="overflow-hidden rounded-2xl atl-superficie shadow-sm   divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {remesas.map((r) => (
               <li key={r.id} className="px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
@@ -476,7 +476,7 @@ export default function BillingPage() {
       )}
 
       {/* Invoices List — translúcida y con blur (ver la nota de arriba). */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+      <div className="atl-superficie   rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
         {invoices === null ? (
           <div className="flex items-center justify-center py-16">
             <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
@@ -656,7 +656,7 @@ export default function BillingPage() {
       {pagando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setPagando(null)}>
           <div
-            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col atl-relleno  rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
@@ -750,7 +750,7 @@ export default function BillingPage() {
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowNew(false)}>
           <div
-            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col atl-relleno  rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
@@ -839,7 +839,7 @@ export default function BillingPage() {
       {detail && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setDetail(null)}>
           <div
-            className="w-full max-w-md max-h-[90dvh] flex flex-col bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl"
+            className="w-full max-w-md max-h-[90dvh] flex flex-col atl-relleno  rounded-3xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08]">
@@ -873,7 +873,7 @@ export default function BillingPage() {
                             setEditableItems(next);
                           }}
                           placeholder="Descripción"
-                          className="flex-[2] text-[14px] bg-[#F2F2F7] dark:bg-[#1C1C1E] p-2.5 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
+                          className="flex-[2] text-[14px] atl-relleno  p-2.5 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
                         />
                         <input
                           type="number"
@@ -885,7 +885,7 @@ export default function BillingPage() {
                             setEditableItems(next);
                           }}
                           placeholder="Valor"
-                          className="flex-1 text-[14px] bg-[#F2F2F7] dark:bg-[#1C1C1E] p-2.5 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
+                          className="flex-1 text-[14px] atl-relleno  p-2.5 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
                         />
                         <button
                           type="button"
@@ -1090,7 +1090,7 @@ export default function BillingPage() {
               onChange={(e) => setMotivo(e.target.value)}
               rows={3}
               placeholder="Ej: el comprobante no corresponde al valor reportado."
-              className="mt-3 w-full rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-4 text-[15px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c] resize-none"
+              className="mt-3 w-full rounded-2xl atl-relleno  p-4 text-[15px] text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#ff812c] resize-none"
             />
             <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
               El comercio recibe este mensaje y puede volver a reportarlo corregido.

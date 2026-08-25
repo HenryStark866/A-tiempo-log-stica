@@ -255,7 +255,7 @@ export default function DashboardPage() {
       {/* Translúcida y con blur (patrón probado en vivo). Es la tarjeta
           principal de lectura del panel; las tarjetas KPI de arriba se
           quedan opacas por ser tiles repetidos, no la tarjeta única. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">
+      <div className="atl-superficie   rounded-3xl p-6 sm:p-8 shadow-sm transition-colors duration-300">
         <h2 className="text-[20px] font-bold text-slate-900 dark:text-white">Pedidos por estado</h2>
         <p className="mt-1 mb-8 text-[15px] text-slate-500 dark:text-slate-400 font-medium">
           {total} guías en total
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                 <span className="w-20 sm:w-32 shrink-0 truncate text-[13px] sm:text-[14px] font-semibold text-slate-600 dark:text-slate-400 transition-colors group-hover:text-[#ff812c]">
                   {GUIDE_STATUS_LABELS[s]}
                 </span>
-                <div className="h-7 min-w-0 flex-1 overflow-hidden rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] transition-colors group-hover:bg-[#ff812c]/10">
+                <div className="h-7 min-w-0 flex-1 overflow-hidden rounded-xl atl-relleno  transition-colors group-hover:bg-[#ff812c]/10">
                   <div
                     className={`h-full rounded-xl transition-all duration-500 ease-out group-hover:brightness-110 ${BAR_COLORS[s]}`}
                     style={{ width: `${(n / max) * 100}%` }}

@@ -493,7 +493,7 @@ export function MiComercioPanel() {
           </p>
 
           {/* Translucida y con blur: es la lista de lectura de precios, sin campos de formulario dentro. */}
-          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
+          <ul className="atl-superficie   rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {tarifario.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
                 <div className="min-w-0">
@@ -650,7 +650,7 @@ export function MiComercioPanel() {
             <Loader2 className="w-6 h-6 animate-spin text-[#ff812c]" />
           </div>
         ) : medios.length === 0 ? (
-          <div className="rounded-2xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl shadow-sm px-5 py-10 text-center">
+          <div className="rounded-2xl atl-superficie   shadow-sm px-5 py-10 text-center">
             <Wallet className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
             <p className="mt-3 text-[15px] font-semibold text-slate-900 dark:text-white">
               Todavía no tienes medios de pago
@@ -667,7 +667,7 @@ export function MiComercioPanel() {
             </button>
           </div>
         ) : (
-          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
+          <ul className="atl-superficie   rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {medios.map((m) => (
               <li key={m.id} className={`px-4 py-4 ${m.active ? "" : "opacity-50"}`}>
                 <div className="flex items-start gap-3">
@@ -743,7 +743,7 @@ export function MiComercioPanel() {
       {/* ── Modal de medio de pago ── */}
       {editando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-          <div className="w-full sm:max-w-md bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-t-3xl sm:rounded-3xl p-5 max-h-[90dvh] overflow-y-auto">
+          <div className="w-full sm:max-w-md atl-relleno  rounded-t-3xl sm:rounded-3xl p-5 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                 {editando === "nuevo" ? "Nuevo medio de pago" : "Editar medio de pago"}

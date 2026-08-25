@@ -255,7 +255,7 @@ export function PermisosTurno() {
             return (
               <div
                 key={p.clave}
-                className="flex gap-3 rounded-2xl bg-[#F2F2F7] p-4 dark:bg-[#1C1C1E]"
+                className="flex gap-3 rounded-2xl atl-relleno p-4 "
               >
                 <div
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
@@ -347,7 +347,7 @@ export function PermisosTurno() {
               <button
                 type="button"
                 onClick={cerrar}
-                className="min-h-[52px] flex-1 rounded-2xl bg-[#F2F2F7] font-semibold text-slate-700 transition-transform active:scale-[0.98] dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="min-h-[52px] flex-1 rounded-2xl atl-relleno font-semibold text-slate-700 transition-transform active:scale-[0.98]  dark:text-slate-300"
               >
                 {todoResuelto ? "Listo" : "Seguir sin los demás"}
               </button>

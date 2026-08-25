@@ -300,7 +300,7 @@ function Fleet() {
       {couriers === null ? (
         // Translucida y con blur (patron probado en vivo: /90 sin blur no se nota).
         // Tarjeta de carga, sin campos ni decisiones dentro.
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-24 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
+        <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-24 text-slate-500 shadow-sm   dark:text-slate-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#ff812c]" />
           <p className="text-[15px]">Cargando el mapa…</p>
         </div>
@@ -323,7 +323,7 @@ function Fleet() {
                 // mensajero, sin campos de formulario dentro.
                 <div
                   key={c.id}
-                  className="flex flex-col gap-3 rounded-2xl bg-[#FFFFFF]/75 p-4 shadow-sm backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between dark:bg-[#2C2C2E]/75"
+                  className="flex flex-col gap-3 rounded-2xl atl-superficie p-4 shadow-sm  sm:flex-row sm:items-center sm:justify-between "
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

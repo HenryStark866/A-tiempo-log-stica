@@ -183,7 +183,7 @@ function Collections() {
         {/* Pending Collections Card */}
         {verSinConsignar && (
         // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
-        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        <section className="atl-superficie   rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 text-[19px] font-bold text-slate-900 dark:text-white">Recaudos sin consignar</h2>
           <p className="mb-5 text-[14px] text-slate-500 dark:text-slate-400">
             Entregas contraentrega aún no incluidas en un cierre de caja
@@ -222,7 +222,7 @@ function Collections() {
         {/* Settlements Card */}
         {verCierres && (
         // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
-        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        <section className="atl-superficie   rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-[#ff812c]/10 dark:bg-[#ff812c]/20 p-2 rounded-xl text-[#ff812c]">
               <Landmark className="w-5 h-5" />
@@ -273,7 +273,7 @@ function Collections() {
                             setDeposit(s);
                             setForm({ amount: String(s.expected_amount), reference: "" });
                           }}
-                          className="min-h-[44px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all w-full sm:w-auto"
+                          className="min-h-[44px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all w-full sm:w-auto"
                         >
                           Reportar consignación
                         </button>
@@ -313,7 +313,7 @@ function Collections() {
               </div>
               <button 
                 onClick={() => setDeposit(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -330,7 +330,7 @@ function Collections() {
                   required
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
                 />
               </div>
 
@@ -343,7 +343,7 @@ function Collections() {
                   value={form.reference}
                   onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
                   placeholder="Ej: 45789021"
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
                 />
               </div>
 
@@ -351,7 +351,7 @@ function Collections() {
                 <button
                   type="button"
                   onClick={() => setDeposit(null)}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>

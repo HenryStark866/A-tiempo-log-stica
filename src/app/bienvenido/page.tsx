@@ -209,7 +209,7 @@ export default async function BienvenidoPage() {
           <ul className="mt-5 space-y-4">
             {HERENCIA.map((h) => (
               <li key={h.titulo} className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E]">
+                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full atl-relleno ">
                   <h.icon className="h-[18px] w-[18px] text-[#ff812c]" />
                 </span>
                 <div className="min-w-0">

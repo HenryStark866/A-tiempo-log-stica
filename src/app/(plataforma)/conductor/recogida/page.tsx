@@ -373,13 +373,13 @@ export default function CourierPickupPage() {
 
       {pickups === null ? (
         // Translucida y con blur (patron probado en vivo: /90 sin blur no se notaba).
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
+        <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-16 text-slate-500 shadow-sm   dark:text-slate-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#ff812c]" />
           <p className="text-[15px]">Cargando tus recogidas…</p>
         </div>
       ) : pickups.length === 0 ? (
         // Translucida y con blur, mismo motivo que arriba.
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+        <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-16 shadow-sm  ">
           <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400">
             No tienes recogidas asignadas ahora mismo
@@ -399,7 +399,7 @@ export default function CourierPickupPage() {
               // recogido) se quedan opacos a proposito.
               <section
                 key={p.pickup_id}
-                className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
+                className="overflow-hidden rounded-3xl atl-superficie shadow-sm  "
               >
                 <div className="border-b border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
                   <p className="text-[19px] font-bold text-slate-900 dark:text-white">
@@ -435,7 +435,7 @@ export default function CourierPickupPage() {
                     </p>
                   )}
                   {p.notes && (
-                    <p className="mt-2 rounded-xl bg-[#F2F2F7] px-3 py-2 text-[14px] text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-300">
+                    <p className="mt-2 rounded-xl atl-relleno px-3 py-2 text-[14px] text-slate-600  dark:text-slate-300">
                       {p.notes}
                     </p>
                   )}
@@ -549,7 +549,7 @@ export default function CourierPickupPage() {
                     value={nota[p.pickup_id] ?? ""}
                     onChange={(e) => setNota((n) => ({ ...n, [p.pickup_id]: e.target.value }))}
                     placeholder="Observación (opcional): caja mojada, faltó una…"
-                    className="w-full min-h-[48px] rounded-xl border border-transparent bg-[#F2F2F7] px-4 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700 dark:bg-[#1C1C1E] dark:text-white"
+                    className="w-full min-h-[48px] rounded-xl border border-transparent atl-relleno px-4 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700  dark:text-white"
                   />
 
                   <button
@@ -624,7 +624,7 @@ export default function CourierPickupPage() {
               ))}
               <button
                 onClick={() => setEligiendo(null)}
-                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="min-h-[48px] w-full rounded-xl atl-relleno font-semibold text-slate-700  dark:text-slate-300"
               >
                 Cancelar
               </button>
@@ -737,7 +737,7 @@ export default function CourierPickupPage() {
               <button
                 onClick={llevarAlCedi}
                 disabled={busy !== null}
-                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] font-bold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50 dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl atl-relleno font-bold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50  dark:text-slate-300"
               >
                 {busy === "traslado" ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

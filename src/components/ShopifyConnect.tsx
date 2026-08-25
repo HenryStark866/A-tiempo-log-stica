@@ -131,7 +131,7 @@ export function ShopifyConnect() {
         <>
           {/* Translucida y con blur (patron probado en vivo). El formulario de
               conexion, mas abajo en el otro estado, se queda opaco a proposito. */}
-          <div className="rounded-2xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+          <div className="rounded-2xl atl-superficie p-5 shadow-sm  ">
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-emerald-50 p-2 text-emerald-600 dark:bg-emerald-500/10">
                 <CircleCheck className="h-5 w-5" />
@@ -225,7 +225,7 @@ export function ShopifyConnect() {
                 onChange={(e) => setForm((f) => ({ ...f, dominio: e.target.value }))}
                 placeholder="tu-tienda.myshopify.com"
                 autoComplete="off"
-                className="w-full min-h-[48px] rounded-xl border border-transparent bg-[#F2F2F7] px-4 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700 dark:bg-[#1C1C1E] dark:text-white"
+                className="w-full min-h-[48px] rounded-xl border border-transparent atl-relleno px-4 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700  dark:text-white"
               />
             </div>
 
@@ -241,7 +241,7 @@ export function ShopifyConnect() {
                 placeholder="shpat_…"
                 autoComplete="off"
                 spellCheck={false}
-                className="w-full min-h-[48px] rounded-xl border border-transparent bg-[#F2F2F7] px-4 font-mono text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700 dark:bg-[#1C1C1E] dark:text-white"
+                className="w-full min-h-[48px] rounded-xl border border-transparent atl-relleno px-4 font-mono text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700  dark:text-white"
               />
               <button
                 type="button"
@@ -253,7 +253,7 @@ export function ShopifyConnect() {
             </div>
 
             {comoSacarlo && (
-              <ol className="list-decimal space-y-1.5 rounded-xl bg-[#F2F2F7] py-4 pl-8 pr-4 text-[14px] leading-relaxed text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-400">
+              <ol className="list-decimal space-y-1.5 rounded-xl atl-relleno py-4 pl-8 pr-4 text-[14px] leading-relaxed text-slate-600  dark:text-slate-400">
                 <li>
                   En tu panel de Shopify entra a <strong>Configuración → Aplicaciones y
                   canales de venta</strong>.

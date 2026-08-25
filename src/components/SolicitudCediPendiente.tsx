@@ -93,7 +93,7 @@ export function SolicitudCediPendiente({ profile }: { profile: Profile }) {
                 // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
                 <div
                   key={doc.value}
-                  className="rounded-2xl bg-[#FFFFFF]/75 p-4 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
+                  className="rounded-2xl atl-superficie p-4 shadow-sm  "
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">

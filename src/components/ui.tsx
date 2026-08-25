@@ -32,8 +32,8 @@ import { cn } from "@/lib/utils";
 
 /** La superficie base. Se reutiliza para que todo lo elevado se vea igual. */
 export const superficie =
-  "border border-slate-900/[0.06] bg-white/80 backdrop-blur-xl " +
-  "dark:border-white/[0.08] dark:bg-[#2C2C2E]/70";
+  "border border-slate-900/[0.06] atl-superficie " +
+  "dark:border-white/[0.08]";
 
 export function PageHeader({
   title,
@@ -134,8 +134,8 @@ export function Button({
     primary:
       "bg-[#ff812c] text-[#1C1C1E] font-bold hover:bg-[#ff812c]/90 shadow-sm shadow-[#ff812c]/20 disabled:opacity-50",
     secondary:
-      "border border-slate-900/[0.08] bg-white/70 text-slate-700 backdrop-blur hover:bg-white " +
-      "dark:border-white/[0.10] dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.12] disabled:opacity-50",
+      "border border-slate-900/[0.08] atl-relleno atl-relleno-hover text-slate-700 " +
+      "dark:border-white/[0.10] dark:text-slate-200 disabled:opacity-50",
     danger: "bg-rose-600 text-white hover:bg-rose-700 shadow-sm disabled:opacity-50",
     ghost:
       "text-slate-600 hover:bg-slate-900/[0.05] dark:text-slate-300 dark:hover:bg-white/[0.08] disabled:opacity-50",
@@ -158,7 +158,7 @@ export function Button({
 }
 
 export const inputCls =
-  "w-full min-h-[44px] rounded-xl border border-slate-900/[0.10] bg-white/80 px-3.5 text-sm text-slate-900 outline-none transition " +
+  "w-full min-h-[44px] rounded-xl border border-slate-900/[0.10] atl-relleno px-3.5 text-sm text-slate-900 outline-none transition " +
   "placeholder:text-slate-400 focus:border-[#ff812c] focus:ring-2 focus:ring-[#ff812c]/25 " +
   "dark:border-white/[0.10] dark:bg-white/[0.06] dark:text-white dark:placeholder:text-slate-500";
 

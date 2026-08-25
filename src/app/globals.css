@@ -536,22 +536,75 @@ textarea:-webkit-autofill:focus {
    Solo define fondo y desenfoque. Ni bordes ni sombras ni radios: eso lo pone
    cada sitio, y así esta clase nunca pisa lo que ya tenía escrito.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ── El mando de la transparencia ──────────────────────────────────────────
+   Toda la opacidad de la app sale de estos cuatro números. Estaba escrita a
+   mano en unos doscientos sitios, así que «un poco más transparente» era un
+   día de trabajo y un riesgo; ahora es tocar aquí.
+
+   Son dos capas y el orden importa:
+
+     · SUPERFICIE — las tarjetas y paneles que se levantan sobre el fondo. Es
+       la que deja ver el valle de Medellín que hay debajo.
+     · RELLENO — lo que va DENTRO de una tarjeta: campos, botones secundarios,
+       fichas, cabeceras de tabla. Este no destapa el fondo, destapa la
+       tarjeta, así que va más transparente todavía: igual de opaco que la
+       tarjeta se vería como un parche pegado encima.
+
+   El relleno NO lleva desenfoque propio a propósito. Un `backdrop-filter` por
+   cada campo y cada ficha son decenas de capas que el navegador compone por
+   separado, y esto se usa en teléfonos de gama baja. El desenfoque de la
+   tarjeta que está encima ya hace el trabajo para lo que lleva dentro.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --atl-superficie: 0.58;
+  --atl-relleno: 0.42;
+}
+
+.dark,
+.tema-multicolor {
+  /* En oscuro el mismo número se lee más tapado: hay menos luz detrás que
+     atravesar. Van más abajo para que se note igual. */
+  --atl-superficie: 0.48;
+  --atl-relleno: 0.3;
+}
+
 .atl-superficie {
-  background-color: rgb(255 255 255 / 0.82);
+  background-color: rgb(255 255 255 / var(--atl-superficie));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
 .dark .atl-superficie,
 .tema-multicolor .atl-superficie {
-  background-color: rgb(44 44 46 / 0.72);
+  background-color: rgb(44 44 46 / var(--atl-superficie));
+}
+
+/* El relleno: campos, botones secundarios, fichas, cabeceras de tabla. */
+.atl-relleno {
+  background-color: rgb(242 242 247 / var(--atl-relleno));
+}
+
+.dark .atl-relleno,
+.tema-multicolor .atl-relleno {
+  background-color: rgb(28 28 30 / var(--atl-relleno));
+}
+
+/* Al pasar el dedo o el ratón se opaca: es la señal de que responde. Sin ella
+   un botón traslúcido no se distingue de una etiqueta. */
+.atl-relleno-hover:hover {
+  background-color: rgb(242 242 247 / calc(var(--atl-relleno) + 0.25));
+}
+
+.dark .atl-relleno-hover:hover,
+.tema-multicolor .atl-relleno-hover:hover {
+  background-color: rgb(28 28 30 / calc(var(--atl-relleno) + 0.25));
 }
 
 /* El tercer tema tiene un fondo de colores mucho más vivo, y sobre él una
    superficie gris se ve sucia. Se oscurece y se desatura un poco más para que
    el color quede detrás del vidrio y no atravesándolo. */
 .tema-multicolor .atl-superficie {
-  background-color: rgb(18, 16, 34, 0.78);
+  background-color: rgb(18 16 34 / var(--atl-superficie));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -297,7 +297,7 @@ export default function UsersPage() {
                   </div>
 
                   {/* Datos declarados */}
-                  <div className="rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-3.5 space-y-1.5 text-[13px]">
+                  <div className="rounded-2xl atl-relleno  p-3.5 space-y-1.5 text-[13px]">
                     {isClient ? (
                       <>
                         <Row label="Negocio" value={p.business_name} />
@@ -315,7 +315,7 @@ export default function UsersPage() {
                     <button
                       onClick={() => reject(p)}
                       disabled={acting}
-                      className="flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-slate-600 dark:text-slate-300 bg-[#F2F2F7] dark:bg-[#1C1C1E] hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all disabled:opacity-50"
+                      className="flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-[13px] font-semibold text-slate-600 dark:text-slate-300 atl-relleno  hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all disabled:opacity-50"
                     >
                       <Ban className="w-4 h-4" /> Rechazar
                     </button>
@@ -356,7 +356,7 @@ export default function UsersPage() {
       {/* Translúcida y con blur (probado en vivo: /90 sin blur no se notaba).
           El modal de edición de abajo se queda opaco a propósito, aísla una
           decisión de rol que no debe verse a medias. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
+      <div className="atl-superficie   rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
         {profiles === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -406,13 +406,13 @@ export default function UsersPage() {
                 <div className="flex shrink-0 items-center gap-2">
                   <button
                     onClick={() => setFichaDe(p.id)}
-                    className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
+                    className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
                   >
                     <IdCard className="w-4 h-4" /> Ficha
                   </button>
                   <button
                     onClick={() => openEdit(p)}
-                    className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
+                    className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-95 transition-all"
                   >
                     <ShieldCheck className="w-4 h-4" /> Rol
                   </button>
@@ -457,13 +457,13 @@ export default function UsersPage() {
                       <div className="inline-flex items-center gap-2">
                         <button
                           onClick={() => setFichaDe(p.id)}
-                          className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                          className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
                         >
                           <IdCard className="w-4 h-4" /> Ficha
                         </button>
                         <button
                           onClick={() => openEdit(p)}
-                          className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+                          className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
                         >
                           <ShieldCheck className="w-4 h-4" /> Rol
                         </button>
@@ -491,7 +491,7 @@ export default function UsersPage() {
               <button
                 type="button"
                 onClick={() => setEditing(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -517,7 +517,7 @@ export default function UsersPage() {
                 <select
                   value={form.role}
                   onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all appearance-none cursor-pointer"
+                  className="w-full min-h-[52px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all appearance-none cursor-pointer"
                 >
                   {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
                     <option key={r} value={r}>
@@ -528,7 +528,7 @@ export default function UsersPage() {
               </div>
 
               {form.role === "cliente" && (
-                <div className="rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="rounded-2xl atl-relleno  p-4 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <Store className="w-5 h-5 text-[#ff812c] shrink-0 mt-0.5" />
                   <p className="text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">
                     Todo usuario con rol cliente <strong>es</strong> un e-commerce: su comercio se
@@ -545,7 +545,7 @@ export default function UsersPage() {
                   <select
                     value={form.client_id}
                     onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
-                    className="w-full min-h-[46px] rounded-2xl bg-[#F2F2F7] px-4 text-[15px] text-slate-900 focus:outline-none dark:bg-[#1C1C1E] dark:text-white"
+                    className="w-full min-h-[46px] rounded-2xl atl-relleno px-4 text-[15px] text-slate-900 focus:outline-none  dark:text-white"
                   >
                     <option value="">Sin asignar</option>
                     {comercios.map((c) => (
@@ -570,7 +570,7 @@ export default function UsersPage() {
                   <select
                     value={form.zone_id}
                     onChange={(e) => setForm((f) => ({ ...f, zone_id: e.target.value }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full min-h-[52px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all appearance-none cursor-pointer"
                   >
                     <option value="">Sin zona fija</option>
                     {zones.map((z) => (
@@ -588,12 +588,12 @@ export default function UsersPage() {
                     min={1}
                     value={form.max_capacity}
                     onChange={(e) => setForm((f) => ({ ...f, max_capacity: Math.max(1, Number(e.target.value) || 1) }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                 </div>
               )}
 
-              <label className="flex items-center gap-3 p-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] cursor-pointer active:opacity-80 transition-opacity mt-2">
+              <label className="flex items-center gap-3 p-4 rounded-2xl atl-relleno  cursor-pointer active:opacity-80 transition-opacity mt-2">
                 <input
                   type="checkbox"
                   checked={form.active}
@@ -615,7 +615,7 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={() => setEditing(null)}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>
@@ -659,7 +659,7 @@ export default function UsersPage() {
                         value={textoBorrado}
                         onChange={(e) => setTextoBorrado(e.target.value)}
                         placeholder={editing.full_name || "nombre"}
-                        className="w-full rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3 text-[16px] text-slate-900 dark:text-white focus:outline-none"
+                        className="w-full rounded-2xl atl-relleno  px-4 py-3 text-[16px] text-slate-900 dark:text-white focus:outline-none"
                       />
                       <div className="flex gap-3">
                         <button
@@ -668,7 +668,7 @@ export default function UsersPage() {
                             setConfirmandoBorrado(false);
                             setTextoBorrado("");
                           }}
-                          className="flex-1 min-h-[46px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300"
+                          className="flex-1 min-h-[46px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300"
                         >
                           Mejor no
                         </button>

@@ -38,7 +38,7 @@ export function PantallaError({
     <div className="grid min-h-[60vh] place-items-center px-4 font-sans">
       {/* Translucida y con blur (patron probado en vivo). No hay modal ni
           formulario debajo: es texto y dos botones de color propio. */}
-      <div className="w-full max-w-md rounded-3xl bg-[#FFFFFF]/75 p-8 text-center shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+      <div className="w-full max-w-md rounded-3xl atl-superficie p-8 text-center shadow-sm  ">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff812c]/10">
           <TriangleAlert className="h-6 w-6 text-[#ff812c]" />
         </div>
@@ -61,7 +61,7 @@ export function PantallaError({
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-2xl bg-[#F2F2F7] font-semibold text-slate-700 transition-transform active:scale-[0.98] dark:bg-[#1C1C1E] dark:text-slate-300"
+            className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-2xl atl-relleno font-semibold text-slate-700 transition-transform active:scale-[0.98]  dark:text-slate-300"
           >
             <RefreshCw className="h-5 w-5" /> Recargar
           </button>

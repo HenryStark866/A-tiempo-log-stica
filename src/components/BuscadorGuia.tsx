@@ -38,7 +38,7 @@ export function BuscadorGuia({
 
   return (
     <form onSubmit={buscar} className="flex flex-col gap-4">
-      <div className="flex items-center px-4 min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus-within:border-[#ff812c] focus-within:ring-1 focus-within:ring-[#ff812c] rounded-2xl transition-all">
+      <div className="flex items-center px-4 min-h-[52px] atl-relleno  border border-transparent focus-within:border-[#ff812c] focus-within:ring-1 focus-within:ring-[#ff812c] rounded-2xl transition-all">
         <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-3 shrink-0" />
         <input
           value={guia}

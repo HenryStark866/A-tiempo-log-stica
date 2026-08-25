@@ -116,7 +116,7 @@ export function EncuestaSatisfaccion() {
                   className={`min-h-[38px] rounded-lg text-[13px] font-bold transition-colors ${
                     recomienda === n
                       ? "bg-[#ff812c] text-[#1C1C1E]"
-                      : "bg-[#F2F2F7] text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-300"
+                      : "atl-relleno text-slate-600  dark:text-slate-300"
                   }`}
                 >
                   {n}
@@ -141,7 +141,7 @@ export function EncuestaSatisfaccion() {
                   className={`min-h-[42px] rounded-xl text-[14px] font-bold transition-colors ${
                     facilidad === n
                       ? "bg-[#ff812c] text-[#1C1C1E]"
-                      : "bg-[#F2F2F7] text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-300"
+                      : "atl-relleno text-slate-600  dark:text-slate-300"
                   }`}
                 >
                   {n}
@@ -163,14 +163,14 @@ export function EncuestaSatisfaccion() {
               onChange={(e) => setComentario(e.target.value)}
               rows={3}
               placeholder="Lo que sea: algo que no encuentras, algo que se demora, algo que te falta…"
-              className="mt-2 w-full resize-none rounded-2xl bg-[#F2F2F7] px-4 py-3 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none dark:bg-[#1C1C1E] dark:text-white"
+              className="mt-2 w-full resize-none rounded-2xl atl-relleno px-4 py-3 text-[15px] text-slate-900 placeholder-slate-400 focus:outline-none  dark:text-white"
             />
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={posponer}
-              className="min-h-[46px] flex-1 rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+              className="min-h-[46px] flex-1 rounded-xl atl-relleno font-semibold text-slate-700  dark:text-slate-300"
             >
               Ahora no
             </button>

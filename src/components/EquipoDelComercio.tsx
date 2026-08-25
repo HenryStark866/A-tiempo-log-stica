@@ -142,7 +142,7 @@ export function EquipoDelComercio() {
                 {porAprobar.map((a) => (
                   <div
                     key={a.id}
-                    className="rounded-2xl border-l-4 border-[#ff812c] bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
+                    className="rounded-2xl border-l-4 border-[#ff812c] atl-superficie p-5 shadow-sm  "
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ff812c]/10">
@@ -187,7 +187,7 @@ export function EquipoDelComercio() {
                       <button
                         onClick={() => rechazar(a)}
                         disabled={busy === a.id}
-                        className="flex min-h-[46px] items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] px-4 font-semibold text-slate-700 disabled:opacity-60 dark:bg-[#1C1C1E] dark:text-slate-300"
+                        className="flex min-h-[46px] items-center justify-center gap-2 rounded-xl atl-relleno px-4 font-semibold text-slate-700 disabled:opacity-60  dark:text-slate-300"
                       >
                         <X className="h-5 w-5" />
                         No lo conozco
@@ -205,7 +205,7 @@ export function EquipoDelComercio() {
             </h2>
             {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
                 El modal de elegir sede de abajo se queda opaco a proposito. */}
-            <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+            <div className="overflow-hidden rounded-2xl atl-superficie shadow-sm  ">
               {dentro.length === 0 ? (
                 <div className="px-5 py-12 text-center">
                   <ShieldCheck className="mx-auto mb-3 h-9 w-9 text-slate-300 dark:text-slate-600" />
@@ -259,7 +259,7 @@ export function EquipoDelComercio() {
                             setSedeElegida(a.site_id ?? "");
                           }}
                           disabled={busy === a.id}
-                          className="rounded-xl bg-[#F2F2F7] px-4 py-2 text-[14px] font-semibold text-slate-700 disabled:opacity-60 dark:bg-[#1C1C1E] dark:text-slate-300"
+                          className="rounded-xl atl-relleno px-4 py-2 text-[14px] font-semibold text-slate-700 disabled:opacity-60  dark:text-slate-300"
                         >
                           Cambiar sede
                         </button>
@@ -301,7 +301,7 @@ export function EquipoDelComercio() {
               <select
                 value={sedeElegida}
                 onChange={(e) => setSedeElegida(e.target.value)}
-                className="w-full cursor-pointer appearance-none rounded-2xl bg-[#F2F2F7] px-4 py-3.5 text-[17px] text-slate-900 focus:outline-none dark:bg-[#1C1C1E] dark:text-white"
+                className="w-full cursor-pointer appearance-none rounded-2xl atl-relleno px-4 py-3.5 text-[17px] text-slate-900 focus:outline-none  dark:text-white"
               >
                 <option value="">Sin sede (usa la principal)</option>
                 {sedes.map((s) => (
@@ -326,7 +326,7 @@ export function EquipoDelComercio() {
               </button>
               <button
                 onClick={() => setEligiendoSede(null)}
-                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="min-h-[48px] w-full rounded-xl atl-relleno font-semibold text-slate-700  dark:text-slate-300"
               >
                 Cancelar
               </button>

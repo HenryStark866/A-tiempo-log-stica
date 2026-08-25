@@ -52,7 +52,7 @@ export function PaginaLegal({
         {/* `prose` no está instalado en este proyecto, así que el ritmo de
             lectura se arma a mano: los <h2> y <p> de dentro heredan de aquí. */}
         <article
-          className="mt-8 space-y-6 rounded-3xl border border-slate-900/[0.06] bg-white/80 p-6 text-[15px] leading-relaxed text-slate-700 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#2C2C2E]/70 dark:text-slate-300 sm:p-8
+          className="mt-8 space-y-6 rounded-3xl border border-slate-900/[0.06] atl-superficie p-6 text-[15px] leading-relaxed text-slate-700  dark:border-white/[0.08]  dark:text-slate-300 sm:p-8
             [&_h2]:mt-8 [&_h2]:text-[19px] [&_h2]:font-bold [&_h2]:text-slate-900 dark:[&_h2]:text-white [&_h2:first-child]:mt-0
             [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5
             [&_a]:font-semibold [&_a]:text-[#ff812c] [&_a]:underline"

@@ -195,13 +195,13 @@ function Guides() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por guía, cliente o comercio…"
-            className="w-full min-h-[48px] pl-11 pr-4 bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] dark:focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] transition-all"
+            className="w-full min-h-[48px] pl-11 pr-4 atl-relleno  border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white dark:placeholder-slate-500 focus:outline-none focus:border-[#ff812c] dark:focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] transition-all"
           />
         </div>
         <select
           value={status}
           onChange={(e) => filtrar({ estado: e.target.value === "todas" ? null : e.target.value })}
-          className="min-h-[48px] px-4 bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white focus:outline-none focus:border-[#ff812c] dark:focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] transition-all md:min-w-[200px]"
+          className="min-h-[48px] px-4 atl-relleno  border border-transparent dark:border-slate-700 rounded-xl text-[15px] text-slate-900 dark:text-white focus:outline-none focus:border-[#ff812c] dark:focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] transition-all md:min-w-[200px]"
         >
           <option value="todas">Todos los estados</option>
           {Object.entries(GUIDE_STATUS_LABELS).map(([k, v]) => (
@@ -239,7 +239,7 @@ function Guides() {
           La tarjeta de filtros de arriba y el modal de eliminar se quedan
           opacos: una envuelve el input y el select de búsqueda, el otro
           aísla una decisión irreversible. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors duration-300">
+      <div className="atl-superficie   rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors duration-300">
         {guides === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -292,7 +292,7 @@ function Guides() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/pedidos/${g.id}/editar`}
-                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#F2F2F7] px-3 text-[14px] font-semibold text-slate-700 active:scale-95 dark:bg-[#1C1C1E] dark:text-slate-300"
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl atl-relleno px-3 text-[14px] font-semibold text-slate-700 active:scale-95  dark:text-slate-300"
                       >
                         <Edit2 className="w-4 h-4 text-[#ff812c]" /> Editar
                       </Link>

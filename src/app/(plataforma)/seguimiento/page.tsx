@@ -217,7 +217,7 @@ export default function TrackingPage() {
       ) : envios.length === 0 ? (
         // Tarjeta principal (vacío): translúcida y con blur — patrón probado en vivo,
         // /90 sin blur no se notaba, hubo que bajar a /75 + backdrop-blur-xl.
-        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl py-20 px-6 text-center shadow-sm">
+        <div className="rounded-3xl atl-superficie   py-20 px-6 text-center shadow-sm">
           <PackageSearch className="mx-auto mb-4 w-12 h-12 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400">
             No tienes envíos en curso
@@ -231,7 +231,7 @@ export default function TrackingPage() {
         </div>
       ) : visibles.length === 0 ? (
         // Igual que la tarjeta vacía de arriba: translúcida y con blur.
-        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl py-20 px-6 text-center shadow-sm">
+        <div className="rounded-3xl atl-superficie   py-20 px-6 text-center shadow-sm">
           <Store className="mx-auto mb-4 w-12 h-12 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400">
             Ningún comercio en curso coincide con «{buscarCliente.trim()}»
@@ -255,7 +255,7 @@ export default function TrackingPage() {
               // se quedan opacos a propósito.
               <li
                 key={e.id}
-                className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm overflow-hidden transition-colors duration-300"
+                className="atl-superficie   rounded-3xl shadow-sm overflow-hidden transition-colors duration-300"
               >
                 <div className="p-5 space-y-4">
                   <div className="flex items-start justify-between gap-3">

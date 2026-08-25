@@ -599,7 +599,7 @@ function Pickups() {
           <button
             onClick={() => setQrDe(p)}
             title="QR del lote para el ingreso al CEDI"
-            className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+            className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
           >
             <QrCode className="w-4 h-4 text-[#ff812c]" />
             QR
@@ -613,7 +613,7 @@ function Pickups() {
             <button
               onClick={() => abrirEdicion(p)}
               title="Corregir esta solicitud"
-              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
             >
               <Pencil className="w-4 h-4 text-[#ff812c]" />
               Editar
@@ -651,7 +651,7 @@ function Pickups() {
                   setAssigningPickup(p);
                   setSelectedCourierId(p.operator_id || "");
                 }}
-                className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+                className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
               >
                 <UserCheck className="w-4 h-4 text-[#ff812c]" />
                 {p.operator ? "Reasignar" : "Asignar mensajero"}
@@ -733,7 +733,7 @@ function Pickups() {
           por batería. Los modales de abajo (nueva solicitud, asignar,
           editar, cancelar, QR) se quedan opacos: existen para aislar una
           decisión, y dejar ver el fondo ahí resta foco en vez de sumarlo. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors">
+      <div className="atl-superficie   rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors">
         {pickups === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -893,7 +893,7 @@ function Pickups() {
               <button
                 type="button"
                 onClick={() => setShowNew(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -906,7 +906,7 @@ function Pickups() {
                   Comercio que solicita
                 </label>
                 {esCliente ? (
-                  <div className="w-full min-h-[52px] flex items-center gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-lg px-4">
+                  <div className="w-full min-h-[52px] flex items-center gap-3 atl-relleno  rounded-lg px-4">
                     <Warehouse className="w-4 h-4 text-[#ff812c] shrink-0" />
                     <span className="text-[16px] font-semibold text-slate-900 dark:text-white truncate">
                       {miComercio?.business_name ?? (cargandoComercio ? "Preparando…" : "—")}
@@ -917,7 +917,7 @@ function Pickups() {
                     required
                     value={form.client_id}
                     onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   >
                     <option value="" disabled>Selecciona el comercio…</option>
                     {clients.map((c) => (
@@ -943,7 +943,7 @@ function Pickups() {
                     min={hoy}
                     value={form.scheduled_date}
                     onChange={(e) => setForm((f) => ({ ...f, scheduled_date: e.target.value }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -958,7 +958,7 @@ function Pickups() {
                     value={form.scheduled_time}
                     onChange={(hora) => setForm((f) => ({ ...f, scheduled_time: hora }))}
                     horas={turnosNueva}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                   {turnosNueva.length > 0 && (
                     <p className="text-[13px] text-slate-500 dark:text-slate-400">
@@ -975,7 +975,7 @@ function Pickups() {
                 <input
                   value={form.contact_phone}
                   onChange={(e) => setForm((f) => ({ ...f, contact_phone: e.target.value }))}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>
 
@@ -1003,7 +1003,7 @@ function Pickups() {
                 </div>
 
                 {pendientes.length === 0 ? (
-                  <div className="rounded-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-4 space-y-3">
+                  <div className="rounded-lg atl-relleno  px-4 py-4 space-y-3">
                     <p className="text-[14px] text-slate-500 dark:text-slate-400">
                       No hay guías pendientes de recoger. Puedes solicitar la recogida igual y
                       registrar las guías después, o crearlas ahora.
@@ -1055,7 +1055,7 @@ function Pickups() {
                   required
                   value={form.address}
                   onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>
 
@@ -1068,7 +1068,7 @@ function Pickups() {
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}
                   placeholder="Cantidad estimada de paquetes, horario…"
-                  className="w-full bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg p-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all resize-none"
+                  className="w-full atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg p-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all resize-none"
                 />
               </div>
 
@@ -1082,7 +1082,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => setShowNew(false)}
-                  className="flex-1 min-h-[52px] rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform border border-slate-900/[0.06] dark:border-white/[0.08]"
+                  className="flex-1 min-h-[52px] rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform border border-slate-900/[0.06] dark:border-white/[0.08]"
                 >
                   Cancelar
                 </button>
@@ -1119,7 +1119,7 @@ function Pickups() {
                   setAssigningPickup(null);
                   setSelectedCourierId("");
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1134,7 +1134,7 @@ function Pickups() {
                   required
                   value={selectedCourierId}
                   onChange={(e) => setSelectedCourierId(e.target.value)}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                 >
                   <option value="" disabled>
                     Elige un mensajero activo...
@@ -1157,7 +1157,7 @@ function Pickups() {
                     setAssigningPickup(null);
                     setSelectedCourierId("");
                   }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>
@@ -1191,7 +1191,7 @@ function Pickups() {
               <button
                 type="button"
                 onClick={() => { setEditando(null); setGuiasEdit(null); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1207,7 +1207,7 @@ function Pickups() {
                     min={hoy}
                     value={editForm.scheduled_date}
                     onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1222,7 +1222,7 @@ function Pickups() {
                     value={editForm.scheduled_time}
                     onChange={(hora) => setEditForm({ ...editForm, scheduled_time: hora })}
                     horas={turnosEdit}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                   {turnosEdit.length > 0 && (
                     <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
@@ -1239,7 +1239,7 @@ function Pickups() {
                   required
                   value={editForm.address}
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                 />
               </div>
 
@@ -1250,7 +1250,7 @@ function Pickups() {
                     type="text"
                     value={editForm.contact_name}
                     onChange={(e) => setEditForm({ ...editForm, contact_name: e.target.value })}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1259,7 +1259,7 @@ function Pickups() {
                     type="tel"
                     value={editForm.contact_phone}
                     onChange={(e) => setEditForm({ ...editForm, contact_phone: e.target.value })}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
               </div>
@@ -1270,7 +1270,7 @@ function Pickups() {
                   rows={2}
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none resize-none"
+                  className="w-full px-4 py-3 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none resize-none"
                 />
               </div>
 
@@ -1284,11 +1284,11 @@ function Pickups() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Cargando guías…
                   </div>
                 ) : guiasEdit.length === 0 ? (
-                  <p className="text-[14px] text-slate-500 dark:text-slate-400 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-2xl p-4">
+                  <p className="text-[14px] text-slate-500 dark:text-slate-400 atl-relleno  rounded-2xl p-4">
                     No hay guías sin recoger para incluir. La recogida sigue en pie igual.
                   </p>
                 ) : (
-                  <div className="max-h-44 overflow-y-auto rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] divide-y divide-slate-200 dark:divide-slate-700">
+                  <div className="max-h-44 overflow-y-auto rounded-2xl atl-relleno  divide-y divide-slate-200 dark:divide-slate-700">
                     {guiasEdit.map((g) => (
                       <label key={g.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer">
                         <input
@@ -1335,7 +1335,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => { setEditando(null); setGuiasEdit(null); }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Descartar
                 </button>
@@ -1384,7 +1384,7 @@ function Pickups() {
                   value={motivoCancelar}
                   onChange={(e) => setMotivoCancelar(e.target.value)}
                   placeholder="Los paquetes no alcanzaron a estar listos"
-                  className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                 />
               </div>
 
@@ -1399,7 +1399,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => { setCancelando(null); setError(null); }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Mejor no
                 </button>

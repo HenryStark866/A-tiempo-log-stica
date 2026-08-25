@@ -156,7 +156,7 @@ export default function ClientsPage() {
         </div>
         {/* Sin botón de "Nuevo cliente": los e-commerce se registran solos y su
             comercio se crea automáticamente. No hay política de INSERT en at_clients. */}
-        <div className="hidden sm:flex items-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-2.5 shrink-0">
+        <div className="hidden sm:flex items-center gap-2 rounded-xl atl-relleno  px-4 py-2.5 shrink-0">
           <Sparkles className="w-4 h-4 text-[#ff812c] shrink-0" />
           <p className="text-[13px] text-slate-500 dark:text-slate-400">
             Se crean solos al registrarse
@@ -167,7 +167,7 @@ export default function ClientsPage() {
       {/* Clients List */}
       {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
           El modal de edición de abajo se queda opaco a propósito. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
+      <div className="atl-superficie   rounded-2xl shadow-sm overflow-hidden transition-colors duration-300">
         {clients === null ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-7 h-7 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -301,7 +301,7 @@ export default function ClientsPage() {
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[90dvh] flex flex-col transition-colors duration-300"
+            className="w-full max-w-lg atl-relleno  rounded-3xl overflow-hidden shadow-2xl max-h-[90dvh] flex flex-col transition-colors duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

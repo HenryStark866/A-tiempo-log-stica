@@ -164,13 +164,13 @@ export default function RoutingPage() {
         {board === null ? (
           // Translúcida y con blur (patrón probado en vivo). Solo estado de
           // carga, sin controles de decisión de por medio.
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
+          <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-16 text-slate-500 shadow-sm   dark:text-slate-400">
             <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#ff812c] border-t-transparent" />
             <p className="text-[15px]">Cargando tablero…</p>
           </div>
         ) : board.zonas.length === 0 && board.sin_zona.length === 0 ? (
           // Translúcida y con blur: mismo estado vacío, solo mensaje de lectura.
-          <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+          <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-16 shadow-sm  ">
             <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
             <p className="text-[16px] text-slate-500 dark:text-slate-400">
               Todo despachado. No hay guías esperando en el CEDI.
@@ -225,7 +225,7 @@ export default function RoutingPage() {
                         onChange={(e) =>
                           setSel((s) => ({ ...s, [z.zone_id]: e.target.value }))
                         }
-                        className="min-h-[48px] rounded-xl border border-transparent bg-[#F2F2F7] px-4 text-[15px] text-slate-900 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700 dark:bg-[#1C1C1E] dark:text-white sm:min-w-[230px]"
+                        className="min-h-[48px] rounded-xl border border-transparent atl-relleno px-4 text-[15px] text-slate-900 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700  dark:text-white sm:min-w-[230px]"
                       >
                         <option value="">Elegir mensajero…</option>
                         {/* Los de esta zona primero: es a quien se le despacha
@@ -345,7 +345,7 @@ export default function RoutingPage() {
         </h2>
         {/* Translúcida y con blur (patrón probado en vivo). Tarjeta de
             lectura de "en operación"; no hay campos ni decisiones dentro. */}
-        <div className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+        <div className="overflow-hidden rounded-3xl atl-superficie shadow-sm  ">
           {active === null ? (
             <div className="flex flex-col items-center gap-3 py-16 text-slate-500 dark:text-slate-400">
               <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#ff812c] border-t-transparent" />

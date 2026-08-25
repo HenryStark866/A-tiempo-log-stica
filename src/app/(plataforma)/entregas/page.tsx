@@ -412,7 +412,7 @@ export default function MyRoutePage() {
           {/* El selector y el botón sumaban más ancho del que tiene un teléfono:
               se envuelven, y en móvil cada uno ocupa su propia línea completa. */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-1 sm:flex-none bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-xl p-1">
+            <div className="flex flex-1 sm:flex-none atl-relleno  rounded-xl p-1">
               {(Object.keys(NAV_PROVIDER_LABELS) as NavProvider[]).map((p) => (
                 <button
                   key={p}
@@ -454,7 +454,7 @@ export default function MyRoutePage() {
         </div>
       ) : guides.length === 0 ? (
         // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
-        <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-8 flex flex-col items-center justify-center gap-3 shadow-sm transition-colors duration-300">
+        <div className="atl-superficie   rounded-3xl p-8 flex flex-col items-center justify-center gap-3 shadow-sm transition-colors duration-300">
           <Package className="w-12 h-12 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400 text-center max-w-sm">No tienes paquetes asignados. El CEDI te cargará guías zonificadas.</p>
         </div>
@@ -472,7 +472,7 @@ export default function MyRoutePage() {
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {sec.list.map((g, i) => (
                       // Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
-                      <div key={g.id} className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 shadow-sm transition-colors duration-300 flex flex-col">
+                      <div key={g.id} className="atl-superficie   rounded-3xl p-5 shadow-sm transition-colors duration-300 flex flex-col">
                         <div className="mb-3 flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             {NAV_HANDOFF_ENABLED && g.status === "en_ruta" && (
@@ -529,7 +529,7 @@ export default function MyRoutePage() {
                                   href={buildNavUrl(navProvider, g.recipient_address, g.recipient_city)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex-1 min-h-[48px] rounded-xl font-semibold flex items-center justify-center gap-2 bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white hover:opacity-90 active:scale-[0.98] transition-all"
+                                  className="flex-1 min-h-[48px] rounded-xl font-semibold flex items-center justify-center gap-2 atl-relleno  text-slate-900 dark:text-white hover:opacity-90 active:scale-[0.98] transition-all"
                                 >
                                   <Navigation className="w-5 h-5 text-[#ff812c]" />
                                   <span>Navegar</span>
@@ -554,7 +554,7 @@ export default function MyRoutePage() {
                           )}
                           
                           {g.status === "novedad" && (
-                            <div className="bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-xl p-3">
+                            <div className="atl-relleno  rounded-xl p-3">
                               <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug">
                                 Lleva el paquete de vuelta al CEDI para evaluación (intento {g.delivery_attempts}/2).
                               </p>
@@ -585,7 +585,7 @@ export default function MyRoutePage() {
               </h3>
               <button
                 onClick={closeModal}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -623,7 +623,7 @@ export default function MyRoutePage() {
                       inputMode="numeric"
                       autoComplete="off"
                       placeholder="000000"
-                      className="w-full min-h-[60px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-center text-[28px] font-bold tracking-[0.3em] text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none transition-all"
+                      className="w-full min-h-[60px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-center text-[28px] font-bold tracking-[0.3em] text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none transition-all"
                     />
                     <p className="text-[13px] text-slate-500 dark:text-slate-400">
                       Pídele al comprador los 6 dígitos que le llegaron por mensaje. Si no le
@@ -635,7 +635,7 @@ export default function MyRoutePage() {
                     <label className="text-[15px] font-semibold text-slate-900 dark:text-white">
                       Foto de evidencia {modal.guide.is_cod && <span className="text-rose-500">*</span>}
                     </label>
-                    <label className="flex items-center gap-3 min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] cursor-pointer active:opacity-80 transition-opacity">
+                    <label className="flex items-center gap-3 min-h-[52px] px-4 rounded-2xl atl-relleno  cursor-pointer active:opacity-80 transition-opacity">
                       <Camera className="w-5 h-5 text-[#ff812c] shrink-0" />
                       <span className="text-[15px] text-slate-700 dark:text-slate-300 truncate">
                         {evidenceFile ? evidenceFile.name : "Tomar o adjuntar foto del paquete entregado"}
@@ -658,7 +658,7 @@ export default function MyRoutePage() {
                       value={signatureName}
                       onChange={(e) => setSignatureName(e.target.value)}
                       placeholder="Ej: Carlos Restrepo (portero)"
-                      className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
+                      className="w-full min-h-[52px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -677,7 +677,7 @@ export default function MyRoutePage() {
                       ? "Ej: recibido por el portero..."
                       : "Ej: destinatario ausente, dirección errada..."
                   }
-                  className="w-full bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl p-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all resize-none"
+                  className="w-full atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-2xl p-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all resize-none"
                 />
               </div>
 
@@ -685,7 +685,7 @@ export default function MyRoutePage() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>

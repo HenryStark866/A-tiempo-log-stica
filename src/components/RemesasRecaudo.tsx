@@ -111,7 +111,7 @@ export function RemesasRecaudo() {
   return (
     /* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
        El modal de "Marcar girada" se queda opaco a propósito. */
-    <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+    <section className="atl-superficie   rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
       <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
         <div className="rounded-xl bg-[#ff812c]/10 p-2 text-[#ff812c] dark:bg-[#ff812c]/20">
           <Send className="h-5 w-5" />
@@ -266,7 +266,7 @@ export function RemesasRecaudo() {
                     {r.status === "pendiente" ? (
                       <button
                         onClick={() => { setGirando(r); setPago({ referencia: "", metodo: "Transferencia" }); }}
-                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#F2F2F7] px-3 text-[13px] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+                        className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl atl-relleno px-3 text-[13px] font-semibold text-slate-700  dark:text-slate-300"
                       >
                         Marcar girada
                       </button>
@@ -304,7 +304,7 @@ export function RemesasRecaudo() {
               <select
                 value={pago.metodo}
                 onChange={(e) => setPago((p) => ({ ...p, metodo: e.target.value }))}
-                className="w-full min-h-[48px] rounded-2xl bg-[#F2F2F7] px-4 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#ff812c] dark:bg-[#1C1C1E] dark:text-white"
+                className="w-full min-h-[48px] rounded-2xl atl-relleno px-4 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#ff812c]  dark:text-white"
               >
                 {["Transferencia", "Nequi", "Daviplata", "Consignación", "Efectivo"].map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -314,7 +314,7 @@ export function RemesasRecaudo() {
                 value={pago.referencia}
                 onChange={(e) => setPago((p) => ({ ...p, referencia: e.target.value }))}
                 placeholder="Referencia del giro (opcional)"
-                className="w-full min-h-[48px] rounded-2xl bg-[#F2F2F7] px-4 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#ff812c] dark:bg-[#1C1C1E] dark:text-white"
+                className="w-full min-h-[48px] rounded-2xl atl-relleno px-4 text-[15px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#ff812c]  dark:text-white"
               />
             </div>
 

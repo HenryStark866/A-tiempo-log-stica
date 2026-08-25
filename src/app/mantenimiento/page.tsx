@@ -57,7 +57,7 @@ export default function MantenimientoPage() {
             recaudo están a salvo.
           </p>
 
-          <div className="mt-6 rounded-2xl bg-[#F2F2F7] px-4 py-4 text-left dark:bg-[#1C1C1E]">
+          <div className="mt-6 rounded-2xl atl-relleno px-4 py-4 text-left ">
             <p className="text-[14px] leading-relaxed text-slate-600 dark:text-slate-300">
               <strong className="font-semibold text-slate-900 dark:text-white">
                 ¿Tienes un paquete en camino?

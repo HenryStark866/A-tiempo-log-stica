@@ -178,7 +178,7 @@ export function AppShell({
                 por un portal, ver NotificationBell—, pero la capa se queda:
                 cuesta un div y evita que el próximo `fixed` que alguien
                 ponga aquí dentro se rompa por un motivo invisible. */}
-            <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
+            <div className="absolute inset-0 -z-10 atl-superficie  " />
             {/* `overflow-hidden`: en pantallas de 320 px el logo, el reloj y
                 los dos controles no caben juntos. Que lo que ceda sea el
                 descriptor de la marca —que ya se sabe de memoria— y no la
@@ -313,7 +313,7 @@ export function AppShell({
             {/* Misma separación que en el header móvil: el fondo esmerilado
                 no debe envolver nada position:fixed que se agregue aquí más
                 adelante. */}
-            <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
+            <div className="absolute inset-0 -z-10 atl-superficie  " />
             <div className="flex items-center justify-start h-[var(--atl-nav)] px-2 overflow-x-auto overscroll-x-contain no-scrollbar gap-1">
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);

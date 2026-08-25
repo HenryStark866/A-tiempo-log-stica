@@ -29,7 +29,7 @@ export default function RastreoPage() {
     <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 transition-colors duration-300 pb-12">
       <FondoRastreo />
 
-      <div className="sticky top-0 z-10 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors duration-300">
+      <div className="sticky top-0 z-10 atl-relleno  backdrop-blur-xl border-b border-slate-900/[0.06] dark:border-white/[0.08] transition-colors duration-300">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
           <Link href="/" className="transition-opacity active:opacity-70">
             <Logo />

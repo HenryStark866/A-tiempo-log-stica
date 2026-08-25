@@ -161,7 +161,7 @@ export function SedesDelComercio() {
                notaba). El modal de edicion de abajo se queda opaco a proposito. */
             <div
               key={s.id}
-              className="rounded-2xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
+              className="rounded-2xl atl-superficie p-5 shadow-sm  "
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
@@ -203,11 +203,11 @@ export function SedesDelComercio() {
                     Sin zona · cobra tarifa completa
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#F2F2F7] px-2.5 py-1 text-[12px] font-medium text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-300">
+                <span className="inline-flex items-center gap-1 rounded-full atl-relleno px-2.5 py-1 text-[12px] font-medium text-slate-600  dark:text-slate-300">
                   <Users className="h-3.5 w-3.5" />
                   {s.asesores} asesor{s.asesores === 1 ? "" : "es"}
                 </span>
-                <span className="rounded-full bg-[#F2F2F7] px-2.5 py-1 text-[12px] font-medium text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-300">
+                <span className="rounded-full atl-relleno px-2.5 py-1 text-[12px] font-medium text-slate-600  dark:text-slate-300">
                   {s.pedidos} pedido{s.pedidos === 1 ? "" : "s"}
                 </span>
               </div>
@@ -279,7 +279,7 @@ export function SedesDelComercio() {
                 />
               </Campo>
 
-              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[#F2F2F7] px-4 py-3 dark:bg-[#1C1C1E]">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl atl-relleno px-4 py-3 ">
                 <input
                   type="checkbox"
                   checked={form.es_principal}
@@ -312,7 +312,7 @@ export function SedesDelComercio() {
               <button
                 type="button"
                 onClick={() => setEditando(null)}
-                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="min-h-[48px] w-full rounded-xl atl-relleno font-semibold text-slate-700  dark:text-slate-300"
               >
                 Cancelar
               </button>
@@ -329,7 +329,7 @@ const ENTRADA =
 
 function Campo({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center rounded-2xl bg-[#F2F2F7] px-4 dark:bg-[#1C1C1E]">
+    <div className="flex items-center rounded-2xl atl-relleno px-4 ">
       <label className="w-[100px] shrink-0 text-[15px] text-slate-500 dark:text-slate-400">
         {etiqueta}
       </label>

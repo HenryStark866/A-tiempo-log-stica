@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Camera, CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
+import { Camera, Download, CheckCircle2, MapPin, Navigation, Phone, PlayCircle, TriangleAlert, Loader2, Package, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { useOffline } from "@/components/OfflineContext";
@@ -39,6 +39,19 @@ export default function MyRoutePage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [navProvider, setNavProvider] = useState<NavProvider | null>(null);
+  /**
+   * Cuándo se bajó la ruta que hay guardada.
+   *
+   * La carga en vivo ya dejaba una copia, pero pasiva: solo tienes lo de la
+   * última vez que abriste la app CON señal. Quien sale del CEDI sin abrirla
+   * se va sin nada. Por eso hay un botón para bajarla a propósito, y por eso
+   * se muestra de cuándo es: en la calle, sin señal, no hay forma de saber si
+   * lo que ves es de hace dos minutos o de ayer — y una guía que el CEDI
+   * reasignó hace una hora ya no es tuya.
+   */
+  const [descargadaEn, setDescargadaEn] = useState<Date | null>(null);
+  const [descargando, setDescargando] = useState(false);
+  const [aviso, setAviso] = useState<{ texto: string; ok: boolean } | null>(null);
 
   function closeModal() {
     setModal(null);
@@ -57,7 +70,7 @@ export default function MyRoutePage() {
     setNavProvider(p);
   }
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<boolean> => {
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -72,6 +85,8 @@ export default function MyRoutePage() {
       setGuides(lista);
       setViendoCache(false);
       cache.guardar(CACHE_KEY, lista);
+      setDescargadaEn(cache.guardadoEn(CACHE_KEY));
+      return true;
     } catch (err) {
       // Sin señal: se muestra la última foto buena en vez de una pantalla
       // vacía. No se toca si no hay nada guardado — mejor "cargando" que
@@ -81,14 +96,47 @@ export default function MyRoutePage() {
         if (guardada) {
           setGuides(guardada);
           setViendoCache(true);
+          setDescargadaEn(cache.guardadoEn(CACHE_KEY));
         }
       }
+      return false;
     }
   }, [profile.id]);
 
   useEffect(() => {
     load();
+    setDescargadaEn(cache.guardadoEn(CACHE_KEY));
   }, [load]);
+
+  /**
+   * Bajar la ruta a propósito, antes de salir.
+   *
+   * Es la misma consulta que hace `load`, pero pedida por la persona y con
+   * respuesta visible. Sin señal no se intenta siquiera: decir «no se pudo,
+   * no hay conexión» es más útil que un error de red crudo.
+   */
+  async function descargarRuta() {
+    if (!offline.enLinea) {
+      setAviso({ texto: "Sin conexión no se puede bajar la ruta. Conéctate al wifi del CEDI antes de salir.", ok: false });
+      return;
+    }
+    setDescargando(true);
+    setAviso(null);
+    const bajo = await load();
+    setDescargando(false);
+    if (!bajo) {
+      setAviso({ texto: "No se pudo bajar la ruta: la conexión falló. Vuelve a intentarlo.", ok: false });
+      return;
+    }
+    const cuantas = cache.leer<Guide[]>(CACHE_KEY)?.length ?? 0;
+    setAviso({
+      ok: true,
+      texto:
+        cuantas === 0
+          ? "No tienes pedidos asignados todavía. Vuelve a bajarla cuando el CEDI te asigne."
+          : `Listo: ${cuantas} pedido${cuantas === 1 ? "" : "s"} guardado${cuantas === 1 ? "" : "s"} en el teléfono. Ya puedes trabajar sin señal.`,
+    });
+  }
 
   const zonificadas = orderRoute((guides ?? []).filter((g) => g.status === "zonificada"));
   const enRuta = orderRoute((guides ?? []).filter((g) => g.status === "en_ruta"));
@@ -281,17 +329,64 @@ export default function MyRoutePage() {
   return (
     <div className="pb-10 space-y-6 font-sans">
       {/* Page Header */}
-      <div className="flex flex-col">
-        <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Mi ruta</h1>
-        <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
-          Fase 4: gestión de ruta en última milla — tu carga digital del día
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">Mi ruta</h1>
+          <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
+            Tu carga del día. Bájala antes de salir y podrás trabajar sin señal.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={descargarRuta}
+          disabled={descargando}
+          className="inline-flex min-h-[48px] shrink-0 items-center gap-2 rounded-xl bg-[#ff812c] px-4 text-[15px] font-bold text-[#1C1C1E] transition-transform active:scale-[0.98] disabled:opacity-60"
+        >
+          {descargando ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <Download className="size-5" />
+          )}
+          {descargando ? "Bajando…" : "Descargar mi ruta"}
+        </button>
       </div>
+
+      {aviso && (
+        <div
+          className={
+            aviso.ok
+              ? "rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 px-4 py-3"
+              : "rounded-2xl bg-rose-50 dark:bg-rose-500/10 px-4 py-3"
+          }
+        >
+          <p
+            className={
+              aviso.ok
+                ? "text-[14px] font-medium text-emerald-700 dark:text-emerald-400"
+                : "text-[14px] font-medium text-rose-600 dark:text-rose-400"
+            }
+          >
+            {aviso.texto}
+          </p>
+        </div>
+      )}
+
+      {/* De cuándo son los datos que se están viendo. Solo cuando hay algo
+          guardado: antes de la primera descarga no hay nada que fechar. Y solo
+          con señal: sin ella lo dice el aviso ámbar de abajo, y repetirlo
+          estorba en una pantalla que se mira de reojo en la calle. */}
+      {descargadaEn && !viendoCache && (
+        <p className="text-[13px] text-slate-500 dark:text-slate-400">
+          Guardado en este teléfono {cache.haceCuanto(descargadaEn)}
+        </p>
+      )}
 
       {viendoCache && (
         <div className="rounded-2xl bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
           <p className="text-[13px] font-medium text-amber-800 dark:text-amber-400">
-            Sin conexión: esta es tu última ruta cargada. Puedes seguir marcando entregas, se sincronizan solas.
+            Sin conexión: esta es tu ruta guardada{descargadaEn ? ` ${cache.haceCuanto(descargadaEn)}` : ""}. Puedes
+            seguir marcando entregas, se sincronizan solas apenas vuelva la señal.
           </p>
         </div>
       )}

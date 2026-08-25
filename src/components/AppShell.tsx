@@ -16,6 +16,7 @@ import { FondoPlataforma } from "@/components/fondos/FondoPlataforma";
 import { STORAGE_KEY as UBICACION_STORAGE_KEY } from "@/components/PositionReporter";
 import { desbloquearSonido } from "@/lib/sonidoNotificacion";
 import { createClient } from "@/lib/supabase/client";
+import * as cache from "@/lib/offline/cache";
 import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -75,6 +76,16 @@ export function AppShell({
     // sesión. No es solo un estado que sobra: es rastrear a alguien sin que
     // lo haya consentido.
     window.localStorage.removeItem(UBICACION_STORAGE_KEY);
+
+    // Y por lo mismo, fuera lo que se bajó para trabajar sin señal: la ruta
+    // guardada trae nombres, direcciones y teléfonos de destinatarios, y el
+    // service worker guarda el HTML de las pantallas de campo. Quien entre
+    // después en este teléfono no tiene por qué ver nada de eso.
+    cache.olvidarTodo();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.controller?.postMessage({ tipo: "yam:cerrar-sesion" });
+    }
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

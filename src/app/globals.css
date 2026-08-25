@@ -496,14 +496,44 @@ textarea:-webkit-autofill:focus {
   background-color: var(--mc-fondo);
 }
 
-/* Los cuatro focos. Fijos y detrás de todo: se mueven las tarjetas por encima,
-   no el degradado, que es lo que evita el mareo en un scroll largo. */
-.tema-multicolor body::before {
+/* ── Los cuatro focos ──────────────────────────────────────────────────────
+   Naranja, violeta, turquesa y rosa. Fijos y detrás de todo: se mueven las
+   tarjetas por encima, no el degradado, que es lo que evita el mareo en un
+   scroll largo.
+
+   Estaban solo en `tema-multicolor`, y ahí estaba la diferencia que se veía:
+   una tarjeta translúcida sobre un gris plano no luce por mucho que se baje
+   su opacidad —no hay nada detrás que valga la pena ver—, mientras que sobre
+   estos focos el mismo cristal cobra sentido. Por eso ahora los llevan los
+   tres temas.
+
+   Lo que cambia por tema es CUÁNTO se notan, no qué son. Un solo número:
+
+     · Claro   — los colores sobre blanco se saturan enseguida y el texto
+                 oscuro pierde apoyo; a media fuerza quedan como un tinte.
+     · Oscuro  — casi enteros; el gris neutro los aguanta sin volverse otro
+                 tema.
+     · Multicolor — enteros, que es su motivo de existir.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --atl-focos: 0.5;
+}
+
+.dark {
+  --atl-focos: 0.85;
+}
+
+.tema-multicolor {
+  --atl-focos: 1;
+}
+
+body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
+  opacity: var(--atl-focos);
   background:
     radial-gradient(60% 45% at 12% 8%,  rgba(255, 129, 44, 0.20), transparent 70%),
     radial-gradient(55% 45% at 88% 18%, rgba(120, 90, 255, 0.22), transparent 70%),

@@ -52,7 +52,7 @@ export function BuscadorGuia({
           enterKeyHint="search"
           aria-label="Número de pedido"
           placeholder={`Ej. ${GUIA_EJEMPLO}`}
-          className="flex-1 bg-transparent text-[16px] font-medium focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+          className="flex-1 self-stretch bg-transparent text-[16px] font-medium focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
         />
       </div>
       <button

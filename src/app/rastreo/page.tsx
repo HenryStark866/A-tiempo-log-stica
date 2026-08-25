@@ -36,7 +36,7 @@ export default function RastreoPage() {
           </Link>
           <Link
             href="/login"
-            className="text-[15px] font-semibold text-[#ff812c] transition-opacity active:opacity-70"
+            className="-mx-2 flex min-h-[44px] items-center px-2 text-[15px] font-semibold text-[#ff812c] transition-opacity active:opacity-70"
           >
             Ingresar
           </Link>

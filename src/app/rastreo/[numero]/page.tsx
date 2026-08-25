@@ -53,7 +53,7 @@ export default function TrackingPage() {
           </Link>
           <Link
             href="/login"
-            className="text-[15px] font-semibold text-[#ff812c] active:opacity-70 transition-opacity"
+            className="-mx-2 flex min-h-[44px] items-center px-2 text-[15px] font-semibold text-[#ff812c] active:opacity-70 transition-opacity"
           >
             Ingresar
           </Link>

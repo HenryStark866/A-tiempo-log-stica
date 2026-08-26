@@ -98,7 +98,19 @@ const SERVIDORES_DE_MAPA = [
   "tiles.openfreemap.org",
   "server.arcgisonline.com",
   "s3.amazonaws.com",
+  // CARTO faltaba, y es de quien pide las teselas MiniMap —el mapa de
+  // /seguimiento—, así que ese mapa no funcionaba sin señal ni sobre zonas ya
+  // vistas. Va por sufijo porque Leaflet reparte la carga entre cuatro
+  // subdominios (a., b., c. y d.basemaps.cartocdn.com).
+  ".basemaps.cartocdn.com",
 ];
+
+/** ¿Es un servidor de teselas? Acepta host exacto o sufijo (`.dominio`). */
+function esServidorDeMapa(host) {
+  return SERVIDORES_DE_MAPA.some((d) =>
+    d.startsWith(".") ? host.endsWith(d) : host === d
+  );
+}
 
 /**
  * Techo de teselas guardadas.
@@ -296,7 +308,7 @@ self.addEventListener("fetch", (event) => {
     // De fuera solo el mapa. Supabase jamás: sus respuestas traen datos y
     // sesiones, y servir una vieja sería mentir sobre el estado de la
     // operación.
-    if (SERVIDORES_DE_MAPA.includes(url.hostname)) {
+    if (esServidorDeMapa(url.hostname)) {
       event.respondWith(responderTesela(req));
     }
     return;

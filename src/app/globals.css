@@ -506,23 +506,19 @@ textarea:-webkit-autofill:focus {
    estos focos el mismo cristal cobra sentido. Por eso ahora los llevan los
    tres temas.
 
-   Lo que cambia por tema es CUÁNTO se notan, no qué son. Un solo número:
+   Van enteros en los tres, y ese es el punto: la apariencia tiene que ser la
+   misma en todos, no una versión aguada por tema.
 
-     · Claro   — los colores sobre blanco se saturan enseguida y el texto
-                 oscuro pierde apoyo; a media fuerza quedan como un tinte.
-     · Oscuro  — casi enteros; el gris neutro los aguanta sin volverse otro
-                 tema.
-     · Multicolor — enteros, que es su motivo de existir.
+   Estuvieron atenuados —medio en claro, 85% en oscuro— por miedo a que el
+   color sobre blanco se comiera el texto. Se midió y no ocurre: en tema claro,
+   con los focos a plena fuerza, el peor caso de contraste sobre los datos pasa
+   de 6,93 a 6,56, contra el 4,5 que pide AA. El miedo era razonable; el número
+   dice que no hacía falta.
+
+   Se deja la variable —y no los degradados a pelo— porque sigue siendo el
+   único sitio donde bajarlos si algún día un fondo nuevo lo pide.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --atl-focos: 0.5;
-}
-
-.dark {
-  --atl-focos: 0.85;
-}
-
-.tema-multicolor {
   --atl-focos: 1;
 }
 

@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Camera,
+  Truck,
   CheckCircle2,
   Circle,
   ExternalLink,
@@ -17,6 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useProfile } from "@/components/ProfileContext";
 import { PageHeader, Card, Loading, Button, Modal, Field, inputCls } from "@/components/ui";
+import { ROLES_DEL_COMERCIO } from "@/lib/constants";
 import { StatusBadge } from "@/components/StatusBadge";
 import { GuiaQR } from "@/components/GuiaQR";
 import {
@@ -216,6 +218,20 @@ export default function GuideDetailPage() {
 
   const esCliente = profile.role === "cliente";
   const canEditDelete = esCliente && guide.status === "creada";
+  /**
+   * Pedir la recogida de ESTE pedido, sin salir a buscarlo.
+   *
+   * Antes había que crear el pedido, irse a Recogidas, encontrarse a uno mismo
+   * en la lista y marcar el paquete. Como se llega aquí justo después de
+   * crearlo, este es el momento en que el comercio de verdad quiere pedirla.
+   *
+   * Solo mientras tenga sentido: un pedido ya recogido, o que ya está en una
+   * recogida pedida, no admite otra.
+   */
+  const puedePedirRecogida =
+    ROLES_DEL_COMERCIO.includes(profile.role) &&
+    guide.status === "creada" &&
+    !guide.pickup_id;
   const acts = actionsFor(guide, profile.role, profile.id);
   const canAssign =
     ["en_cedi", "reprogramada"].includes(guide.status) &&
@@ -243,6 +259,13 @@ export default function GuideDetailPage() {
                 <Printer className="size-4" /> Rótulo
               </Button>
             </Link>
+            {puedePedirRecogida && (
+              <Link href={`/recogidas?pedido=${id}`}>
+                <Button>
+                  <Truck className="size-4" /> Solicitar recogida
+                </Button>
+              </Link>
+            )}
             {canEditDelete && (
               <>
                 <Link href={`/pedidos/${id}/editar`}>

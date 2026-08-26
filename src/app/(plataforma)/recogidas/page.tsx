@@ -226,6 +226,19 @@ function Pickups() {
   // La tarjeta del LTR abre aquí las recogidas ya completadas, que son las que
   // entran en el promedio de esa métrica.
   const estadoFiltro = params.get("estado") as PickupStatus | null;
+  /**
+   * El pedido desde el que se llegó, si se llegó desde uno.
+   *
+   * La pantalla del pedido enlaza aquí con `?pedido=<id>` para que el comercio
+   * pueda pedir la recogida sin buscarse a sí mismo en una lista. Se abre la
+   * hoja con ESE paquete marcado y ninguno más: quien viene de un pedido
+   * concreto quiere ese, no los doce que tenga pendientes.
+   *
+   * Toda la validación de horarios, dirección y contacto es la de siempre, que
+   * es el motivo de traerlo aquí en vez de meter un formulario de recogida
+   * dentro de la pantalla del pedido: dos formularios se separan solos.
+   */
+  const pedidoDeLaUrl = params.get("pedido");
   // La recogida siempre la solicita un comercio: si es un cliente, se autoaprovisiona.
   const { client: miComercio, clientId, loading: cargandoComercio } = useMyClient();
   const offline = useOffline();
@@ -367,6 +380,12 @@ function Pickups() {
       });
   }, [esCliente, clientId, miComercio]);
 
+  // Llegando desde un pedido, la hoja se abre sola: el comercio ya dijo lo
+  // que quería al tocar «Solicitar recogida» allá.
+  useEffect(() => {
+    if (pedidoDeLaUrl) setShowNew(true);
+  }, [pedidoDeLaUrl]);
+
   // Guías que se pueden incluir en la solicitud.
   useEffect(() => {
     if (!form.client_id) return;
@@ -382,10 +401,18 @@ function Pickups() {
       .then(({ data }) => {
         const list = (data as Guide[]) ?? [];
         setPendientes(list);
-        // Por defecto se incluyen todas: es lo que el comercio espera.
-        setSeleccionadas(new Set(list.map((g) => g.id)));
+        // Viniendo de un pedido, solo ese. Si ya no está en la lista —porque
+        // alguien le pidió recogida mientras tanto— se cae al comportamiento
+        // normal en vez de dejar la selección vacía sin explicación.
+        const soloEse = pedidoDeLaUrl && list.some((g) => g.id === pedidoDeLaUrl);
+        setSeleccionadas(
+          soloEse
+            ? new Set([pedidoDeLaUrl])
+            // Por defecto se incluyen todas: es lo que el comercio espera.
+            : new Set(list.map((g) => g.id))
+        );
       });
-  }, [form.client_id, showNew]);
+  }, [form.client_id, showNew, pedidoDeLaUrl]);
 
   function toggleGuia(id: string) {
     setSeleccionadas((prev) => {

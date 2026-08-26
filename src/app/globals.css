@@ -325,11 +325,10 @@ select option {
 
    Los tiempos están escalonados para que se lea como una secuencia y no como
    cosas apareciendo a la vez: ruta (260ms) → postas en cascada (320ms, cada
-   110ms) → correo (380ms) → cascabel (900ms) → cascabel otra vez (1600ms) →
-   salida (2180ms).
+   110ms) → señal (900ms) → señal otra vez (1600ms) → salida (2180ms).
 
-   El segundo cascabel y el segundo que se le añadió a la salida van juntos:
-   el cascabel ahora SUENA (ver SonidoDeArranque.tsx) y suena dos veces, así
+   La segunda señal y el segundo que se le añadió a la salida van juntos: la
+   señal ahora SUENA (ver SonidoDeArranque.tsx) y suena dos veces, así
    que la pantalla tiene que durar lo suficiente para que se oiga entero el
    par. Los 700ms que los separan están escritos en los dos sitios —aquí, en
    el retraso de la segunda `atl-onda` que pinta Splash.tsx, y allá, en

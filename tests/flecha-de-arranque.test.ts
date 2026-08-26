@@ -1,34 +1,34 @@
 /**
- * El khöömei del splash: que suene, que suene DOS veces, y que cante las
- * notas que tiene que cantar.
+ * La flecha silbadora del splash: que vuele, que vuelen DOS, y que el silbato
+ * suba al salir y baje al alejarse.
  *
  * Esto se prueba y no se escucha a ojo porque un sonido no deja rastro en la
  * pantalla: si mañana alguien toca los tiempos y queda sonando una sola vez, o
- * el filtro deja de recorrer los armónicos y se queda en un zumbido, nadie lo
+ * el barrido se queda plano y en vez de una flecha se oye un pitido, nadie lo
  * ve en una captura ni lo caza el compilador. Solo se nota abriendo la app con
  * el volumen arriba y prestando atención — o sea, nunca.
  *
  * Se cuenta lo que se programa en el reloj del audio, que es donde de verdad
  * ocurre. Un AudioContext de mentira apunta cada `start()` y cada movimiento
- * del pasa banda en vez de hacer ruido.
+ * de frecuencia en vez de hacer ruido.
  */
 
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 
 /** Cada `start()` programado, con el momento que le toca. */
 let arranques: number[] = [];
-/** Cada frecuencia por la que se hace pasar el tracto vocal. */
-let recorridoDelFiltro: number[] = [];
+/** El recorrido en altura del silbato. */
+let barridoDelSilbato: number[] = [];
 
 class ParamFalso {
   value = 0;
   constructor(private apunta = false) {}
   setValueAtTime(v: number) {
-    if (this.apunta) recorridoDelFiltro.push(v);
+    if (this.apunta) barridoDelSilbato.push(v);
     return this;
   }
   exponentialRampToValueAtTime(v: number) {
-    if (this.apunta) recorridoDelFiltro.push(v);
+    if (this.apunta) barridoDelSilbato.push(v);
     return this;
   }
   linearRampToValueAtTime() {
@@ -44,8 +44,18 @@ class NodoFalso {
 
 class OsciladorFalso extends NodoFalso {
   type = "";
-  frequency = new ParamFalso();
+  // Solo el oscilador apunta su recorrido: es el silbato de la punta. El
+  // pasa banda del aire lo sigue, pero medir los dos duplicaría todo.
+  frequency = new ParamFalso(true);
   detune = new ParamFalso();
+  start(t: number) {
+    arranques.push(t);
+  }
+  stop() {}
+}
+
+class FuenteFalsa extends NodoFalso {
+  buffer: unknown = null;
   start(t: number) {
     arranques.push(t);
   }
@@ -54,8 +64,7 @@ class OsciladorFalso extends NodoFalso {
 
 class FiltroFalso extends NodoFalso {
   type = "";
-  // Solo el pasa banda —el tracto vocal— apunta su recorrido: es el que canta.
-  frequency = new ParamFalso(true);
+  frequency = new ParamFalso();
   Q = new ParamFalso();
 }
 
@@ -63,9 +72,20 @@ class GananciaFalsa extends NodoFalso {
   gain = new ParamFalso();
 }
 
+class BufferFalso {
+  private datos: Float32Array;
+  constructor(muestras: number) {
+    this.datos = new Float32Array(muestras);
+  }
+  getChannelData() {
+    return this.datos;
+  }
+}
+
 class ContextoFalso {
   state: AudioContextState;
   currentTime = 10; // distinto de 0: los desfases son relativos
+  sampleRate = 44100;
   destination = {};
   constructor(estado: AudioContextState = "running") {
     this.state = estado;
@@ -78,6 +98,12 @@ class ContextoFalso {
   }
   createBiquadFilter() {
     return new FiltroFalso();
+  }
+  createBuffer(_canales: number, muestras: number) {
+    return new BufferFalso(muestras);
+  }
+  createBufferSource() {
+    return new FuenteFalsa();
   }
   resume() {
     this.state = "running";
@@ -97,7 +123,7 @@ function montar(estadoInicial: AudioContextState = "running") {
 
 beforeEach(() => {
   arranques = [];
-  recorridoDelFiltro = [];
+  barridoDelSilbato = [];
   vi.resetModules(); // el módulo cachea su contexto: hay que reimportarlo limpio
 });
 
@@ -109,46 +135,45 @@ async function cargar() {
   return await import("@/lib/sonidoNotificacion");
 }
 
-/** Los armónicos 6, 8 y 10 de un Do3 son Sol5, Do6 y Mi6. */
-const SOL5 = 130.81 * 6;
-const DO6 = 130.81 * 8;
-const MI6 = 130.81 * 10;
+/** Tres fuentes por flecha: el chasquido de la suelta, el silbato y el aire. */
+const FUENTES_POR_FLECHA = 3;
 
-describe("el khöömei del arranque", () => {
-  it("canta dos frases separadas 700 ms", async () => {
+describe("la flecha silbadora", () => {
+  it("dispara dos flechas separadas 700 ms", async () => {
     montar();
     const sonido = await cargar();
 
     sonido.reproducirSonidoDeArranque();
 
-    // Dos osciladores por frase: el bordón y su vibrato.
-    expect(arranques).toHaveLength(4);
+    expect(arranques).toHaveLength(FUENTES_POR_FLECHA * 2);
 
     const t0 = contexto.currentTime;
-    const relativos = [...new Set(arranques.map((t) => Math.round((t - t0) * 1000)))];
-    expect(relativos).toEqual([0, 700]);
+    const momentos = [...new Set(arranques.map((t) => Math.round((t - t0) * 1000)))];
+    expect(momentos).toEqual([0, 700]);
   });
 
-  it("el tracto vocal recorre Sol5 → Do6 → Mi6, dos veces", async () => {
-    montar();
-    const sonido = await cargar();
-
-    sonido.reproducirSonidoDeArranque();
-
-    const esperado = [SOL5, DO6, MI6, SOL5, DO6, MI6].map((f) => Math.round(f));
-    expect(recorridoDelFiltro.map((f) => Math.round(f))).toEqual(esperado);
-  });
-
-  it("el aviso normal canta una sola frase", async () => {
+  it("el silbato sube al salir y baja al alejarse", async () => {
     montar();
     const sonido = await cargar();
 
     sonido.reproducirSonidoNotificacion();
 
-    expect(arranques).toHaveLength(2);
-    expect(recorridoDelFiltro.map((f) => Math.round(f))).toEqual(
-      [SOL5, DO6, MI6].map((f) => Math.round(f))
-    );
+    // Empieza, sube al pico, y cae por debajo de donde empezó.
+    const [inicio, pico, final] = barridoDelSilbato;
+    expect(pico).toBeGreaterThan(inicio);
+    expect(final).toBeLessThan(inicio);
+    // El arco es lo que hace que se lea como algo que pasó volando y no como
+    // un pitido: si el recorrido se aplana, esto salta.
+    expect(pico / final).toBeGreaterThan(1.8);
+  });
+
+  it("el aviso normal dispara una sola flecha", async () => {
+    montar();
+    const sonido = await cargar();
+
+    sonido.reproducirSonidoNotificacion();
+
+    expect(arranques).toHaveLength(FUENTES_POR_FLECHA);
   });
 
   it("si el audio está dormido, lo despierta y suena igual", async () => {
@@ -161,6 +186,6 @@ describe("el khöömei del arranque", () => {
     await Promise.resolve();
 
     expect(contexto.state).toBe("running");
-    expect(arranques).toHaveLength(4);
+    expect(arranques).toHaveLength(FUENTES_POR_FLECHA * 2);
   });
 });

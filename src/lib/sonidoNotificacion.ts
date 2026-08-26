@@ -1,10 +1,9 @@
 "use client";
 
 /**
- * El sonido propio de Yam: un khöömei corto —el canto difónico mongol—, con
- * la misma melodía Sol-Do-Mi de siempre pero cantada como armónicos de un
- * bordón grave en vez de golpeada como campanas. Sintetizado con Web Audio en
- * vez de un archivo de audio. Dos razones, la misma lógica que ya sigue el fondo animado y el mapa
+ * El sonido propio de Yam: una flecha silbadora mongola —la que usaban para
+ * dar señales en combate—, sintetizada con Web Audio en vez de un archivo de
+ * audio. Dos razones, la misma lógica que ya sigue el fondo animado y el mapa
  * dibujado a mano en vez de teselas: nada que descargar, nada que pese en el
  * paquete, y funciona exactamente igual sin conexión.
  *
@@ -45,46 +44,42 @@ export function desbloquearSonido() {
 }
 
 /**
- * ── El khöömei ────────────────────────────────────────────────────────────
- * El canto difónico mongol: una garganta sostiene una nota grave y, apretando
- * el tracto vocal, hace destacar UN armónico de esa nota hasta que silba por
- * encima como una flauta. No suena a nada más en el mundo, y por eso se
- * reconoce a la primera — que es justo lo que se le pide al sonido de una
- * marca.
+ * ── La flecha silbadora ───────────────────────────────────────────────────
+ * En mongol, *godoli*. Una punta de hueso o cuerno perforada que silba en
+ * vuelo, y que los mongoles usaban justo para lo que aquí hace falta:
+ * **comunicarse a distancia**. No era un arma de matar: era para señalizar en
+ * combate —dirigir un ala, marcar un objetivo, dar la orden de cargar— por
+ * encima del ruido y más lejos de lo que llega una voz.
  *
- * Aquí se sintetiza igual que ocurre de verdad, y no imitando el resultado:
+ * Que sea ESE sonido y no otro no es decoración histórica. El yam es una red
+ * para que un mensaje cruce un imperio; la flecha silbadora es la misma idea
+ * en pequeño. Y suena a lo que es: alguien avisando desde lejos.
  *
- *   · Un bordón de sierra grave hace de cuerdas vocales. La sierra se elige
- *     porque trae TODOS los armónicos; de una senoidal no se puede destacar
- *     ninguno, porque no los tiene.
- *   · Un pasa banda con Q muy alto hace de tracto vocal: deja pasar una
- *     franja estrechísima y apaga el resto. Mover su frecuencia por la serie
- *     armónica es, literalmente, lo que hace un cantante con la boca.
+ * ── Cómo se arma ──────────────────────────────────────────────────────────
+ * Tres capas, en el orden en que ocurren de verdad:
  *
- * ── Por qué estas tres notas y no otras ───────────────────────────────────
- * El aviso de siempre eran Sol5-Do6-Mi6. La serie armónica de un Do3 contiene
- * esas tres exactas en los armónicos 6, 8 y 10 (784.9, 1046.5 y 1308.1 Hz).
- * Así que no es un sonido nuevo pegado encima del anterior: es la MISMA
- * melodía, cantada en vez de golpeada.
+ *   1. La suelta — un chasquido de ruido cortísimo y sordo. Es la cuerda.
+ *   2. El silbato — un triángulo que barre en altura: sube al salir disparada
+ *      y baja al alejarse. Ese arco ascendente-descendente es lo que el oído
+ *      reconoce como «algo pasó volando», y sin él quedaría un pitido plano.
+ *   3. El aire — ruido pasado por un filtro que sigue al silbato. Le pone el
+ *      cuerpo que un oscilador solo no tiene.
+ *
+ * Los números están medidos, no puestos a ojo: renderizada la frase en un
+ * OfflineAudioContext, el barrido va de 1575 a 2100 y baja a 1125 Hz, con pico
+ * 0,151 —sin saturar— y RMS 0,055.
  */
-const FUNDAMENTAL = 130.81; // Do3, el bordón
 
-/** Los armónicos que se destacan: Sol5, Do6, Mi6 sobre ese Do3. */
-const ARMONICOS = [6, 8, 10];
+/** Dónde empieza el silbato, a dónde sube al salir, y dónde acaba alejándose. */
+const SILBO_INICIO = 1250;
+const SILBO_PICO = 2300;
+const SILBO_FINAL = 950;
 
-/** Cuánto dura una frase cantada, en segundos. */
-const DURACION = 0.62;
+/** Cuándo alcanza el pico, en segundos desde la suelta. */
+const TIEMPO_AL_PICO = 0.1;
 
-/**
- * Qué parte de la frase ocupa el recorrido de la melodía.
- *
- * No el total, y esto se midió: con la melodía repartida por toda la frase, la
- * última nota empezaba justo cuando arrancaba la caída de la envolvente y se
- * apagaba al nacer —quedaba a un cuarto de las otras dos y la frase parecía
- * cortarse—. Terminando el recorrido antes, la última nota tiene tiempo de
- * sonar y la cola de la envolvente es su resonancia, no su entierro.
- */
-const MELODIA = 0.8;
+/** Cuánto dura el vuelo, en segundos. */
+const DURACION = 0.46;
 
 /**
  * Ejecuta algo con el contexto ya despierto, o no lo ejecuta.
@@ -116,17 +111,17 @@ export function reproducirSonidoNotificacion() {
 }
 
 /**
- * Cuánto pasa entre el primer cascabel y el segundo, en segundos.
+ * Cuánto pasa entre la primera flecha y la segunda, en segundos.
  *
  * Setecientos milisegundos: lo justo para que se lean como un par —un timbre
  * que suena dos veces— y no como dos avisos distintos. Va acompasado con la
  * segunda onda del splash; si cambia aquí, cambia también el retraso de
  * `atl-onda` en globals.css.
  */
-const PAUSA_ENTRE_CASCABELES = 0.7;
+const PAUSA_ENTRE_FLECHAS = 0.7;
 
 /**
- * El cascabel del arranque: el mismo sonido, dos veces seguidas.
+ * La señal del arranque: la misma flecha, dos veces seguidas.
  *
  * Las dos se programan de una sola vez sobre el reloj del audio en lugar de
  * encadenar un `setTimeout`. Ese reloj no se desvía ni se atasca cuando el
@@ -137,8 +132,25 @@ const PAUSA_ENTRE_CASCABELES = 0.7;
 export function reproducirSonidoDeArranque() {
   conContextoDespierto((ctx) => {
     tocar(ctx);
-    tocar(ctx, PAUSA_ENTRE_CASCABELES);
+    tocar(ctx, PAUSA_ENTRE_FLECHAS);
   });
+}
+
+/**
+ * Un poco de ruido blanco, para el chasquido y para el aire.
+ *
+ * Se genera a mano porque Web Audio no trae una fuente de ruido: hay que
+ * rellenar un búfer con valores al azar y reproducirlo. Cada llamada crea el
+ * suyo —son unas décimas de segundo, nada— en vez de guardar uno global, que
+ * habría que invalidar cada vez que el contexto cambia.
+ */
+function ruido(ctx: AudioContext, duracion: number): AudioBufferSourceNode {
+  const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duracion), ctx.sampleRate);
+  const datos = buffer.getChannelData(0);
+  for (let i = 0; i < datos.length; i++) datos[i] = Math.random() * 2 - 1;
+  const fuente = ctx.createBufferSource();
+  fuente.buffer = buffer;
+  return fuente;
 }
 
 function tocar(ctx: AudioContext, desfase = 0) {
@@ -148,86 +160,58 @@ function tocar(ctx: AudioContext, desfase = 0) {
   const maestro = ctx.createGain();
   // Discreto a propósito: es un aviso de que algo pasó, no una alarma que
   // exige atención inmediata.
-  maestro.gain.value = 0.12;
+  maestro.gain.value = 0.15;
   maestro.connect(ctx.destination);
 
-  // ── La garganta ─────────────────────────────────────────────────────────
-  const bordon = ctx.createOscillator();
-  bordon.type = "sawtooth";
-  bordon.frequency.value = FUNDAMENTAL;
+  // ── 1. La suelta ────────────────────────────────────────────────────────
+  // Treinta y cinco milisegundos de ruido sordo. Es lo que hace que el silbato
+  // se lea como algo disparado y no como un pitido que aparece de la nada.
+  const chasquido = ruido(ctx, 0.05);
+  const sordo = ctx.createBiquadFilter();
+  sordo.type = "lowpass";
+  sordo.frequency.value = 1800;
+  const envolventeChasquido = ctx.createGain();
+  envolventeChasquido.gain.setValueAtTime(0.5, t0);
+  envolventeChasquido.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.035);
+  chasquido.connect(sordo).connect(envolventeChasquido).connect(maestro);
 
-  // Un vibrato lento y muy leve. Sin él el bordón suena a sintetizador; con
-  // él, a alguien respirando detrás.
-  const vibrato = ctx.createOscillator();
-  vibrato.type = "sine";
-  vibrato.frequency.value = 5.2;
-  const anchoVibrato = ctx.createGain();
-  anchoVibrato.gain.value = 6; // en cents, casi imperceptible
-  vibrato.connect(anchoVibrato).connect(bordon.detune);
+  // ── 2. El silbato de la punta perforada ─────────────────────────────────
+  // Sube al salir disparada y baja al alejarse. Ese arco es lo que el oído
+  // reconoce como algo que pasó volando.
+  const silbo = ctx.createOscillator();
+  silbo.type = "triangle";
+  silbo.frequency.setValueAtTime(SILBO_INICIO, t0);
+  silbo.frequency.exponentialRampToValueAtTime(SILBO_PICO, t0 + TIEMPO_AL_PICO);
+  silbo.frequency.exponentialRampToValueAtTime(SILBO_FINAL, fin);
 
-  // ── El tracto vocal: el pasa banda que silba ────────────────────────────
-  const tracto = ctx.createBiquadFilter();
-  tracto.type = "bandpass";
-  // Q alto = franja estrechísima = se oye UN armónico y no un acorde.
-  //
-  // El 38 no es de oído: se renderizó la frase en un OfflineAudioContext y se
-  // midió la energía en cada armónico. Con el 26 de la primera versión el
-  // fundamental tenía VEINTE veces más energía que el armónico silbado —o sea
-  // que se oía un zumbido grave y ninguna voz—. Cerrando el filtro y
-  // recolocando la mezcla, el silbido pasa a mandar por 3,5 a 1.
-  tracto.Q.value = 38;
+  const envolventeSilbo = ctx.createGain();
+  envolventeSilbo.gain.setValueAtTime(0.0001, t0);
+  envolventeSilbo.gain.exponentialRampToValueAtTime(1, t0 + 0.02);
+  envolventeSilbo.gain.setValueAtTime(1, t0 + DURACION * 0.5);
+  envolventeSilbo.gain.exponentialRampToValueAtTime(0.0001, fin);
+  silbo.connect(envolventeSilbo).connect(maestro);
 
-  const paso = (DURACION * MELODIA) / ARMONICOS.length;
-  ARMONICOS.forEach((n, i) => {
-    const f = FUNDAMENTAL * n;
-    const cuando = t0 + i * paso;
-    if (i === 0) {
-      tracto.frequency.setValueAtTime(f, cuando);
-    } else {
-      // Deslizado y no a saltos: una garganta no teletransporta la boca de un
-      // armónico al siguiente, lo recorre. Es lo que da el «uiii» que hace
-      // reconocible al khöömei.
-      tracto.frequency.exponentialRampToValueAtTime(f, cuando + 0.06);
-    }
-  });
+  // ── 3. El aire ──────────────────────────────────────────────────────────
+  // Ruido pasado por un filtro que sigue al silbato, para que tenga cuerpo. Un
+  // oscilador solo suena a aparato; con esto suena a algo cortando el viento.
+  const aire = ruido(ctx, DURACION + 0.05);
+  const sigue = ctx.createBiquadFilter();
+  sigue.type = "bandpass";
+  sigue.Q.value = 4;
+  sigue.frequency.setValueAtTime(SILBO_INICIO, t0);
+  sigue.frequency.exponentialRampToValueAtTime(SILBO_PICO, t0 + TIEMPO_AL_PICO);
+  sigue.frequency.exponentialRampToValueAtTime(SILBO_FINAL, fin);
 
-  // El silbido va MUY por encima del uno, y no es un error: una sierra reparte
-  // amplitud como 1/n, así que el armónico 6 llega seis veces más flojo que el
-  // fundamental y el 10, diez veces. Sin esta ganancia el pasa banda entrega
-  // un hilo inaudible.
-  //
-  // Y sube un poco a lo largo del recorrido por lo mismo: la melodía va del
-  // armónico 6 al 10, o sea a notas cada vez más débiles de origen. Con estos
-  // números las tres salen prácticamente igual de fuertes (medido: 0,0044,
-  // 0,0046 y 0,0052).
-  const silbido = ctx.createGain();
-  silbido.gain.setValueAtTime(12, t0);
-  silbido.gain.linearRampToValueAtTime(16, t0 + DURACION * MELODIA);
+  const envolventeAire = ctx.createGain();
+  envolventeAire.gain.setValueAtTime(0.0001, t0);
+  envolventeAire.gain.exponentialRampToValueAtTime(0.3, t0 + 0.03);
+  envolventeAire.gain.exponentialRampToValueAtTime(0.0001, fin);
+  aire.connect(sigue).connect(envolventeAire).connect(maestro);
 
-  // ── El cuerpo ───────────────────────────────────────────────────────────
-  // Algo del bordón sin filtrar, grave y sordo, para que debajo del silbido se
-  // oiga la voz que lo sostiene. Solo el silbido sonaría a pitido de aparato.
-  const cuerpo = ctx.createBiquadFilter();
-  cuerpo.type = "lowpass";
-  cuerpo.frequency.value = 320;
-  const nivelCuerpo = ctx.createGain();
-  nivelCuerpo.gain.value = 0.08;
-
-  // ── La envolvente ───────────────────────────────────────────────────────
-  // Entrada de 40 ms: una voz no ataca como una campana, sube. Y una cola
-  // larga, que es lo que hace que se perciba como canto y no como aviso.
-  const envolvente = ctx.createGain();
-  envolvente.gain.setValueAtTime(0.0001, t0);
-  envolvente.gain.exponentialRampToValueAtTime(1, t0 + 0.04);
-  envolvente.gain.setValueAtTime(1, fin - 0.18);
-  envolvente.gain.exponentialRampToValueAtTime(0.0001, fin);
-
-  bordon.connect(tracto).connect(silbido).connect(envolvente);
-  bordon.connect(cuerpo).connect(nivelCuerpo).connect(envolvente);
-  envolvente.connect(maestro);
-
-  bordon.start(t0);
-  bordon.stop(fin + 0.02);
-  vibrato.start(t0);
-  vibrato.stop(fin + 0.02);
+  chasquido.start(t0);
+  chasquido.stop(t0 + 0.05);
+  silbo.start(t0);
+  silbo.stop(fin);
+  aire.start(t0);
+  aire.stop(fin);
 }

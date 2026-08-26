@@ -14,12 +14,11 @@ import { MARCA } from "@/lib/marca";
  *      alcanza: primero existe el camino, después el relevo.
  *   3. El correo —el cuadro naranja, el mismo que los paquetes de FondoInicio—
  *      la recorre de punta a punta.
- *   4. En la última posta se expande una onda, dos veces. Es el cascabel que
- *      contó Marco Polo: en el cinturón del corredor, para que en la posta
- *      siguiente lo oyeran llegar y tuvieran el relevo listo antes de verlo.
- *      Una notificación anticipada, en el siglo XIII. Y ahora se oye de
- *      verdad — el sonido lo pone `SonidoDeArranque`, que va aparte
- *      justamente para no meter JavaScript aquí.
+ *   4. En la última posta se expande una onda, dos veces: la señal llegando
+ *      antes que el correo. Una notificación anticipada, en el siglo XIII.
+ *      Ahora además se oye — una flecha silbadora, que es con lo que se daban
+ *      las señales en la estepa. El sonido lo pone `SonidoDeArranque`, que va
+ *      aparte justamente para no meter JavaScript aquí.
  *
  * ── Por qué no lleva una línea de JavaScript ──────────────────────────────
  *
@@ -115,9 +114,9 @@ export function Splash() {
             );
           })}
 
-          {/* 4. El cascabel: se oye antes de que el correo se vea llegar.
-                 Suena dos veces, y por eso se expanden dos ondas. El sonido lo
-                 pone SonidoDeArranque.tsx, acompasado con estos retrasos: si
+          {/* 4. La señal: se oye antes de que el correo se vea llegar. Suena
+                 dos veces, y por eso se expanden dos ondas. El sonido lo pone
+                 SonidoDeArranque.tsx, acompasado con estos retrasos: si
                  cambian aquí, cambian allá. */}
           {[900, 1600].map((retraso) => (
             <circle

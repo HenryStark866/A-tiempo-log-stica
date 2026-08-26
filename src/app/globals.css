@@ -499,29 +499,23 @@ textarea:-webkit-autofill:focus {
    estos focos el mismo cristal cobra sentido. Por eso ahora los llevan los
    tres temas.
 
-   ── Por qué el claro lleva MÁS alfa que el oscuro ─────────────────────────
-   Parece una excepción y es lo contrario: es lo que hace que se vea igual.
+   ── Solo en el tema multicolor ────────────────────────────────────────────
+   Los focos son la identidad de ESE tema, no un adorno para los otros dos. El
+   claro y el oscuro son temas sobrios a propósito: quien los elige está
+   pidiendo justamente que no haya colores de fondo.
 
-   El ojo juzga el cambio de color en relativo, no en absoluto. Un violeta al
-   22% sobre el suelo oscuro lo lleva de rgb(15,13,31) a rgb(20,17,41): un 45%
-   más de luminancia, y se nota. El MISMO 22% sobre el suelo claro lo lleva de
-   rgb(250,250,252) a rgb(245,244,252): un 2%. Invisible. Con el mismo número
-   en los dos temas, el claro sale lavado — que es exactamente lo que pasaba.
+   Se intentó llevarlos a los tres y fue un error: un tema oscuro con manchas
+   naranjas y violetas deja de ser el tema oscuro, pasa a ser un multicolor mal
+   hecho. Lo que sí comparten los tres es el cristal traslúcido y el valle de
+   Medellín detrás — que es lo que se había pedido.
 
-   A 0,7 el claro llega a un 32% de cambio, cerca del 45% del oscuro, y el
-   contraste sobre los datos se queda en 5,42 (AA pide 4,5). Se probó 0,85, que
-   igualaría casi del todo, pero deja el contraste en 4,98: demasiado al filo
-   para una app que se lee al sol.
-
-   Los cuatro focos guardan su proporción entre ellos —el naranja siempre algo
-   por debajo del violeta, el rosa el más discreto— multiplicando sobre el
-   mismo mando en vez de llevar cada uno su número suelto.
+   Queda en cero y no borrado para que siga siendo un solo número: encender los
+   focos en otro tema es cambiar un `0` por un `0.22`, no reescribir reglas.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --atl-foco: 0.7;
+  --atl-foco: 0;
 }
 
-.dark,
 .tema-multicolor {
   --atl-foco: 0.22;
 }

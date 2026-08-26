@@ -57,7 +57,18 @@ const PAGINAS = `${VERSION}-paginas`;
  * mapa de flota, no — se usan sentados, con conexión, y guardar su HTML solo
  * sería dejar datos de más en un teléfono.
  */
-const PAGINAS_DE_CAMPO = ["/entregas", "/recogidas", "/cedi", "/pedidos/nueva", "/inicio"];
+const PAGINAS_DE_CAMPO = [
+  "/entregas",
+  "/recogidas",
+  "/cedi",
+  "/pedidos/nueva",
+  "/inicio",
+  // Las dos del conductor faltaban, y eran justo las que más lo necesitan:
+  // `/conductor/recogida` se usa DENTRO del comercio, que es donde peor entra
+  // la señal, y es donde se confirma que el paquete salió. `esDeCampo` cubre
+  // las subrutas, así que con el prefijo basta.
+  "/conductor",
+];
 
 /**
  * Techo del paquete guardado.

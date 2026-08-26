@@ -38,7 +38,9 @@ export type TipoAccion =
   | "recibir_guia"
   | "recibir_lote"
   | "crear_guia"
-  | "solicitar_recogida";
+  | "solicitar_recogida"
+  | "iniciar_recogida"
+  | "confirmar_recogida";
 
 export interface AccionEnCola {
   id: string;
@@ -81,6 +83,16 @@ export interface PayloadCrearGuia {
 export interface PayloadSolicitarRecogida {
   args: Record<string, unknown>;
 }
+export interface PayloadIniciarRecogida {
+  pickupId: string;
+}
+export interface PayloadConfirmarRecogida {
+  pickupId: string;
+  guideIds: string[];
+  note: string | null;
+  /** Para el resumen del panel; el servidor no lo necesita. */
+  comercio: string | null;
+}
 
 /**
  * Distingue "no hubo señal" de "el servidor dijo que no".
@@ -122,6 +134,13 @@ function resumenDe(tipo: TipoAccion, payload: unknown): string {
       return `Nueva guía · ${(payload as PayloadCrearGuia).fila.recipient_name ?? ""}`;
     case "solicitar_recogida":
       return "Solicitar recogida";
+    case "iniciar_recogida":
+      return "Salir a recoger";
+    case "confirmar_recogida": {
+      const p = payload as PayloadConfirmarRecogida;
+      const n = p.guideIds.length;
+      return `Recogida en ${p.comercio ?? "el comercio"} · ${n} paquete${n === 1 ? "" : "s"}`;
+    }
   }
 }
 
@@ -162,6 +181,24 @@ function esDuplicado(error: unknown): boolean {
     e.code === "23505" ||
     /duplicate key|client_request_id/i.test(e.message ?? "")
   );
+}
+
+/**
+ * ¿El servidor rechazó esto porque el trabajo YA está hecho?
+ *
+ * Las recogidas no se pueden reintentar a ciegas como una inserción: al
+ * reproducir una confirmación que sí llegó, `at_confirm_pickup` responde
+ * «esta recogida ya está completada». Eso no es un fallo —es la prueba de que
+ * funcionó— pero sin distinguirlo la cola lo trataría como error y estaría
+ * reintentándolo eternamente, con el mensajero viendo un pendiente que nunca
+ * baja.
+ *
+ * Se mira el texto porque la excepción viene de un `raise` de PL/pgSQL y todas
+ * llegan con el mismo código (P0001): no hay nada más fino a lo que agarrarse.
+ */
+function yaEstabaHecho(error: unknown): boolean {
+  const m = (error as { message?: string } | null)?.message ?? "";
+  return /ya está (completada|cancelada|en_curso|en curso)/i.test(m);
 }
 
 async function ejecutar(accion: AccionEnCola): Promise<void> {
@@ -234,6 +271,28 @@ async function ejecutar(accion: AccionEnCola): Promise<void> {
         .insert({ ...p.fila, client_request_id: accion.id });
       if (error) {
         if (esDuplicado(error)) return; // ya se había creado: nada que hacer
+        throw error;
+      }
+      return;
+    }
+    case "iniciar_recogida": {
+      const p = accion.payload as PayloadIniciarRecogida;
+      const { error } = await supabase.rpc("at_start_pickup", { p_pickup_id: p.pickupId });
+      if (error) {
+        if (yaEstabaHecho(error)) return;
+        throw error;
+      }
+      return;
+    }
+    case "confirmar_recogida": {
+      const p = accion.payload as PayloadConfirmarRecogida;
+      const { error } = await supabase.rpc("at_confirm_pickup", {
+        p_pickup_id: p.pickupId,
+        p_guide_ids: p.guideIds,
+        p_note: p.note,
+      });
+      if (error) {
+        if (yaEstabaHecho(error)) return;
         throw error;
       }
       return;

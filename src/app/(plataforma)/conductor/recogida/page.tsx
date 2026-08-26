@@ -16,6 +16,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useOffline } from "@/components/OfflineContext";
+import { esFalloDeRed } from "@/lib/offline/queue";
 import { useProfile } from "@/components/ProfileContext";
 import { CediDestino } from "@/components/CediDestino";
 import { RecogidaQR } from "@/components/RecogidaQR";
@@ -80,6 +82,7 @@ export default function CourierPickupPage() {
   const [pickups, setPickups] = useState<Pickup[] | null>(null);
   const [marcadas, setMarcadas] = useState<Record<string, Set<string>>>({});
   const [nota, setNota] = useState<Record<string, string>>({});
+  const offline = useOffline();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Lo que acaba de recoger, para que elija qué hace con ello: entregar algo
@@ -165,9 +168,19 @@ export default function CourierPickupPage() {
     const { error } = await supabase.rpc("at_start_pickup", { p_pickup_id: p.pickup_id });
     setBusy(null);
     if (error) {
-      ventanaNav?.close();
-      setMsg({ ok: false, text: error.message });
-      return;
+      // Sin señal la salida no se cancela: se apunta y sube sola. El mensajero
+      // no puede quedarse parado en la puerta del CEDI esperando cobertura.
+      if (esFalloDeRed(error)) {
+        await offline.encolar("iniciar_recogida", { pickupId: p.pickup_id });
+        setMsg({
+          ok: true,
+          text: "Sin señal: la salida quedó apuntada y se envía sola cuando vuelva.",
+        });
+      } else {
+        ventanaNav?.close();
+        setMsg({ ok: false, text: error.message });
+        return;
+      }
     }
     await activarUbicacion();
     if (ventanaNav) {
@@ -223,7 +236,20 @@ export default function CourierPickupPage() {
       p_note: nota[p.pickup_id] || null,
     });
     setBusy(null);
-    if (error) {
+    if (error && esFalloDeRed(error)) {
+      // Lo mismo, y aquí importa más: esto ocurre DENTRO del comercio, que es
+      // donde peor entra la señal. Perder la confirmación obligaría a volver.
+      await offline.encolar("confirmar_recogida", {
+        pickupId: p.pickup_id,
+        guideIds: ids,
+        note: nota[p.pickup_id] || null,
+        comercio: p.business_name ?? null,
+      });
+      setMsg({
+        ok: true,
+        text: `Sin señal: ${ids.length} paquete(s) quedaron apuntados. Se envían solos cuando vuelva la conexión.`,
+      });
+    } else if (error) {
       setMsg({ ok: false, text: error.message });
     } else {
       const r = data as { recogidas: number; faltantes: number; comercio: string };

@@ -23,7 +23,7 @@
  * entregaba el mensaje, cambiaba de caballo y seguía. Así cubrían 200-300 km al
  * día en el siglo XIII.
  *
- * Dos detalles de ese sistema son, literalmente, este software:
+ * Tres detalles de ese sistema son, literalmente, este software:
  *
  *   · La paiza (gerege, «lo que da testimonio») era la tablilla que el
  *     mensajero mostraba en cada posta para que le dieran caballo y comida.
@@ -33,8 +33,17 @@
  *     para que en la posta siguiente los oyeran llegar y tuvieran el relevo
  *     listo antes de verlos. Una notificación anticipada.
  *
- * No es decoración: el CEDI es la posta, la guía es la paiza y la campana es
- * el cascabel. Por eso el nombre.
+ *   · La flecha silbadora (godoli): punta de hueso perforada que silba en
+ *     vuelo. No servía para herir, servía para AVISAR — se disparaba por
+ *     delante, y su silbido llegaba antes que quien la había tirado.
+ *
+ * Los dos últimos son la misma idea vista desde los dos lados, y por eso van
+ * juntos: en el yam la señal siempre viaja por delante del mensajero. El
+ * cascabel avisa de que ya llega; la flecha avisa antes de que salga.
+ *
+ * No es decoración: el CEDI es la posta, la guía es la paiza, la campana es el
+ * cascabel y el código que le llega al destinatario antes de que le toquen la
+ * puerta es la flecha. Por eso el nombre.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 

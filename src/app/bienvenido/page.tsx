@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Bell,
+  Crosshair,
   CheckCircle2,
   Clock,
   MapPinned,
@@ -68,7 +69,14 @@ const BIENVENIDA: Record<string, {
   },
 };
 
-/** Los tres detalles del yam que son, literalmente, esta plataforma. */
+/**
+ * Los cuatro detalles del yam que son, literalmente, esta plataforma.
+ *
+ * Los dos últimos van juntos y en ese orden a propósito: son la misma idea
+ * vista desde los dos lados. En el yam la señal siempre viajaba por delante
+ * del mensajero — el cascabel avisaba de que ya llegaba, la flecha avisaba
+ * antes de que saliera. La fuente de todo esto es `marca.ts`.
+ */
 const HERENCIA = [
   {
     icon: Warehouse,
@@ -84,6 +92,11 @@ const HERENCIA = [
     icon: Bell,
     titulo: "El cascabel es la campana",
     detalle: "Los corredores lo llevaban al cinto para que en la posta siguiente los oyeran llegar y tuvieran el relevo listo.",
+  },
+  {
+    icon: Crosshair,
+    titulo: "La flecha silbadora es tu código",
+    detalle: "Punta de hueso perforada que silbaba en vuelo. No se tiraba para herir: se tiraba para avisar, y su silbido llegaba antes que quien la había disparado.",
   },
 ];
 

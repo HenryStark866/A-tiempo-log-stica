@@ -154,17 +154,28 @@ export default function LandingPage() {
                   que existiera un camión.
                 </p>
                 <p>
-                  Dos cosas de ese sistema son, literalmente, esta plataforma. La{" "}
+                  Tres cosas de ese sistema son, literalmente, esta plataforma. La{" "}
                   <strong className="font-semibold text-slate-900 dark:text-white">paiza</strong> —
                   «lo que da testimonio»— era la tablilla que el mensajero mostraba en cada
                   posta para que le entregaran caballo fresco: una guía que se valida en cada
-                  punto del trayecto. Y sus corredores llevaban cascabeles al cinto, para que
-                  en la estación siguiente los oyeran llegar y tuvieran el relevo listo antes
-                  de verlos.
+                  punto del trayecto.
+                </p>
+                <p>
+                  Las otras dos son la misma idea vista desde los dos lados, porque en el yam
+                  la señal siempre viajaba por delante del mensajero. Sus corredores llevaban{" "}
+                  <strong className="font-semibold text-slate-900 dark:text-white">cascabeles</strong>{" "}
+                  al cinto, para que en la estación siguiente los oyeran llegar y tuvieran el
+                  relevo listo antes de verlos. Y para lo que no podía esperar a nadie tenían la{" "}
+                  <strong className="font-semibold text-slate-900 dark:text-white">
+                    flecha silbadora
+                  </strong>{" "}
+                  —punta de hueso perforada, que silba en vuelo—: no se tiraba para herir, se
+                  tiraba para avisar, y su silbido llegaba antes que quien la había disparado.
                 </p>
                 <p className="text-slate-500 dark:text-slate-400">
-                  El CEDI es la posta, la guía es la paiza y la campana de las notificaciones
-                  es el cascabel. El oficio no cambió tanto; nosotros solo le pusimos pantalla.
+                  El CEDI es la posta, la guía es la paiza, la campana de las notificaciones es
+                  el cascabel y el código que te llega antes de que toquen tu puerta es la
+                  flecha. El oficio no cambió tanto; nosotros solo le pusimos pantalla.
                 </p>
               </div>
             </div>

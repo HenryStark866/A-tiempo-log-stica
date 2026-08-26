@@ -584,9 +584,28 @@ body::before {
    separado, y esto se usa en teléfonos de gama baja. El desenfoque de la
    tarjeta que está encima ya hace el trabajo para lo que lleva dentro.
    ────────────────────────────────────────────────────────────────────────── */
+/* ── El tinte del cristal ──────────────────────────────────────────────────
+   Además de CUÁNTO deja pasar (la opacidad), una superficie tiene un color:
+   el vidrio no es incoloro. Y ahí estaba la diferencia que se veía a simple
+   vista entre el multicolor y el oscuro aunque los dos tuvieran la misma
+   opacidad y los mismos focos detrás: el multicolor tiñe de navy profundo
+   (18 16 34) y el oscuro tiñía de gris neutro (44 44 46). Un gris sobre luces
+   de colores se ve sucio —el color le atraviesa en vez de quedarse detrás—;
+   el navy las deja limpias.
+
+   Así que el oscuro pasa a usar el mismo navy. Los dos temas oscuros quedan
+   parecidos, que es justo lo que se pidió: la misma apariencia en todos.
+
+   El claro NO puede llevar ese tinte —un cristal navy sobre fondo claro es un
+   tema oscuro con otro nombre—, así que conserva el blanco. Sobre los focos,
+   ese blanco se convierte en un vidrio esmerilado de color, que es la misma
+   idea leída en claro.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
   --atl-superficie: 0.58;
   --atl-relleno: 0.42;
+  --atl-cristal: 255 255 255;
+  --atl-cristal-relleno: 242 242 247;
 }
 
 .dark,
@@ -595,46 +614,30 @@ body::before {
      atravesar. Van más abajo para que se note igual. */
   --atl-superficie: 0.48;
   --atl-relleno: 0.3;
+  --atl-cristal: 18 16 34;
+  --atl-cristal-relleno: 12 10 28;
 }
 
+/* Una sola regla para los tres temas: lo único que cambia es el tinte y la
+   opacidad, y los dos son variables. Antes había una regla por tema y era
+   donde se colaban las diferencias. */
 .atl-superficie {
-  background-color: rgb(255 255 255 / var(--atl-superficie));
+  background-color: rgb(var(--atl-cristal) / var(--atl-superficie));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
-.dark .atl-superficie,
-.tema-multicolor .atl-superficie {
-  background-color: rgb(44 44 46 / var(--atl-superficie));
-}
-
 /* El relleno: campos, botones secundarios, fichas, cabeceras de tabla. */
 .atl-relleno {
-  background-color: rgb(242 242 247 / var(--atl-relleno));
-}
-
-.dark .atl-relleno,
-.tema-multicolor .atl-relleno {
-  background-color: rgb(28 28 30 / var(--atl-relleno));
+  background-color: rgb(var(--atl-cristal-relleno) / var(--atl-relleno));
 }
 
 /* Al pasar el dedo o el ratón se opaca: es la señal de que responde. Sin ella
    un botón traslúcido no se distingue de una etiqueta. */
 .atl-relleno-hover:hover {
-  background-color: rgb(242 242 247 / calc(var(--atl-relleno) + 0.25));
+  background-color: rgb(var(--atl-cristal-relleno) / calc(var(--atl-relleno) + 0.25));
 }
 
-.dark .atl-relleno-hover:hover,
-.tema-multicolor .atl-relleno-hover:hover {
-  background-color: rgb(28 28 30 / calc(var(--atl-relleno) + 0.25));
-}
-
-/* El tercer tema tiene un fondo de colores mucho más vivo, y sobre él una
-   superficie gris se ve sucia. Se oscurece y se desatura un poco más para que
-   el color quede detrás del vidrio y no atravesándolo. */
-.tema-multicolor .atl-superficie {
-  background-color: rgb(18 16 34 / var(--atl-superficie));
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EL MAPA DE LA FLOTA

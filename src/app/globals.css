@@ -499,20 +499,31 @@ textarea:-webkit-autofill:focus {
    estos focos el mismo cristal cobra sentido. Por eso ahora los llevan los
    tres temas.
 
-   Van enteros en los tres, y ese es el punto: la apariencia tiene que ser la
-   misma en todos, no una versión aguada por tema.
+   ── Por qué el claro lleva MÁS alfa que el oscuro ─────────────────────────
+   Parece una excepción y es lo contrario: es lo que hace que se vea igual.
 
-   Estuvieron atenuados —medio en claro, 85% en oscuro— por miedo a que el
-   color sobre blanco se comiera el texto. Se midió y no ocurre: en tema claro,
-   con los focos a plena fuerza, el peor caso de contraste sobre los datos pasa
-   de 6,93 a 6,56, contra el 4,5 que pide AA. El miedo era razonable; el número
-   dice que no hacía falta.
+   El ojo juzga el cambio de color en relativo, no en absoluto. Un violeta al
+   22% sobre el suelo oscuro lo lleva de rgb(15,13,31) a rgb(20,17,41): un 45%
+   más de luminancia, y se nota. El MISMO 22% sobre el suelo claro lo lleva de
+   rgb(250,250,252) a rgb(245,244,252): un 2%. Invisible. Con el mismo número
+   en los dos temas, el claro sale lavado — que es exactamente lo que pasaba.
 
-   Se deja la variable —y no los degradados a pelo— porque sigue siendo el
-   único sitio donde bajarlos si algún día un fondo nuevo lo pide.
+   A 0,7 el claro llega a un 32% de cambio, cerca del 45% del oscuro, y el
+   contraste sobre los datos se queda en 5,42 (AA pide 4,5). Se probó 0,85, que
+   igualaría casi del todo, pero deja el contraste en 4,98: demasiado al filo
+   para una app que se lee al sol.
+
+   Los cuatro focos guardan su proporción entre ellos —el naranja siempre algo
+   por debajo del violeta, el rosa el más discreto— multiplicando sobre el
+   mismo mando en vez de llevar cada uno su número suelto.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --atl-focos: 1;
+  --atl-foco: 0.7;
+}
+
+.dark,
+.tema-multicolor {
+  --atl-foco: 0.22;
 }
 
 body::before {
@@ -521,12 +532,11 @@ body::before {
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  opacity: var(--atl-focos);
   background:
-    radial-gradient(60% 45% at 12% 8%,  rgba(255, 129, 44, 0.20), transparent 70%),
-    radial-gradient(55% 45% at 88% 18%, rgba(120, 90, 255, 0.22), transparent 70%),
-    radial-gradient(60% 50% at 78% 92%, rgba(0, 190, 190, 0.18), transparent 70%),
-    radial-gradient(50% 40% at 18% 88%, rgba(255, 70, 140, 0.16), transparent 70%);
+    radial-gradient(60% 45% at 12% 8%,  rgb(255 129 44 / calc(var(--atl-foco) * 0.91)), transparent 70%),
+    radial-gradient(55% 45% at 88% 18%, rgb(120 90 255 / var(--atl-foco)), transparent 70%),
+    radial-gradient(60% 50% at 78% 92%, rgb(0 190 190 / calc(var(--atl-foco) * 0.82)), transparent 70%),
+    radial-gradient(50% 40% at 18% 88%, rgb(255 70 140 / calc(var(--atl-foco) * 0.73)), transparent 70%);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

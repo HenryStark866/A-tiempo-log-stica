@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, Volume2 } from "lucide-react";
+import {
+  desbloquearSonido,
+  reproducirSonidoNotificacion,
+} from "@/lib/sonidoNotificacion";
 import { useNotificaciones } from "@/components/NotificationsContext";
 import { formatDateTime } from "@/lib/utils";
 import type { AppNotification } from "@/lib/types";
@@ -123,6 +127,23 @@ export function NotificationBell({
     await noti!.abrir(n);
   }
 
+  /**
+   * Oír el sonido a voluntad.
+   *
+   * Existe porque el del arranque no se puede dar por hecho: el navegador
+   * bloquea el audio hasta que la persona toca algo, y el splash sale ANTES de
+   * que haya tocado nada. En un teléfono recién estrenado no suena, y desde
+   * fuera eso no se distingue de «está roto».
+   *
+   * Aquí no hay esa duda: el toque que abre el sonido es el permiso que el
+   * navegador estaba pidiendo, así que si no se oye es el volumen del aparato
+   * y no la app.
+   */
+  function probarSonido() {
+    desbloquearSonido();
+    reproducirSonidoNotificacion();
+  }
+
   async function pedirPermiso() {
     if (typeof Notification === "undefined") return;
     try {
@@ -179,6 +200,14 @@ export function NotificationBell({
           </p>
         </div>
       )}
+
+      <button
+        onClick={probarSonido}
+        className="flex w-full shrink-0 items-center gap-2 border-b border-slate-900/[0.06] px-4 py-2.5 text-left text-[13px] text-slate-500 transition-colors hover:bg-slate-900/[0.04] active:opacity-70 dark:border-white/[0.08] dark:text-slate-400 dark:hover:bg-white/[0.06]"
+      >
+        <Volume2 className="size-4 shrink-0" />
+        Probar el sonido
+      </button>
 
       {items.length === 0 ? (
         <p className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-slate-400">

@@ -29,7 +29,12 @@ html {
 }
 
 body {
-  @apply bg-[#F2F2F7] text-slate-900 antialiased dark:bg-[#1C1C1E] dark:text-slate-100;
+  @apply text-slate-900 antialiased dark:text-slate-100;
+  /* El color sale de `--atl-suelo` (ver EL MANDO DE LA TRANSPARENCIA) y no de
+     utilidades por tema. Antes eran `bg-[#F2F2F7] dark:bg-[#1C1C1E]` más un
+     tercer color solo para el multicolor, y por eso los temas no se parecían
+     por debajo por mucho que se igualara el cristal de encima. */
+  background-color: rgb(var(--atl-suelo));
 }
 
 ::selection {
@@ -273,13 +278,9 @@ select option {
   pointer-events: none;
   /* Aísla el repintado del fondo del resto de la página. */
   contain: strict;
-  /* El color con el que la viñeta apaga el centro: el del fondo de cada tema,
-     para que el texto siempre caiga sobre superficie limpia. */
-  --atl-centro: rgba(242, 242, 247, 0.9);
-}
-
-.dark .atl-fondo {
-  --atl-centro: rgba(28, 28, 30, 0.88);
+  /* El color con el que la viñeta apaga el centro: el mismo suelo del tema, a
+     la fuerza que diga `--atl-vineta`. Ver EL MANDO DE LA TRANSPARENCIA. */
+  --atl-centro: rgb(var(--atl-suelo) / var(--atl-vineta));
 }
 
 /* El contenido siempre por encima del fondo. */
@@ -487,14 +488,6 @@ textarea:-webkit-autofill:focus {
    siguiente paso, no disimulado con reglas que no funcionan.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.tema-multicolor {
-  --mc-fondo: #0c0a1c;
-}
-
-.tema-multicolor body {
-  background-color: var(--mc-fondo);
-}
-
 /* ── Los cuatro focos ──────────────────────────────────────────────────────
    Naranja, violeta, turquesa y rosa. Fijos y detrás de todo: se mueven las
    tarjetas por encima, no el degradado, que es lo que evita el mareo en un
@@ -534,13 +527,6 @@ body::before {
     radial-gradient(55% 45% at 88% 18%, rgba(120, 90, 255, 0.22), transparent 70%),
     radial-gradient(60% 50% at 78% 92%, rgba(0, 190, 190, 0.18), transparent 70%),
     radial-gradient(50% 40% at 18% 88%, rgba(255, 70, 140, 0.16), transparent 70%);
-}
-
-/* La viñeta de los fondos animados apaga el centro con el color del tema. Sin
-   esto seguiría usando el gris del modo oscuro y dejaría un rectángulo más
-   claro justo en medio de la pantalla. */
-.tema-multicolor .atl-fondo {
-  --atl-centro: rgba(12, 10, 28, 0.86);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -602,6 +588,25 @@ body::before {
   --atl-relleno: 0.42;
   --atl-cristal: 255 255 255;
   --atl-cristal-relleno: 242 242 247;
+  --atl-suelo: 242 242 247;
+}
+
+/**
+ * Cuánto apaga la viñeta el centro de la pantalla.
+ *
+ * Aquí estaba lo que hacía que los focos no se vieran POR NINGUNA PARTE.
+ * La viñeta —un degradado que cubre el 70% × 60% central— iba al 86-92% y
+ * vive dentro de `.atl-fondo`, o sea en z-index -1: por ENCIMA de los focos,
+ * que están en -2. Los tapaba justo donde está el contenido, en las tres
+ * pantallas y los tres temas. Se igualaba el cristal, se subían los focos, y
+ * no se notaba nada — porque el problema estaba en medio.
+ *
+ * Al 62% sigue haciendo su trabajo —dar un centro más tranquilo que los
+ * bordes— sin borrar lo que hay detrás. Puede bajar más si se quiere el fondo
+ * aún más presente; lo que no puede es volver al 88.
+ */
+:root {
+  --atl-vineta: 0.62;
 }
 
 .dark,
@@ -612,6 +617,9 @@ body::before {
   --atl-relleno: 0.3;
   --atl-cristal: 18 16 34;
   --atl-cristal-relleno: 12 10 28;
+  /* El suelo navy que solo tenía el multicolor. Sobre un suelo gris neutro los
+     focos se ven sucios: el color lo atraviesa en vez de quedarse detrás. */
+  --atl-suelo: 12 10 28;
 }
 
 /* Una sola regla para los tres temas: lo único que cambia es el tinte y la

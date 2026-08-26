@@ -86,7 +86,6 @@ export default function EntregaActivaPage() {
 
         {/* Map Placeholder */}
         <div className="atl-superficie rounded-2xl h-32 overflow-hidden relative shadow-sm flex items-center justify-center transition-colors duration-300">
-          <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
           <div className="z-10 flex flex-col items-center gap-2">
             <div className="bg-[#ff812c] text-[#1C1C1E] p-2.5 rounded-full shadow-md">
               <Navigation2 className="w-5 h-5" />

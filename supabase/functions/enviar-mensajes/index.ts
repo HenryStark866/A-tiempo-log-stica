@@ -4,25 +4,30 @@
 // propósito: si el proveedor se cae o se demora, el CEDI sigue despachando y
 // el mensaje se reintenta después. Nunca al revés.
 //
-// DESPLIEGUE (requiere una cuenta de Twilio; sin las credenciales la función
-// no envía nada y lo dice en el log, no falla a medias):
+// DESPLIEGUE. Basta con UNO de los dos caminos de salida:
 //
-//   supabase secrets set TWILIO_ACCOUNT_SID=ACxxxx
-//   supabase secrets set TWILIO_AUTH_TOKEN=xxxx
-//   supabase secrets set TWILIO_SMS_FROM=+57300xxxxxxx
-//   supabase secrets set TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-//   supabase functions deploy enviar-mensajes
+//   · El puente propio (recomendado, sin coste por mensaje):
+//       supabase secrets set OPENWA_API_URL=https://…
+//       supabase secrets set OPENWA_API_KEY=…
+//       supabase secrets set OPENWA_SESSION_NAME=walle
+//   · Twilio (respaldo, y el único para SMS):
+//       supabase secrets set TWILIO_ACCOUNT_SID=ACxxxx
+//       supabase secrets set TWILIO_AUTH_TOKEN=xxxx
+//       supabase secrets set TWILIO_SMS_FROM=+57300xxxxxxx
 //
-// Y para que corra sola cada minuto, un cron en la base:
-//   select cron.schedule('enviar-mensajes', '* * * * *', $$
-//     select net.http_post(
-//       url := '<url-del-proyecto>/functions/v1/enviar-mensajes',
-//       headers := '{"Authorization":"Bearer <service-role-key>"}'::jsonb
-//     ) $$);
+// Y SIEMPRE, o la función responde 401 a todo:
+//       supabase secrets set AT_CRON_SECRET=<el mismo del vault>
+//
+// Ese secreto es lo único que la protege. Con `verify_jwt`, la llave anónima
+// —que viaja en el navegador de cualquiera— bastaría para invocarla y forzar
+// el vaciado de la cola en bucle. Tiene que valer lo mismo que
+// `vault.decrypted_secrets` con nombre `at_cron_secret`, que es lo que manda
+// el cron en la cabecera `x-at-cron` (ver migración 0102).
 //
 // WhatsApp por Twilio exige una plantilla aprobada por Meta para escribir
 // primero a alguien. Mientras no esté aprobada, ese canal va a fallar y el SMS
-// va a pasar: por eso se encolan los dos y basta con que uno llegue.
+// va a pasar: por eso se encolan los dos y basta con que uno llegue. El puente
+// propio no tiene esa limitación — usa una sesión de WhatsApp de verdad.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -114,7 +119,24 @@ async function enviarTwilio(to: string, body: string, canal: "sms" | "whatsapp")
   return json.sid as string;
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  /**
+   * Quién puede pedir que se vacíe la cola.
+   *
+   * Solo el reloj, y se comprueba con un secreto compartido — el mismo patrón
+   * que ya usa `shopify-sync`. Antes esta función no validaba NADA: con
+   * `verify_jwt`, la llave anónima basta para invocarla, y esa llave viaja en
+   * el navegador de cualquiera que abra la app. Cualquiera podía forzar el
+   * vaciado en bucle y quemar la sesión de WhatsApp a base de peticiones.
+   *
+   * Sin secreto configurado no se abre nunca, aunque la cabecera venga: un
+   * despliegue al que se le olvidó el secreto tiene que fallar cerrado.
+   */
+  const secreto = Deno.env.get("AT_CRON_SECRET");
+  if (!secreto || req.headers.get("x-at-cron") !== secreto) {
+    return Response.json({ error: "No autorizado" }, { status: 401 });
+  }
+
   // Basta con que UNO de los dos esté configurado. Antes exigía Twilio y se
   // rendía: con el puente propio funcionando, eso dejaba la cola sin vaciar.
   if (!hayPuente && !(SID && TOKEN)) {

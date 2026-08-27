@@ -52,6 +52,20 @@ const MAX_INTENTOS = 3;
 const LOTE = 50;
 
 /**
+ * Cuánto vive un mensaje antes de darse por caducado.
+ *
+ * Un código de entrega sirve hasta que el mensajero toca la puerta; después no
+ * es que sobre, es que confunde. Sin este límite, la cola es una bomba de
+ * relojería: el día que se configure un canal, TODO lo acumulado sale de
+ * golpe. Y lo acumulado eran códigos de paquetes ya entregados —uno de hace
+ * siete días—, o sea gente recibiendo «este es el código de tu paquete» por
+ * algo que ya tiene en casa.
+ *
+ * Doce horas es generoso para una operación que recoge y entrega el mismo día.
+ */
+const CADUCA_TRAS_HORAS = 12;
+
+/**
  * Normaliza a E.164 colombiano. Los números llegan como los escribió el
  * comercio ("313 546 7802", "3135467802"), y el proveedor los rechaza si no
  * van con indicativo.
@@ -166,7 +180,24 @@ Deno.serve(async (req) => {
   let ok = 0;
   let fallidos = 0;
 
+  let caducados = 0;
+
   for (const m of pendientes ?? []) {
+    // Lo viejo no se manda: se archiva. Antes que el teléfono, porque un
+    // mensaje caducado no merece ni que se le mire el número.
+    const horas = (Date.now() - new Date(m.created_at).getTime()) / 3_600_000;
+    if (horas > CADUCA_TRAS_HORAS) {
+      await supabase
+        .from("at_message_outbox")
+        .update({
+          status: "fallido",
+          error: `Caducado: se encoló hace ${Math.round(horas)} h y ya no sirve`,
+        })
+        .eq("id", m.id);
+      caducados++;
+      continue;
+    }
+
     const to = m.to_phone ? aE164(m.to_phone) : null;
 
     if (!to) {
@@ -219,5 +250,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  return Response.json({ enviados: ok, fallidos, revisados: pendientes?.length ?? 0 });
+  return Response.json({
+    enviados: ok,
+    fallidos,
+    caducados,
+    revisados: pendientes?.length ?? 0,
+  });
 });

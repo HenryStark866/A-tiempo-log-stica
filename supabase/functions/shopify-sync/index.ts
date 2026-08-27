@@ -13,10 +13,10 @@
 //    sincroniza sola» cuando en realidad había que apretar un botón — y el
 //    botón vive en una pantalla que el asesor ni siquiera tiene en su menú.
 //
-//    Se identifica con una cabecera x-at-cron contra un secreto compartido. Si
-//    el secreto NO está configurado en el entorno, esta puerta queda cerrada:
-//    vale más que la sincronización automática no arranque a que quede un
-//    endpoint abierto que le sincroniza la tienda a cualquiera.
+//    Se identifica con una cabecera x-at-cron contra el secreto del vault. Si
+//    no coincide, esta puerta queda cerrada: vale más que la sincronización
+//    automática no arranque a que quede un endpoint abierto que le sincroniza
+//    la tienda a cualquiera.
 //
 // 2. UNA PERSONA. Se identifica con SU propio JWT y su comercio sale de quién
 //    es, no de un parámetro: así un comercio no puede pedir la sincronización
@@ -193,12 +193,23 @@ Deno.serve(async (req) => {
   const admin = createClient(url, service);
 
   // ── Puerta 1: el reloj ──────────────────────────────────────────────────
-  const secreto = Deno.env.get("AT_CRON_SECRET");
+  //
+  // Se comprueba contra el VAULT, no contra un secreto de Edge Functions.
+  // Aquí estaba el fallo que dejó esta sincronización muerta durante meses:
+  // `AT_CRON_SECRET` nunca se configuró, así que este bloque respondía 401
+  // cada quince minutos y los pedidos de Shopify no entraban solos. Nadie lo
+  // vio porque el cron «corría» sin quejarse y el 401 solo quedaba en
+  // `net._http_response`, que no mira nadie.
+  //
+  // Un secreto que hay que copiar a mano entre dos sistemas se desincroniza
+  // tarde o temprano. Ahora solo hay una copia (ver migración 0103).
   const vieneDelCron = req.headers.get("x-at-cron");
 
   if (vieneDelCron) {
-    // Sin secreto configurado no se abre nunca, aunque la cabecera venga.
-    if (!secreto || vieneDelCron !== secreto) {
+    const { data: autorizado } = await admin.rpc("at_cron_secreto_valido", {
+      p_secreto: vieneDelCron,
+    });
+    if (autorizado !== true) {
       return Response.json({ error: "No autorizado" }, { status: 401, headers: cors });
     }
 

@@ -15,14 +15,11 @@
 //       supabase secrets set TWILIO_AUTH_TOKEN=xxxx
 //       supabase secrets set TWILIO_SMS_FROM=+57300xxxxxxx
 //
-// Y SIEMPRE, o la función responde 401 a todo:
-//       supabase secrets set AT_CRON_SECRET=<el mismo del vault>
-//
-// Ese secreto es lo único que la protege. Con `verify_jwt`, la llave anónima
-// —que viaja en el navegador de cualquiera— bastaría para invocarla y forzar
-// el vaciado de la cola en bucle. Tiene que valer lo mismo que
-// `vault.decrypted_secrets` con nombre `at_cron_secret`, que es lo que manda
-// el cron en la cabecera `x-at-cron` (ver migración 0102).
+// No hace falta configurar ningún secreto más: la función comprueba la
+// cabecera `x-at-cron` contra el vault de la propia base. Con `verify_jwt`, la
+// llave anónima —que viaja en el navegador de cualquiera— bastaría para
+// invocarla y forzar el vaciado en bucle, así que esa puerta es lo único que
+// la protege (ver migraciones 0102 y 0103).
 //
 // WhatsApp por Twilio exige una plantilla aprobada por Meta para escribir
 // primero a alguien. Mientras no esté aprobada, ese canal va a fallar y el SMS
@@ -129,11 +126,23 @@ Deno.serve(async (req) => {
    * el navegador de cualquiera que abra la app. Cualquiera podía forzar el
    * vaciado en bucle y quemar la sesión de WhatsApp a base de peticiones.
    *
-   * Sin secreto configurado no se abre nunca, aunque la cabecera venga: un
-   * despliegue al que se le olvidó el secreto tiene que fallar cerrado.
+   * Se comprueba contra el VAULT, no contra un secreto de Edge Functions. Esa
+   * segunda copia había que mantenerla igual a mano y nunca se puso: el cron
+   * de Shopify llevaba meses respondiendo 401 por eso, sin que nadie lo viera.
+   * Con una sola copia no hay nada que desincronizar.
+   *
+   * El secreto no sale de la base: se manda el candidato y vuelve un sí o un
+   * no (`at_cron_secreto_valido`, migración 0103).
    */
-  const secreto = Deno.env.get("AT_CRON_SECRET");
-  if (!secreto || req.headers.get("x-at-cron") !== secreto) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  const { data: autorizado } = await supabase.rpc("at_cron_secreto_valido", {
+    p_secreto: req.headers.get("x-at-cron") ?? "",
+  });
+  if (autorizado !== true) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
@@ -143,11 +152,6 @@ Deno.serve(async (req) => {
     console.warn("Ni puente de WhatsApp ni Twilio configurados: no se envía nada.");
     return Response.json({ enviados: 0, motivo: "sin credenciales" }, { status: 200 });
   }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
 
   const { data: pendientes, error } = await supabase
     .from("at_message_outbox")

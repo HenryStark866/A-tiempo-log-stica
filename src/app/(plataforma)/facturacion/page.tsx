@@ -259,9 +259,10 @@ export default function BillingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoice_id: inv.id, amount: inv.total }),
       });
-      const json = await res.json();
-      if (!res.ok || !json.url) {
-        setMsg({ ok: false, text: json.error ?? "No se pudo iniciar el pago con Polar" });
+      // La forma la fija src/lib/api/respuesta.ts: `ok` y, si no, `motivo`.
+      const json = (await res.json()) as { ok?: boolean; url?: string; motivo?: string };
+      if (!json.ok || !json.url) {
+        setMsg({ ok: false, text: json.motivo ?? "No se pudo iniciar el pago con Polar" });
         return;
       }
       window.open(json.url, "_blank", "noopener,noreferrer");

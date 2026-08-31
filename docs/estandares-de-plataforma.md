@@ -372,6 +372,28 @@ operación encima, es una ventana de mantenimiento.
   - **NO** en tablas de configuración (`at_zones` 15 filas, `at_clients` 10):
     Postgres las lee enteras más rápido.
 
+**El aviso de «recursos agotados» del 2026-08-31, y qué era.**
+
+Supabase avisó de que el proyecto estaba agotando varios recursos. Medido con
+`pg_stat_statements` —y esto es lo que hay que volver a hacer la próxima vez,
+antes de tocar nada—:
+
+| Qué | Cuánto | Veredicto |
+| --- | --- | --- |
+| **Tiempo real de Supabase** | **95,5 % del trabajo de la base AHORA**, 1,9 sondeos del WAL por segundo, 24/7, haya alguien o no. 7 de 23 conexiones y 2 ranuras de réplica | **sin resolver: es decisión de producto** |
+| `at_dashboard_kpis()` | 115 ms de media, recorría `at_guides` **ocho veces** para pintar una pantalla | resuelto (0109): un solo recorrido |
+| `at-enviar-mensajes` | una petición HTTP cada minuto para un buzón vacío | resuelto (0109): pregunta antes. De 60 s de *timeout* a **4,8 ms** |
+| `cron.job_run_details` | 11.776 filas, 9,3 MB, **la segunda tabla más grande de la base**, sin purga | resuelto (0109): se guardan 7 días |
+| Disco y ranuras de réplica | 37 MB, 176 bytes retenidos | sanos, no eran el problema |
+| Instancia | Micro: 1 GB de RAM (`shared_buffers` 224 MB) | es el techo real |
+
+**Lo que sigue pendiente y es lo gordo:** el tiempo real cuesta lo mismo a las
+3 de la mañana sin nadie conectado que en hora punta, y lo paga por **una**
+suscripción sobre dos tablas que en toda su historia han visto 236 cambios de
+posición y 244 notificaciones. Las dos pantallas que lo usan (`/mapa` y la
+campana) **ya recargan solas** con `setInterval`, así que apagarlo no pierde
+ningún dato: pierde inmediatez. Por eso no se apaga desde una migración.
+
 **Los límites que hay que tener presentes.**
 
 - Los **crons de `pg_cron`** son de un solo hilo por trabajo. `at-enviar-mensajes`

@@ -90,10 +90,14 @@ De ahí, tres reglas que no se negocian:
   diseño, no un descuido: la lógica del negocio vive en Postgres y cada función
   comprueba el rol por dentro. Lo que hay que vigilar es que la comprobación
   esté, no que la función exista.
-- **6 ejecutables por `anon`**, y las seis tienen que serlo: el rastreo por
+- **7 ejecutables por `anon`**, y las siete tienen que serlo: el rastreo por
   número y por token, los datos de pago, el registro de eventos de seguridad,
-  el buscador de comercios del registro y las marcas de la portada. Cinco de
-  las seis llevan freno (`at_limitar`, migración 0063).
+  el buscador de comercios del registro, las marcas de la portada y el semáforo
+  `at_salud()`. Seis de las siete llevan freno (`at_limitar`, migración 0063);
+  la excepción es `at_landing_brands`, que devuelve 24 nombres de comercios que
+  pidieron salir en la portada y es `stable` — ponerle freno la volvería
+  `volatile` y metería una escritura en cada carga de la portada a cambio de
+  nada.
 - **15 tablas con varias políticas permisivas para el mismo rol y acción.**
   Postgres las evalúa como un `OR`; fundirlas en una sola ahorraría un poco.
   No se hace: «el dueño administra sus sedes» y «ops administra sedes» se leen
@@ -102,8 +106,10 @@ De ahí, tres reglas que no se negocian:
 - **`pg_net` instalado en el esquema `public`.** Lo instala Supabase y sus doce
   funciones viven en `net`. Moverlo rompería las llamadas de los crons a
   `net.http_post` a cambio de callar un aviso.
-- **Protección de contraseñas filtradas: apagada.** No se puede encender por
-  migración; es un interruptor del panel. → ver «Lo que falta».
+- **Protección de contraseñas filtradas: encendida el 2026-08-31** (Auth →
+  Providers → Email). Es un interruptor del panel y no se puede poner por
+  migración, así que su guardián es el *linter*: si el aviso
+  `auth_leaked_password_protection` vuelve a aparecer, alguien la apagó.
 
 ---
 
@@ -415,8 +421,7 @@ mensajero, y resuelve el problema de hoy: dejar de estar ciegos.
 
 | Qué | Quién | Por qué importa |
 | --- | --- | --- |
-| `SUPABASE_SERVICE_ROLE_KEY` en Vercel | Henry | **sin ella `/api/polar/webhook` no puede marcar facturas como pagadas** |
-| Encender «Leaked password protection» (Supabase → Auth → Policies) | Henry | es un interruptor del panel; no se puede por migración |
+| **Las cuatro variables de Polar en Vercel** (`POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_PRODUCT_ID`, `NEXT_PUBLIC_APP_URL`) | Henry | **el cobro por Polar no funciona sin ellas**: hoy Production solo tiene las dos de Supabase y la llave de servicio. El checkout responde 500 y el webhook también |
 | Puente de WhatsApp con URL pública | bloqueado | Oracle no da capacidad ARM y el paso a Pay As You Go pide 100 USD |
 | 8 de 10 comercios sin medio de cobro | negocio | sin cuenta no hay a dónde girarles el contraentrega |
 | Cero operarios dados de alta | negocio | |

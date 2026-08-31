@@ -14,6 +14,27 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: __dirname,
   poweredByHeader: false,
+  /**
+   * El paquete del navegador va comprimido y SIN mapas de origen.
+   *
+   * Las dos líneas siguientes son el valor por omisión de Next, y están
+   * escritas igual: un ajuste que protege algo y que solo existe por omisión
+   * se pierde el día que alguien cambie la versión de Next o copie este
+   * archivo a otro proyecto, y se pierde en silencio.
+   *
+   * Por qué sin mapas: un `.map` es el código fuente entero servido en
+   * público. En esta app eso enseñaría los nombres de las RPC, la forma de
+   * cada tabla y el orden en que se comprueban los roles — el mapa de la
+   * casa para quien quiera buscarle la vuelta a RLS. No estorba para
+   * depurar: los errores del navegador llegan a /api/telemetria con la
+   * versión (el SHA del commit), y con ese SHA se reconstruye el mapa en
+   * local cuando haga falta.
+   *
+   * `scripts/verificar-paquete.mjs` lo comprueba sobre el build de verdad, y
+   * CI lo corre en cada cambio: así esto no depende de que nadie lo relea.
+   */
+  productionBrowserSourceMaps: false,
+  compress: true,
   // `env` inyecta el valor en tiempo de compilación tanto en el paquete del
   // navegador como en el del servidor: los dos lados comparan exactamente la
   // misma cadena, que es lo que hace fiable la detección de versión nueva.

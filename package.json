@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:db": "vitest run tests/db"
+    "test:db": "vitest run tests/db",
+    "paquete": "node scripts/verificar-paquete.mjs",
+    "verificar": "npm run typecheck && npm run lint && npm run test:run && npm run build && npm run paquete"
   },
   "dependencies": {
     "@polar-sh/sdk": "^0.49.0",

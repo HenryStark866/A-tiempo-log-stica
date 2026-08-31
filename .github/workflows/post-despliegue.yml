@@ -1,0 +1,67 @@
+# Comprobar que lo que se publicó es lo que se quería publicar.
+#
+# ── El hueco que tapa ──────────────────────────────────────────────────────
+# Vercel despliega en cuanto algo entra en `main`, sin esperar a CI. O sea que
+# hoy un commit puede estar sirviendo a los mensajeros MIENTRAS el workflow de
+# CI todavía está compilando — y si CI falla, ya es tarde. Y aunque el
+# despliegue diga «listo», nadie comprueba nunca que la app arrancó de verdad:
+# un middleware que revienta por una variable que falta responde 500 en TODAS
+# las rutas y Vercel lo da por bueno igual. Eso ya pasó una vez (ver el
+# comentario de `origenDeSupabase` en src/middleware.ts).
+#
+# Esto lo cierra por el otro extremo: cuando Vercel avisa de que un despliegue
+# de producción terminó, se le pregunta a la app.
+#
+# ── Lo que NO hace ─────────────────────────────────────────────────────────
+# No impide el despliegue malo: avisa después. Bloquearlo antes exige proteger
+# `main` con los checks de CI en obligatorio, y eso obliga a trabajar por PR —
+# una decisión de cómo trabaja Henry, no una que deba tomar un archivo. El
+# comando está escrito en docs/estandares-de-plataforma.md, listo para el día
+# que se quiera.
+
+name: Post-despliegue
+
+on:
+  deployment_status:
+
+jobs:
+  comprobar:
+    name: La app publicada responde
+    # Solo cuando Vercel dice que terminó BIEN y es producción: los despliegues
+    # de vista previa de cada rama son otra cosa y no valen para esto.
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Esperar a que el primer arranque termine
+        # La primera petición a una función recién publicada la levanta de
+        # cero. Preguntar en el mismo segundo mide el arranque, no la salud.
+        run: sleep 20
+
+      - name: Está en pie y la base responde
+        run: |
+          curl --fail-with-body --show-error --silent \
+               --max-time 30 --retry 3 --retry-delay 10 \
+               "${{ github.event.deployment_status.environment_url }}/api/salud"
+
+      - name: Se publicó ESTE commit y no el anterior
+        # `generateBuildId` en next.config.ts hace que la versión publicada sea
+        # el SHA corto del commit. Si no coincide, Vercel sirvió otra cosa:
+        # normalmente un despliegue anterior que quedó como el bueno porque
+        # este falló al compilar.
+        run: |
+          esperado="$(echo '${{ github.sha }}' | cut -c1-8)"
+          publicado="$(curl --fail --show-error --silent --max-time 30 \
+            "${{ github.event.deployment_status.environment_url }}/api/version" \
+            | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')"
+
+          echo "Esperado:  $esperado"
+          echo "Publicado: $publicado"
+
+          if [ "$esperado" != "$publicado" ]; then
+            echo "::error::La app publicada dice '$publicado' y este commit es '$esperado'."
+            exit 1
+          fi

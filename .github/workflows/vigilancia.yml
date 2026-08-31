@@ -1,0 +1,66 @@
+# El vigilante: pregunta cada quince minutos si la operación está en pie.
+#
+# ── Por qué existe ──────────────────────────────────────────────────────────
+# El 2026-08-27 salieron tres fallos que llevaban semanas o meses corriendo sin
+# quejarse: el cron de Shopify devolvía 401 cada quince minutos, la cola de
+# mensajes se llenaba sin que nadie la vaciara, y cuatro códigos de entrega de
+# paquetes ya entregados esperaban para salir de golpe. Ninguno rompía una
+# pantalla, así que nadie reclamó.
+#
+# Lo que faltaba no era otro panel: era que algo PREGUNTARA solo. Esto es lo
+# más barato que hace eso — sin cuenta nueva, sin coste y sin servidor.
+#
+# ── Cómo avisa ─────────────────────────────────────────────────────────────
+# Fallando. GitHub manda correo cuando un workflow programado falla, así que la
+# notificación ya está montada y no hay que configurar nada. Si algún día hace
+# falta que suene más fuerte, aquí es donde se engancha.
+#
+# ── Su límite, dicho en voz alta ───────────────────────────────────────────
+# GitHub NO garantiza la puntualidad de los `schedule`: cuando hay cola pueden
+# retrasarse, y en repos sin actividad los desactiva a los 60 días. Sirve para
+# enterarse en menos de una hora, no en menos de un minuto. Para eso hace falta
+# un vigilante de verdad (UptimeRobot y similares tienen plan gratis), y
+# /api/salud ya está listo para que lo interrogue igual: 200 si va, 503 si no.
+
+name: Vigilancia
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+# Nunca dos a la vez: si una tarda, la siguiente espera en vez de duplicar.
+concurrency:
+  group: vigilancia
+  cancel-in-progress: false
+
+jobs:
+  preguntar:
+    name: ¿Está en pie?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: El semáforo de la operación
+        run: |
+          echo "Preguntando a https://atiempologistica.com/api/salud"
+          # --fail-with-body: sale con error en 503 pero IMPRIME el cuerpo, que
+          # es donde viene el motivo. Con --fail a secas el correo llegaría
+          # diciendo solo «falló», que obliga a entrar a mirar.
+          curl --fail-with-body --show-error --silent \
+               --max-time 20 --retry 2 --retry-delay 10 \
+               https://atiempologistica.com/api/salud
+
+      - name: La app responde y dice qué versión está publicada
+        run: |
+          curl --fail-with-body --show-error --silent \
+               --max-time 20 \
+               https://atiempologistica.com/api/version
+
+      - name: El rastreo público sigue abierto
+        # Es la única pantalla que abre gente sin cuenta, y la que más se nota
+        # si se cae: un comprador esperando su paquete.
+        run: |
+          curl --fail --show-error --silent --output /dev/null \
+               --max-time 20 \
+               https://atiempologistica.com/rastreo

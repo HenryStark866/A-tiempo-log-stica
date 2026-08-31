@@ -7,6 +7,28 @@ TypeScript + Tailwind 4 + Supabase. Todo en **español**, incluida la UI y los c
 > memoria del proyecto. Este archivo solo describe **dónde está cada cosa**, para no
 > reexplorar el repo.
 
+## Antes de escribir código, lee esto
+
+**[`docs/estandares-de-plataforma.md`](docs/estandares-de-plataforma.md)** —
+cómo tiene que estar hecho cada frente (paquete sin mapas de origen, RLS,
+control de versiones, APIs, hosting, despliegue, seguridad y freno, caché,
+escalabilidad y monitoreo), con el guardián de cada regla y lo que se aceptó a
+sabiendas. **Vale para cualquiera que trabaje aquí, persona o agente.**
+
+Lo mínimo, si no vas a leerlo entero:
+
+- **RLS es la única capa de autorización.** Toda tabla `at_` nace con RLS; toda
+  función `security definer` comprueba el rol por dentro y se revoca de `anon`.
+  Tras cada cambio de esquema, `get_advisors` de seguridad **y** de rendimiento.
+- **Elegir bien el cliente de Supabase**: `client.ts` en el navegador,
+  `server.ts` cuando hay persona, `servicio.ts` **solo** cuando quien llama es
+  una máquina (se salta RLS entera). Equivocarse no da error: da cero filas.
+- **Toda ruta `/api`** usa `src/lib/api/respuesta.ts` (una sola forma) y
+  `src/lib/api/freno.ts` (tope).
+- **Antes de empujar**, `npm run verificar`.
+- **Dos proyectos de Supabase activos**: este es `uhbtivaepyhwfdvtpfjq`.
+  Confirmar el ref antes de cada migración.
+
 ## La memoria del proyecto
 
 Está en una bóveda de Obsidian, en `C:\Users\tabor\CLAUDE_CDH`. Son archivos `.md`
@@ -32,9 +54,13 @@ Los secretos **no** se escriben en la bóveda. Viven en Vercel y en Supabase.
 ## Comandos
 
 ```bash
-npm run dev     # servidor de desarrollo (puerto 3000)
-npm run build   # build de producción — úsalo para verificar que compila
+npm run dev        # servidor de desarrollo (puerto 3000)
+npm run build      # build de producción — úsalo para verificar que compila
 npm run lint
+npm run typecheck
+npm run test:run   # los de la base se saltan solos sin staging configurado
+npm run paquete    # revisa el build: sin mapas de origen, y cuánto pesa arrancar
+npm run verificar  # todo lo anterior en el orden de CI. Correr antes de empujar.
 ```
 
 Para previsualizar usar el panel Browser con `preview_start {name: "atiempo-dev"}`
@@ -63,6 +89,11 @@ supabase/functions/    edge functions (enviar-mensajes, shopify-sync)
 
 | Necesitas | Archivo |
 | --- | --- |
+| Cómo tiene que estar hecho cada frente | `docs/estandares-de-plataforma.md` |
+| Forma y caché de las respuestas de /api | `src/lib/api/respuesta.ts` |
+| Tope de peticiones en las rutas de Next | `src/lib/api/freno.ts` |
+| Cliente de Supabase sin persona detrás | `src/lib/supabase/servicio.ts` |
+| Semáforo de la operación | `app/api/salud` + `at_salud()` en la base |
 | Nombres de marca (YAM vs ATL) | `src/lib/marca.ts` — fuente única, nunca a mano |
 | Fechas y horas | `src/lib/tiempo.ts` — todo anclado a `America/Bogota` |
 | Versión publicada y hora del servidor | `src/lib/servidor.ts` + `app/api/version` |

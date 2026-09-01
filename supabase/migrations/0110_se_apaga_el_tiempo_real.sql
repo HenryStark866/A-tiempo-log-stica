@@ -1,0 +1,48 @@
+-- A TIEMPO LOGÍSTICA — se apaga el tiempo real.
+--
+-- ── Lo que costaba ────────────────────────────────────────────────────────
+-- Medido con pg_stat_statements el 2026-08-31, con la aplicación prácticamente
+-- vacía y nadie usándola:
+--
+--   · 95,5 % del trabajo de la base EN ESE MOMENTO
+--   · 1,9 sondeos del WAL por segundo, día y noche
+--   · 802.929 sondeos y 4.341 segundos de CPU acumulados
+--   · 7 de las 23 conexiones y 2 ranuras de réplica
+--
+-- ── Lo que compraba ───────────────────────────────────────────────────────
+-- UNA suscripción viva, sobre dos tablas que en toda su historia han visto 236
+-- cambios de posición y 244 notificaciones.
+--
+-- Lo que decide no es el porcentaje: es que ese coste es CONSTANTE. El tiempo
+-- real sondea igual a las tres de la mañana sin nadie conectado que en hora
+-- punta. El sondeo del navegador, en cambio, solo corre con la pestaña abierta.
+-- Para una operación de dos mensajeros y diez comercios, pagar un vigilante
+-- permanente por dos eventos al día es la cuenta al revés.
+--
+-- ── Qué se pierde, dicho sin adornos ──────────────────────────────────────
+-- Inmediatez. Ningún dato: las dos pantallas que lo usaban ya recargaban solas,
+-- y sus intervalos se ajustaron en el mismo commit porque pasaron de ser red de
+-- seguridad a ser el mecanismo (mapa 60 s → 20 s, campana 120 s → 20 s).
+--
+-- El sonido de la campana y el aviso del sistema NO se pierden: se movieron de
+-- la suscripción al sondeo (NotificationsContext.tsx), con dos matices que
+-- antes no hacían falta —el sonido suena una vez aunque entren cinco, y los
+-- avisos del sistema se topan en tres— porque ahora llegan en grupo.
+--
+-- También se quitó del mapa la insignia «En vivo»: sin tiempo real habría
+-- seguido encendida (el canal se suscribe igual, solo que no llega nada nunca)
+-- y habría pasado a ser una mentira en pantalla.
+--
+-- ── Cómo se vuelve atrás ──────────────────────────────────────────────────
+-- Estas dos líneas, más restaurar `src/lib/realtime.ts` (se borró al quedarse
+-- sin quien lo importara; está en git hasta el commit 427449e) y devolver las
+-- suscripciones a mapa/page.tsx y NotificationsContext.tsx:
+--
+--   alter publication supabase_realtime add table public.at_courier_positions;
+--   alter publication supabase_realtime add table public.at_notifications;
+--
+-- Merece la pena cuando la flota crezca lo bastante como para que veinte
+-- segundos de retraso en el mapa cambien una decisión. Hoy no es el caso.
+
+alter publication supabase_realtime drop table public.at_courier_positions;
+alter publication supabase_realtime drop table public.at_notifications;

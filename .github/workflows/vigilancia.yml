@@ -40,27 +40,46 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    # El dominio CANÓNICO, con www. Sin el www, atiempologistica.com responde
+    # un 308 hacia él — y `curl --fail` NO falla ante un 3xx: sale con código 0.
+    # Este vigilante habría dicho «todo bien» para siempre sin llegar nunca a la
+    # app. Se descubrió el 2026-08-31 probándolo contra producción de verdad, no
+    # leyéndolo.
+    #
+    # `--location` va igualmente: si el dominio cambia otra vez, que siga
+    # llegando en vez de volver a mentir en silencio.
+    env:
+      APP: https://www.atiempologistica.com
+
     steps:
       - name: El semáforo de la operación
+        # No basta con que responda: tiene que responder QUE ESTÁ BIEN. Por eso
+        # se mira el cuerpo y no solo el código. Una página de error de Vercel
+        # con un 200 pasaría el filtro de otro modo.
         run: |
-          echo "Preguntando a https://atiempologistica.com/api/salud"
-          # --fail-with-body: sale con error en 503 pero IMPRIME el cuerpo, que
-          # es donde viene el motivo. Con --fail a secas el correo llegaría
-          # diciendo solo «falló», que obliga a entrar a mirar.
-          curl --fail-with-body --show-error --silent \
-               --max-time 20 --retry 2 --retry-delay 10 \
-               https://atiempologistica.com/api/salud
+          cuerpo="$(curl --fail-with-body --location --show-error --silent                          --max-time 20 --retry 2 --retry-delay 10                          "$APP/api/salud")"
+          echo "$cuerpo"
+          echo "$cuerpo" | grep -q '"ok":true' || {
+            echo "::error::/api/salud no dice ok:true"
+            exit 1
+          }
 
-      - name: La app responde y dice qué versión está publicada
+      - name: La app publicada dice qué versión sirve
         run: |
-          curl --fail-with-body --show-error --silent \
-               --max-time 20 \
-               https://atiempologistica.com/api/version
+          cuerpo="$(curl --fail-with-body --location --show-error --silent                          --max-time 20 "$APP/api/version")"
+          echo "$cuerpo"
+          echo "$cuerpo" | grep -q '"version"' || {
+            echo "::error::/api/version no devolvió una versión"
+            exit 1
+          }
 
       - name: El rastreo público sigue abierto
         # Es la única pantalla que abre gente sin cuenta, y la que más se nota
         # si se cae: un comprador esperando su paquete.
         run: |
-          curl --fail --show-error --silent --output /dev/null \
-               --max-time 20 \
-               https://atiempologistica.com/rastreo
+          codigo="$(curl --location --show-error --silent --output /dev/null                          --max-time 20 --write-out '%{http_code}' "$APP/rastreo")"
+          echo "HTTP $codigo"
+          [ "$codigo" = "200" ] || {
+            echo "::error::/rastreo respondió $codigo"
+            exit 1
+          }

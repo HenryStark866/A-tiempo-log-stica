@@ -54,7 +54,7 @@ jobs:
         # este falló al compilar.
         run: |
           esperado="$(echo '${{ github.sha }}' | cut -c1-8)"
-          publicado="$(curl --fail --show-error --silent --max-time 30 \
+          publicado="$(curl --fail --location --show-error --silent --max-time 30 \
             "${{ github.event.deployment_status.environment_url }}/api/version" \
             | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')"
 

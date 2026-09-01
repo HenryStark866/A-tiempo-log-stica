@@ -372,27 +372,68 @@ operación encima, es una ventana de mantenimiento.
   - **NO** en tablas de configuración (`at_zones` 15 filas, `at_clients` 10):
     Postgres las lee enteras más rápido.
 
-**El aviso de «recursos agotados» del 2026-08-31, y qué era.**
+**El aviso de «recursos agotados» del 2026-08-31, y cómo se diagnostica.**
 
-Supabase avisó de que el proyecto estaba agotando varios recursos. Medido con
-`pg_stat_statements` —y esto es lo que hay que volver a hacer la próxima vez,
-antes de tocar nada—:
+Supabase avisó de que el proyecto agotaba varios recursos. Lo que sigue es el
+recorrido completo, **con el error incluido**, porque el error es la parte útil.
 
-| Qué | Cuánto | Veredicto |
+*Lo que se midió, en orden, y qué salió:*
+
+| Recurso | Medida | Veredicto |
 | --- | --- | --- |
-| **Tiempo real de Supabase** | **95,5 % del trabajo de la base AHORA**, 1,9 sondeos del WAL por segundo, 24/7, haya alguien o no. 7 de 23 conexiones y 2 ranuras de réplica | **sin resolver: es decisión de producto** |
-| `at_dashboard_kpis()` | 115 ms de media, recorría `at_guides` **ocho veces** para pintar una pantalla | resuelto (0109): un solo recorrido |
-| `at-enviar-mensajes` | una petición HTTP cada minuto para un buzón vacío | resuelto (0109): pregunta antes. De 60 s de *timeout* a **4,8 ms** |
-| `cron.job_run_details` | 11.776 filas, 9,3 MB, **la segunda tabla más grande de la base**, sin purga | resuelto (0109): se guardan 7 días |
-| Disco y ranuras de réplica | 37 MB, 176 bytes retenidos | sanos, no eran el problema |
-| Instancia | Micro: 1 GB de RAM (`shared_buffers` 224 MB) | es el techo real |
+| CPU | ~7 ms por segundo (0,7 % de un núcleo) | sano |
+| Memoria | **100 % de acierto de caché** | sana |
+| Disco | 37 MB de 8 GB; ranuras de réplica con 176 bytes retenidos | sano |
+| Conexiones | 23 de 60 | sanas |
+| **Archivos temporales** | **96 GB acumulados**, 44.956 archivos de ~2,1 MB — justo el `work_mem` | **a ráfagas: 0 en 45 s medidos** |
 
-**Lo que sigue pendiente y es lo gordo:** el tiempo real cuesta lo mismo a las
-3 de la mañana sin nadie conectado que en hora punta, y lo paga por **una**
-suscripción sobre dos tablas que en toda su historia han visto 236 cambios de
-posición y 244 notificaciones. Las dos pantallas que lo usan (`/mapa` y la
-campana) **ya recargan solas** con `setInterval`, así que apagarlo no pierde
-ningún dato: pierde inmediatez. Por eso no se apaga desde una migración.
+*El error, para no repetirlo:* se midió que el tiempo real era **el 95,5 % del
+trabajo de la base** y sobre ese número se pidió una decisión de producto.
+El porcentaje era cierto y engañoso a la vez: **era el 95 % de un total
+minúsculo.** Al apagarlo, el sondeo siguió igual (la publicación vacía no para
+el servicio) y el ahorro real fue de 9,8 a 7,0 ms/s de CPU. Y al comprobar el
+desborde a disco, las consultas del tiempo real habían escrito **0 bytes
+temporales**: tampoco era la causa de los 96 GB.
+
+> **La regla que sale de aquí: un porcentaje no es una magnitud.** Antes de
+> proponer un cambio que se note en pantalla, comprobar el número ABSOLUTO y
+> que el recurso medido sea el que de verdad está en el límite.
+
+*Lo que sí se arregló, y se sostiene solo:* ver la tabla de más abajo.
+
+*Lo que queda sin explicar, dicho claro:* **todo lo medible dentro de Postgres
+está sano.** Los 96 GB de temporales son 605 MB/día de media en cinco meses, a
+ráfagas, y ahora mismo cero. El mayor desborde por llamada que sigue a la vista
+es la introspección de esquema de PostgREST —**10 MB cada recarga**, y recarga
+con cada cambio de esquema—, más `select name from pg_timezone_names` a 581 ms,
+1.192 veces.
+
+**No se subió `work_mem` de 2 a 8 MB**, que es la corrección obvia, porque
+arreglaría algo que en ese momento no estaba ocurriendo. Si el panel de
+Supabase (*Check usage* → Reports → Database) señala **Disk IO**, esa es la
+palanca, y es reversible con `alter database postgres reset work_mem`.
+
+**Lo que se quitó por desperdicio comprobado:**
+
+| Qué | Antes | Ahora |
+| --- | --- | --- |
+| Panel (`at_dashboard_kpis`) | recorría `at_guides` **ocho veces** por pantalla | una vez (0109), JSON idéntico verificado |
+| Cron del buzón | petición HTTP cada minuto para un buzón vacío | pregunta antes (0109): de 60 s de *timeout* a **4,8 ms** |
+| Cron de Shopify | **672 ejecuciones en 7 días con CERO tiendas conectadas** | pregunta antes (0111) |
+| `cron.job_run_details` | 11.776 filas, 9,3 MB, sin purga jamás | 7 días (0109) |
+| Tiempo real | 1,9 sondeos/s constantes, 7 de 23 conexiones, 2 ranuras | apagado (0110) |
+
+**Por qué el tiempo real se queda apagado aunque el motivo original fuera
+flojo.** Los argumentos que sobreviven a la medición son estos, y bastan: su
+coste es **constante** —sondea igual a las tres de la mañana sin nadie
+conectado—, se lleva 7 de las 23 conexiones y 2 ranuras de réplica, y lo pagaba
+una sola suscripción. El sondeo del navegador, en cambio, solo corre con la
+pestaña abierta: **escala con el uso real en vez de ser un suelo fijo.**
+
+> **Cuándo volver a encenderlo:** el sondeo cuesta una consulta cada 20 s por
+> pestaña abierta. Con ~40 personas dentro a la vez iguala lo que costaba el
+> tiempo real, y por encima de eso sale peor. Las dos líneas para revertirlo
+> están en la migración 0110.
 
 **Los límites que hay que tener presentes.**
 

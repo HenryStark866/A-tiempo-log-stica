@@ -33,7 +33,7 @@ export function PriceList({
         Precios por zona
       </h3>
       {/* Translucida y con blur (patron probado en vivo). Es solo lectura del tarifario, sin campos ni modal debajo. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
+      <div className="atl-superficie   rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
         <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
           {zones.map((z) => {
             const activa = z.id === activeZoneId;
@@ -63,7 +63,7 @@ export function PriceList({
             );
           })}
         </ul>
-        <p className="px-4 py-2.5 text-[12px] text-slate-400 dark:text-slate-500 bg-[#F2F2F7] dark:bg-[#1C1C1E]">
+        <p className="px-4 py-2.5 text-[12px] text-slate-400 dark:text-slate-500 atl-relleno ">
           Tarifa por paquete entregado. Fuera de estas zonas el CEDI confirma cobertura.
         </p>
       </div>

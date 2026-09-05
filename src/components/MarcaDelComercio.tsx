@@ -87,9 +87,9 @@ export function MarcaDelComercio({
     // Translucida y con blur (patron probado en produccion). Es tarjeta unica
     // de esta ficha, sin nada anidado; el input de archivo va oculto y no
     // hereda este fondo como superficie visible.
-    <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+    <div className="overflow-hidden rounded-2xl atl-superficie shadow-sm  ">
       <div className="flex items-center gap-4 p-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E]">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl atl-relleno ">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -116,7 +116,7 @@ export function MarcaDelComercio({
             type="button"
             onClick={() => archivo.current?.click()}
             disabled={subiendo}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[#F2F2F7] px-4 text-[14px] font-semibold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50 dark:bg-[#1C1C1E] dark:text-slate-300"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl atl-relleno px-4 text-[14px] font-semibold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50  dark:text-slate-300"
           >
             {subiendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />}
             {logoUrl ? "Cambiar" : "Subir"}

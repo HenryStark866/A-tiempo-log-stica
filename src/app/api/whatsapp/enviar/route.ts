@@ -1,6 +1,19 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { enviarPorWhatsApp } from "@/lib/whatsapp";
+import { frenar } from "@/lib/api/freno";
+import { ok, fallo } from "@/lib/api/respuesta";
+
+/**
+ * Mensajes por minuto y por quien llama.
+ *
+ * Aquí el recurso escaso no es el servidor: es LA SESIÓN DE WHATSAPP. Meta
+ * corta las que mandan a ritmo de máquina, y esa sesión se recupera yendo a
+ * escanear un QR en un servidor que hoy ni siquiera está en pie. Doce por
+ * minuto es más de lo que despacha el CEDI en su peor hora y muy poco para
+ * que a alguien le sirva de bomba.
+ */
+const MENSAJES_POR_MINUTO = 12;
 
 /**
  * POST /api/whatsapp/enviar   { guideId }
@@ -30,7 +43,18 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ ok: false, motivo: "Tu sesión venció." }, { status: 401 });
+    return fallo("Tu sesión venció.", 401);
+  }
+
+  // Se cuenta por persona y no por IP: en el CEDI todos salen por la misma
+  // conexión, y un tope por IP le cerraría la puerta al compañero de al lado.
+  const freno = frenar("whatsapp-enviar", `uid:${user.id}`, MENSAJES_POR_MINUTO);
+  if (!freno.pasa) {
+    return fallo(
+      "Vas muy rápido mandando códigos. Espera un momento y vuelve a intentarlo.",
+      429,
+      { puedeManual: true }
+    );
   }
 
   let guideId: string | undefined;
@@ -40,7 +64,7 @@ export async function POST(request: NextRequest) {
     /* cuerpo ilegible: se trata igual que si faltara el dato */
   }
   if (!guideId) {
-    return NextResponse.json({ ok: false, motivo: "Falta el pedido." }, { status: 400 });
+    return fallo("Falta el pedido.", 400);
   }
 
   // Esta función ya valida que quien llama sea del CEDI y devuelve el mensaje
@@ -50,24 +74,24 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ ok: false, motivo: error.message }, { status: 400 });
+    return fallo(error.message, 400);
   }
 
   // Los nombres son los que devuelve at_delivery_code_whatsapp: message_id y
   // phone, no id y to_phone (que son los de la tabla at_message_outbox).
   const mensaje = data as { message_id: string; phone: string | null; body: string } | null;
   if (!mensaje?.phone || !mensaje.body) {
-    return NextResponse.json(
-      { ok: false, motivo: "Ese pedido no tiene teléfono o no hay código en cola." },
-      { status: 400 }
-    );
+    return fallo("Ese pedido no tiene teléfono o no hay código en cola.", 400);
   }
 
   const envio = await enviarPorWhatsApp(mensaje.phone, mensaje.body);
   if (!envio.ok) {
-    // 200 a propósito: no es un fallo de la aplicación, es que el puente no
-    // está disponible. La pantalla lo distingue por `ok` y ofrece el manual.
-    return NextResponse.json({ ok: false, motivo: envio.motivo, puedeManual: true });
+    // 200 con `ok: false` a propósito: no es un fallo de la aplicación, es
+    // que el puente no está disponible. La pantalla lo distingue por `ok` y
+    // ofrece el envío manual de siempre.
+    return fallo(envio.motivo ?? "El puente de WhatsApp no respondió.", 200, {
+      puedeManual: true,
+    });
   }
 
   const { error: errorMarca } = await supabase.rpc("at_delivery_code_marcar_enviado", {
@@ -78,12 +102,11 @@ export async function POST(request: NextRequest) {
   if (errorMarca) {
     // El mensaje SÍ salió. Que no se haya podido anotar es un problema menor,
     // pero hay que decirlo: si no, alguien lo manda otra vez.
-    return NextResponse.json({
-      ok: true,
+    return ok({
       aviso:
         "El mensaje salió, pero no se pudo anotar como enviado. Revisa la lista antes de volver a mandarlo.",
     });
   }
 
-  return NextResponse.json({ ok: true });
+  return ok();
 }

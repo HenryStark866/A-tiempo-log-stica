@@ -77,7 +77,7 @@ export default function AdminDashboardPage() {
             {/* Translucida y con blur (probado en vivo: /90 sin blur no se notaba).
                 Los selects de abajo tienen su propio fondo solido (#F2F2F7/#1C1C1E),
                 no heredan esta transparencia. */}
-            <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
+            <div className="atl-superficie   rounded-3xl shadow-sm border border-transparent overflow-hidden transition-colors">
               {/* En teléfono la tabla de 4 columnas obligaba a arrastrar de lado;
                   ahí se muestra la misma información apilada en tarjetas. */}
               <ul className="divide-y divide-slate-900/[0.06] dark:divide-white/[0.08] md:hidden">
@@ -104,7 +104,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <p className="text-[15px] text-slate-700 dark:text-slate-300 font-medium">{req.address}</p>
                     <div className="relative">
-                      <select className="appearance-none w-full min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent text-slate-900 dark:text-white py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#ff812c] text-[15px] font-semibold cursor-pointer transition-all">
+                      <select className="appearance-none w-full min-h-[48px] atl-relleno  border border-transparent text-slate-900 dark:text-white py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#ff812c] text-[15px] font-semibold cursor-pointer transition-all">
                         <option value="">Seleccionar…</option>
                         <option value="1">Luis M. (Cerca)</option>
                         <option value="2">Ana P. (Disponible)</option>
@@ -154,7 +154,7 @@ export default function AdminDashboardPage() {
                         <td className="px-6 py-5">
                           {/* Quick Assign Dropdown */}
                           <div className="relative inline-block w-full min-w-[180px]">
-                            <select className="appearance-none w-full min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent text-slate-900 dark:text-white py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#ff812c] text-[15px] font-semibold cursor-pointer transition-all">
+                            <select className="appearance-none w-full min-h-[48px] atl-relleno  border border-transparent text-slate-900 dark:text-white py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#ff812c] text-[15px] font-semibold cursor-pointer transition-all">
                               <option value="">Seleccionar...</option>
                               <option value="1">Luis M. (Cerca)</option>
                               <option value="2">Ana P. (Disponible)</option>
@@ -180,7 +180,7 @@ export default function AdminDashboardPage() {
             {/* SLA Alert Card */}
             {/* Translucida y con blur, mismo patron probado en produccion.
                 El avatar circular de abajo se queda opaco (bg-blanco anidado). */}
-            <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden transition-colors border border-rose-100 dark:border-rose-500/20">
+            <div className="atl-superficie   rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden transition-colors border border-rose-100 dark:border-rose-500/20">
               <div className="absolute top-0 right-0 w-40 h-40 bg-rose-500/10 dark:bg-rose-500/20 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
               
               <div className="flex items-center space-x-3 text-rose-600 dark:text-rose-500 mb-4">
@@ -199,7 +199,7 @@ export default function AdminDashboardPage() {
 
               <div className="space-y-3">
                 {inWarehouse.map((item) => (
-                  <div key={item.id} className="bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-2xl p-4 flex flex-wrap justify-between items-center gap-3 transition-colors">
+                  <div key={item.id} className="atl-relleno  rounded-2xl p-4 flex flex-wrap justify-between items-center gap-3 transition-colors">
                     <div className="flex min-w-0 items-center gap-4">
                       <div className="w-10 h-10 atl-superficie rounded-full flex items-center justify-center shrink-0 shadow-sm">
                         <Truck className="w-5 h-5 text-slate-500 dark:text-slate-400" />

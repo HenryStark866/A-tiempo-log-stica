@@ -1,6 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
 import { Polar } from "@polar-sh/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { ok, fallo } from "@/lib/api/respuesta";
+import { frenar } from "@/lib/api/freno";
+
+/**
+ * Sesiones de pago por minuto y por persona.
+ *
+ * Cada llamada crea una sesión de cobro en Polar. Un botón que se deja
+ * apretado —o una pantalla que reintenta sola— le abre a un comercio veinte
+ * cobros abiertos por la misma factura, y esos aparecen en SU panel de Polar.
+ * Seis por minuto es más de lo que nadie necesita para pagar una factura.
+ */
+const COBROS_POR_MINUTO = 6;
 
 const polar = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN!,
@@ -12,7 +24,7 @@ export async function POST(req: NextRequest) {
     const { invoice_id, amount } = await req.json();
 
     if (!invoice_id || !amount || Number(amount) <= 0) {
-      return NextResponse.json({ error: "invoice_id y amount son requeridos" }, { status: 400 });
+      return fallo("Falta la factura o el monto.", 400);
     }
 
     // Verificar que el usuario autenticado realmente es el dueño de esta factura
@@ -22,7 +34,11 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return fallo("Tu sesión venció.", 401);
+    }
+
+    if (!frenar("polar-checkout", `uid:${user.id}`, COBROS_POR_MINUTO).pasa) {
+      return fallo("Vas muy rápido. Espera un momento y vuelve a intentarlo.", 429);
     }
 
     // Validar que la factura existe y pertenece a un cliente vinculado a este usuario
@@ -33,22 +49,16 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (invoiceError || !invoice) {
-      return NextResponse.json({ error: "Factura no encontrada" }, { status: 404 });
+      return fallo("No encontramos esa factura.", 404);
     }
 
     if (invoice.status === "pagada" || invoice.status === "anulada") {
-      return NextResponse.json(
-        { error: "Esta factura ya fue pagada o está anulada" },
-        { status: 409 }
-      );
+      return fallo("Esta factura ya fue pagada o está anulada.", 409);
     }
 
     const productId = process.env.POLAR_PRODUCT_ID;
     if (!productId) {
-      return NextResponse.json(
-        { error: "POLAR_PRODUCT_ID no configurado en el servidor" },
-        { status: 500 }
-      );
+      return fallo("Falta configurar la pasarela de pago (POLAR_PRODUCT_ID).", 500);
     }
 
     const amountInCents = Math.round(Number(amount) * 100);
@@ -74,10 +84,10 @@ export async function POST(req: NextRequest) {
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/facturacion?paid=1&inv=${invoice.invoice_number}`,
     });
 
-    return NextResponse.json({ url: checkout.url });
+    return ok({ url: checkout.url });
   } catch (err) {
     console.error("[polar/checkout] Error:", err);
-    const message = err instanceof Error ? err.message : "Error al crear sesión de pago";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const motivo = err instanceof Error ? err.message : "No se pudo iniciar el pago.";
+    return fallo(motivo, 500);
   }
 }

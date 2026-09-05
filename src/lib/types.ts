@@ -604,6 +604,16 @@ export interface TrackingResult {
 export interface TrackingByToken extends TrackingResult {
   recipient_name: string;
   business_name: string | null;
+  /**
+   * Los enlaces públicos del comercio remitente, para que quien recibió el
+   * paquete pueda volver a la tienda. Salen SOLO por esta vía —el rastreo por
+   * número de guía no dice de quién es el envío— y son los que el propio
+   * comercio escribió en Mi perfil. Ver migración 0101.
+   */
+  business_website: string | null;
+  business_instagram: string | null;
+  business_facebook: string | null;
+  business_tiktok: string | null;
   courier_name: string | null;
   courier_lat: number | null;
   courier_lng: number | null;

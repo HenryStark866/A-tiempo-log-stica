@@ -4,7 +4,6 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { Loader2, MapPinOff, Phone, RefreshCw, Store } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { escucharTabla } from "@/lib/realtime";
 import { useProfile } from "@/components/ProfileContext";
 import dynamic from "next/dynamic";
 import { COURIER_TYPE_LABELS } from "@/lib/constants";
@@ -23,11 +22,22 @@ const FleetMap = dynamic(() => import("@/components/FleetMap").then((mod) => mod
 });
 
 /**
- * Red de seguridad del sondeo. Las posiciones llegan por Realtime en cuanto el
- * mensajero las reporta; esto solo refresca los contadores (guías por salir, en
- * ruta, entregadas) y cubre el caso de que el socket se caiga sin avisar.
+ * Cada cuánto se vuelve a preguntar por la flota.
+ *
+ * Esto ERA una red de seguridad de un minuto, porque las posiciones llegaban
+ * por Realtime en cuanto el mensajero las reportaba. El 2026-08-31 se apagó el
+ * tiempo real: sondear el WAL 1,9 veces por segundo día y noche era el 95 %
+ * del trabajo de la base, y lo pagaba una sola suscripción sobre dos tablas
+ * con 480 cambios en toda su historia.
+ *
+ * Así que este número ya no es la red: es EL mecanismo, y baja de 60 a 20
+ * segundos. Con dos mensajeros en moto, veinte segundos de retraso en el punto
+ * del mapa no cambia ninguna decisión.
+ *
+ * Si algún día la flota crece y esto se queda corto, la vuelta atrás está en
+ * docs/estandares-de-plataforma.md, frente 9.
  */
-const REFRESCO_MS = 60_000;
+const REFRESCO_MS = 20_000;
 
 /** Pasado este tiempo la posición ya no cuenta como "ahora mismo". */
 const MINUTOS_RANCIO = 10;
@@ -111,7 +121,6 @@ function Fleet() {
   const [actualizado, setActualizado] = useState<Date | null>(null);
   // ¿El canal de Realtime está enganchado? Se muestra para que el CEDI sepa si
   // está viendo posiciones al instante o solo lo que trajo el último sondeo.
-  const [enVivo, setEnVivo] = useState(false);
 
   const autorizado = ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
@@ -139,50 +148,6 @@ function Fleet() {
     return () => clearInterval(id);
   }, [autorizado, load]);
 
-  // ── Posiciones en vivo ────────────────────────────────────────────────
-  // at_courier_positions está publicada en Realtime: cada vez que un mensajero
-  // reporta, llega el evento y su punto se mueve sin esperar al sondeo. Solo se
-  // toca la posición; el resto de la ficha (carga, recogida en curso) sigue
-  // viniendo de at_live_couriers.
-  useEffect(() => {
-    if (!autorizado) return;
-    const supabase = createClient();
-
-    return escucharTabla<{
-      courier_id?: string;
-      lat?: number;
-      lng?: number;
-      updated_at?: string;
-    }>(
-      supabase,
-      "flota-en-vivo",
-      { event: "*", schema: "public", table: "at_courier_positions" },
-      (fila) => {
-        if (!fila?.courier_id) return;
-
-        setCouriers((prev) => {
-          if (!prev) return prev;
-          let tocado = false;
-          const siguiente = prev.map((c) => {
-            if (c.id !== fila.courier_id) return c;
-            tocado = true;
-            return {
-              ...c,
-              last_lat: fila.lat ?? c.last_lat,
-              last_lng: fila.lng ?? c.last_lng,
-              last_position_at: fila.updated_at ?? new Date().toISOString(),
-            };
-          });
-          // Mensajero que aún no estaba en la lista (recién habilitado): se
-          // pide la lista completa en vez de inventar una ficha a medias.
-          if (!tocado) load();
-          return siguiente;
-        });
-        setActualizado(new Date());
-      },
-      setEnVivo
-    );
-  }, [autorizado, load]);
 
   if (!autorizado) {
     return (
@@ -250,30 +215,22 @@ function Fleet() {
             <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
               Mapa de la flota
             </h1>
-            {enVivo && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[12px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                En vivo
-              </span>
-            )}
           </div>
           <p className="mt-1 text-[15px] text-slate-500 dark:text-slate-400">
             {conPosicion.length} mensajero(s) {soloActivos ? "con carga " : ""}reportando
-            {enVivo
-              ? " · las posiciones llegan al instante"
-              : actualizado &&
-                ` · actualizado ${actualizado.toLocaleTimeString("es-CO", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`}
+            {/* La hora de la última lectura, siempre. Antes, cuando el tiempo
+                real estaba encendido, aquí ponía «las posiciones llegan al
+                instante» — y esa frase habría pasado a ser mentira. */}
+            {actualizado &&
+              ` · actualizado ${actualizado.toLocaleTimeString("es-CO", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`}
           </p>
         </div>
         <button
           onClick={load}
-          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-[#FFFFFF] px-4 text-[14px] font-semibold text-slate-600 shadow-sm transition-transform active:scale-[0.98] dark:bg-[#2C2C2E] dark:text-slate-300"
+          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl atl-superficie px-4 text-[14px] font-semibold text-slate-600 shadow-sm transition-transform active:scale-[0.98]  dark:text-slate-300"
         >
           <RefreshCw className="h-4 w-4" /> Actualizar
         </button>
@@ -300,7 +257,7 @@ function Fleet() {
       {couriers === null ? (
         // Translucida y con blur (patron probado en vivo: /90 sin blur no se nota).
         // Tarjeta de carga, sin campos ni decisiones dentro.
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-24 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
+        <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-24 text-slate-500 shadow-sm   dark:text-slate-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#ff812c]" />
           <p className="text-[15px]">Cargando el mapa…</p>
         </div>
@@ -323,7 +280,7 @@ function Fleet() {
                 // mensajero, sin campos de formulario dentro.
                 <div
                   key={c.id}
-                  className="flex flex-col gap-3 rounded-2xl bg-[#FFFFFF]/75 p-4 shadow-sm backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between dark:bg-[#2C2C2E]/75"
+                  className="flex flex-col gap-3 rounded-2xl atl-superficie p-4 shadow-sm  sm:flex-row sm:items-center sm:justify-between "
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

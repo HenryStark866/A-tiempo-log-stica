@@ -9,8 +9,10 @@ import {
   Globe,
   Instagram,
   Loader2,
+  MapPin,
   Music2,
   Pencil,
+  SearchX,
   Plus,
   Sparkles,
   Store,
@@ -48,7 +50,7 @@ import {
   tituloDelMedio,
 } from "@/lib/constants";
 import type { CamposDePago, CategoriaDePago, TipoDeCuenta } from "@/lib/constants";
-import { formatCOP } from "@/lib/utils";
+import { formatCOP, normalizarBusqueda } from "@/lib/utils";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
 import type { PaymentMethod, TarifaDestino, Zone } from "@/lib/types";
 
@@ -122,6 +124,8 @@ export function MiComercioPanel() {
   // La zona desde la que salen sus envíos y, a partir de ella, su tarifario.
   const [zonas, setZonas] = useState<Zone[]>([]);
   const [tarifario, setTarifario] = useState<TarifaDestino[] | null>(null);
+  // Lo que se escribe en el cotizador. Vacío = no se muestra ni un precio.
+  const [buscaTarifa, setBuscaTarifa] = useState("");
 
   useEffect(() => {
     if (!client) return;
@@ -533,7 +537,21 @@ export function MiComercioPanel() {
       </section>
 
       {/* ── Tu tarifario ── */}
-      {tarifario && tarifario.length > 0 && (
+      {tarifario && tarifario.length > 0 && (() => {
+        // La zona entra si coincide su nombre o alguno de los barrios de su
+        // cobertura: el comercio busca «Provenza», no «Sur». `normalizarBusqueda`
+        // quita tildes y mayúsculas, así que «bello» encuentra «Bello».
+        const q = normalizarBusqueda(buscaTarifa.trim());
+        const coincidencias = q
+          ? tarifario.filter(
+              (t) =>
+                normalizarBusqueda(t.name).includes(q) ||
+                (t.coverage ?? "")
+                  .split(",")
+                  .some((b) => normalizarBusqueda(b.trim()).includes(q))
+            )
+          : [];
+        return (
         <section>
           <div className="flex items-center gap-2 mb-3 ml-1">
             <Wallet className="w-4 h-4 text-slate-400" />
@@ -547,33 +565,77 @@ export function MiComercioPanel() {
               : "Elige tu zona arriba y guarda para ver tus precios reales."}
           </p>
 
-          {/* Translucida y con blur: es la lista de lectura de precios, sin campos de formulario dentro. */}
-          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
-            {tarifario.map((t) => (
-              <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
-                <div className="min-w-0">
-                  <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
-                    {t.name}
-                    {t.es_mi_zona && (
-                      <span className="ml-2 rounded-full bg-[#ff812c]/10 px-2 py-0.5 text-[11px] font-bold text-[#ff812c]">
-                        Tu zona
-                      </span>
-                    )}
-                  </p>
-                  {t.coverage && (
-                    <p className="mt-0.5 line-clamp-1 text-[13px] text-slate-500 dark:text-slate-400">
-                      {t.coverage}
+          {/* El cotizador. Esta sección abría con las diez zonas y sus precios
+              desplegados de golpe: un muro de cifras para responder una
+              pregunta que siempre es la misma y siempre es una sola —«¿cuánto
+              me cuesta llegar a ESTE barrio?»—. Ahora se pregunta primero y no
+              se pinta ningún precio hasta que hay algo escrito. */}
+          <div className="relative mb-3">
+            <MapPin className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <input
+              type="search"
+              value={buscaTarifa}
+              onChange={(e) => setBuscaTarifa(e.target.value)}
+              placeholder="Buscar barrio o municipio (ej. Provenza, Laureles, Envigado)…"
+              aria-label="Buscar barrio o municipio"
+              title="Buscar barrio o municipio (ej. Provenza, Laureles, Envigado)"
+              className="atl-superficie w-full rounded-2xl py-3 pl-11 pr-4 text-[16px] text-slate-900 shadow-sm ring-1 ring-inset ring-slate-900/[0.06] transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#ff812c] dark:text-white dark:ring-white/[0.08] dark:placeholder:text-slate-500"
+            />
+          </div>
+
+          {buscaTarifa.trim().length === 0 ? (
+            // ESTADO VACÍO — es lo que se ve al cargar la página.
+            <div className="atl-superficie mt-6 flex flex-col items-center justify-center rounded-2xl border border-slate-900/[0.06] p-12 text-center shadow-sm dark:border-white/[0.08]">
+              <MapPin className="mb-4 size-9 text-slate-300 dark:text-slate-600" />
+              <h3 className="text-[17px] font-semibold text-slate-900 dark:text-white">
+                ¿A dónde envías?
+              </h3>
+              <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-slate-500 dark:text-slate-400">
+                Ingresa un barrio o municipio en el buscador superior para conocer la
+                tarifa exacta de tu envío.
+              </p>
+            </div>
+          ) : coincidencias.length === 0 ? (
+            <div className="atl-superficie mt-6 flex flex-col items-center gap-2 rounded-2xl border border-slate-900/[0.06] px-4 py-10 text-center shadow-sm dark:border-white/[0.08]">
+              <SearchX className="size-8 text-slate-300 dark:text-slate-600" />
+              <p className="text-[14px] font-semibold text-slate-600 dark:text-slate-300">
+                Ningún barrio coincide con «{buscaTarifa.trim()}»
+              </p>
+              <p className="max-w-[40ch] text-[12px] text-slate-400 dark:text-slate-500">
+                Puede que esté fuera de cobertura. El CEDI confirma si podemos llegar.
+              </p>
+            </div>
+          ) : (
+            /* RESULTADOS — solo las zonas que coinciden. El interior de cada
+               fila es exactamente el de antes. */
+            <ul className="atl-superficie mt-6 divide-y divide-slate-900/[0.06] overflow-hidden rounded-2xl shadow-sm dark:divide-white/[0.08]">
+              {coincidencias.map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-semibold text-slate-900 dark:text-white">
+                      {t.name}
+                      {t.es_mi_zona && (
+                        <span className="ml-2 rounded-full bg-[#ff812c]/10 px-2 py-0.5 text-[11px] font-bold text-[#ff812c]">
+                          Tu zona
+                        </span>
+                      )}
                     </p>
-                  )}
-                </div>
-                <p className="shrink-0 text-[16px] font-bold tabular-nums text-slate-900 dark:text-white">
-                  {formatCOP(t.delivery_rate)}
-                </p>
-              </li>
-            ))}
-          </ul>
+                    {t.coverage && (
+                      <p className="mt-0.5 line-clamp-1 text-[13px] text-slate-500 dark:text-slate-400">
+                        {t.coverage}
+                      </p>
+                    )}
+                  </div>
+                  <p className="shrink-0 text-[16px] font-bold tabular-nums text-slate-900 dark:text-white">
+                    {formatCOP(t.delivery_rate)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-      )}
+        );
+      })()}
 
       {/* ── Marca ── */}
       <section>
@@ -705,7 +767,7 @@ export function MiComercioPanel() {
             <Loader2 className="w-6 h-6 animate-spin text-[#ff812c]" />
           </div>
         ) : medios.length === 0 ? (
-          <div className="rounded-2xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl shadow-sm px-5 py-10 text-center">
+          <div className="rounded-2xl atl-superficie   shadow-sm px-5 py-10 text-center">
             <Wallet className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
             <p className="mt-3 text-[15px] font-semibold text-slate-900 dark:text-white">
               Todavía no tienes medios de pago
@@ -722,7 +784,7 @@ export function MiComercioPanel() {
             </button>
           </div>
         ) : (
-          <ul className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
+          <ul className="atl-superficie rounded-2xl shadow-sm overflow-hidden divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
             {medios.map((m) => {
               // Se muestra igual que en el QR público: la marca de título, el
               // resto del contexto pequeño y el dato grande, que es lo que de
@@ -812,7 +874,7 @@ export function MiComercioPanel() {
       {/* ── Modal de medio de pago ── */}
       {editando && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
-          <div className="w-full sm:max-w-md bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-t-3xl sm:rounded-3xl p-5 max-h-[90dvh] overflow-y-auto">
+          <div className="w-full sm:max-w-md atl-relleno  rounded-t-3xl sm:rounded-3xl p-5 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
                 {editando === "nuevo" ? "Nuevo medio de pago" : "Editar medio de pago"}

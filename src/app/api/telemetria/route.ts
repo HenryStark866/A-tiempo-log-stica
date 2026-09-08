@@ -1,4 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
+import { actorDe, frenar } from "@/lib/api/freno";
+import { recibido } from "@/lib/api/respuesta";
 
 /**
  * Donde aterrizan los errores del navegador y los avisos de la CSP.
@@ -16,6 +18,20 @@ import { NextResponse, type NextRequest } from "next/server";
 /** Un reporte no debería pesar más que esto. Corta a quien intente inundar. */
 const TOPE_BYTES = 8_000;
 
+/**
+ * Reportes por minuto y por IP.
+ *
+ * El cliente ya se autolimita: `observabilidad.ts` manda como mucho 20 errores
+ * distintos por carga de página. Este tope va por encima de eso con holgura
+ * —una pantalla puede recargarse varias veces en un minuto, y los operadores
+ * móviles colombianos meten a mucha gente detrás de una sola IP— y sigue
+ * cerrando la puerta al que quiera inundar los logs a mano.
+ *
+ * Sin esto, la ruta que existe para enterarse de que algo va mal era la más
+ * cómoda para dejarnos ciegos: pública, sin sesión y sin tope.
+ */
+const REPORTES_POR_MINUTO = 60;
+
 /** Ni el error más largo necesita más. Recorta antes de escribir en el log. */
 function recortar(v: unknown, max = 500): string {
   const s = typeof v === "string" ? v : JSON.stringify(v);
@@ -24,11 +40,18 @@ function recortar(v: unknown, max = 500): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Siempre 204, se pase o no del tope: un endpoint que responde distinto
+    // según lo que le manden es un endpoint que se puede sondear. Quien se
+    // pasa simplemente deja de aparecer en el log.
+    if (!frenar("telemetria", actorDe(request), REPORTES_POR_MINUTO).pasa) {
+      return recibido();
+    }
+
     const crudo = await request.text();
     if (crudo.length > TOPE_BYTES) {
       // 204 y no 413: al navegador no le sirve de nada saberlo, y un endpoint
       // que responde distinto según el contenido invita a que lo sondeen.
-      return new NextResponse(null, { status: 204 });
+      return recibido();
     }
 
     const cuerpo = JSON.parse(crudo) as Record<string, unknown>;
@@ -46,7 +69,7 @@ export async function POST(request: NextRequest) {
           pagina: recortar(csp["document-uri"], 200),
         })
       );
-      return new NextResponse(null, { status: 204 });
+      return recibido();
     }
 
     console.error(
@@ -62,11 +85,11 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return new NextResponse(null, { status: 204 });
+    return recibido();
   } catch {
     // Este endpoint no puede fallar nunca de forma visible: si el reporte de un
     // error provoca otro error, se pierde la señal y encima se ensucia el log.
-    return new NextResponse(null, { status: 204 });
+    return recibido();
   }
 }
 

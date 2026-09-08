@@ -25,6 +25,12 @@ const PUBLIC_PATHS = [
   "/pagar",
   "/recuperar",
   "/api/version",
+  // /api/salud es el semáforo que interroga el vigilante automático. Tiene que
+  // poder contestar SIN sesión: si el guardia lo mandara al login, el
+  // vigilante vería un 307 y lo daría por vivo justo cuando todo está caído.
+  // Lo que enseña sin sesión es el semáforo y nada más; el detalle lo decide
+  // at_salud() en la base según quién pregunte.
+  "/api/salud",
   // /api/telemetria recibe los errores del navegador y los avisos de CSP. Va
   // aquí porque el error que más interesa cazar es justamente el de las
   // pantallas públicas —el rastreo y el pago, que abre gente sin cuenta—, y

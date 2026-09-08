@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { estadoDelGateway } from "@/lib/whatsapp";
+import { ok, fallo } from "@/lib/api/respuesta";
 
 /**
  * GET /api/whatsapp/estado
@@ -22,7 +22,7 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Tu sesión venció." }, { status: 401 });
+    return fallo("Tu sesión venció.", 401);
   }
 
   const { data: perfil } = await supabase
@@ -33,8 +33,8 @@ export async function GET() {
 
   const rol = (perfil as { role?: string } | null)?.role;
   if (!rol || !["admin", "coordinador", "operario"].includes(rol)) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+    return fallo("No autorizado.", 403);
   }
 
-  return NextResponse.json(await estadoDelGateway());
+  return ok(await estadoDelGateway());
 }

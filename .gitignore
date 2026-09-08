@@ -29,3 +29,6 @@ npm-debug.log*
 
 .vercel
 .env*.local
+
+# Caché del CLI de Supabase, no es código del proyecto
+supabase/.temp/

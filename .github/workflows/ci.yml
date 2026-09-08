@@ -58,5 +58,31 @@ jobs:
       - name: Tests
         run: npm run test:run
 
+      # Dos pasos y no uno, y la diferencia es a propósito.
+      #
+      # Un check que está en rojo desde el primer día no es un check: es ruido
+      # que se aprende a ignorar, y el día que llegue el fallo de verdad
+      # tampoco se va a mirar. Hoy hay CUATRO avisos `high` que solo se quitan
+      # subiendo a Next 16 —un cambio mayor— y que no aplican a esta app
+      # (el porqué, en docs/estandares-de-plataforma.md, frente 7).
+      #
+      # Así que: `critical` PARA la línea, porque hoy no hay ninguno y el día
+      # que aparezca uno significa algo. `high` se imprime y se ve en la
+      # ejecución, pero no bloquea.
+      #
+      # Van ANTES del build para que no cueste tres minutos enterarse.
+      - name: Ninguna dependencia con un fallo crítico
+        run: npm audit --audit-level=critical
+
+      - name: Avisos de severidad alta (informativo)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
       - name: Build
         run: npm run build
+
+      # Sobre el build de verdad, no sobre la configuración: comprueba que no
+      # se publicó ningún mapa de origen (o sea, el código fuente entero en
+      # abierto) y avisa si el JavaScript de arranque engordó de golpe.
+      - name: El paquete no lleva el código fuente dentro
+        run: node scripts/verificar-paquete.mjs

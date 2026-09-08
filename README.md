@@ -2,7 +2,7 @@
 
 Plataforma SaaS de logística de última milla que conecta comercios remitentes, un centro de distribución (CEDI) y mensajeros, con visibilidad en tiempo real tanto para quien envía como para quien recibe.
 
-🔗 **Producción**: [atiempo-logistica.vercel.app](https://atiempo-logistica.vercel.app)
+🔗 **Producción**: [atiempo-logistica.vercel.app](https://www.atiempologistica.com)
 
 ## Los dos nombres
 

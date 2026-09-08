@@ -19,22 +19,31 @@ en $0 (`at_cobro_de_guia`, migración 0062). De ahí la verificación.
 
 ## Las 10 sub-zonas
 
-| Código | Nombre | Tarifa | Viene de |
-| --- | --- | ---: | --- |
-| `SUR-INM` | Sur Inmediato Plano | $11.500 | Zona 1 · el corredor del río al sur: cascos urbanos de Itagüí, Sabaneta, Envigado y La Estrella |
-| `SUR-LOM` | Sur Lomas y Altura | $12.500 | Zona 1 · las laderas de Envigado y Sabaneta |
-| `MED-SO` | Medellín Sur-Occidente | $12.500 | Zona 2 · Laureles-Estadio, La América, Belén bajo y Guayabal |
-| `MED-SL` | Medellín Sur Lomas | $14.000 | Zona 2 · El Poblado y las lomas de Belén |
-| `MED-CO` | Medellín Centro-Occidente | $13.500 | Zona 3 · La Candelaria y San Javier |
-| `MED-COR` | Medellín Centro-Oriente | $14.500 | Zona 3 · Buenos Aires, Villa Hermosa y Boston: la ladera oriental |
-| `MED-NP` | Medellín Norte Plano | $15.500 | Zona 3 · Castilla, Robledo, Aranjuez bajo, Doce de Octubre y el casco urbano de Bello |
-| `MED-NL` | Medellín Norte Lomas | $16.500 | Zona 3 · Popular, Santa Cruz, Manrique y las laderas del noroccidente |
-| `EXT-NOR` | Norte Extendido | $21.000 | Zona 4 · sin cambios |
-| `EXT-SUR` | Sur Extendido | $15.000 | Zona 5 · sin cambios |
+| Código | Nombre | Tarifa vigente | Al repartir (ago-2026) | Viene de |
+| --- | --- | ---: | ---: | --- |
+| `SUR-INM` | Sur Inmediato Plano | **$11.000** | $11.500 | Zona 1 · el corredor del río al sur: cascos urbanos de Itagüí, Sabaneta, Envigado y La Estrella |
+| `SUR-LOM` | Sur Lomas y Altura | **$11.000** | $12.500 | Zona 1 · las laderas de Envigado y Sabaneta |
+| `MED-SO` | Medellín Sur-Occidente | **$13.000** | $12.500 | Zona 2 · Laureles-Estadio, La América, Belén bajo y Guayabal |
+| `MED-SL` | Medellín Sur Lomas | **$13.000** | $14.000 | Zona 2 · El Poblado y las lomas de Belén |
+| `MED-CO` | Medellín Centro-Occidente | **$14.000** | $13.500 | Zona 3 · La Candelaria y San Javier |
+| `MED-COR` | Medellín Centro-Oriente | **$14.000** | $14.500 | Zona 3 · Buenos Aires, Villa Hermosa y Boston: la ladera oriental |
+| `MED-NP` | Medellín Norte Plano | **$16.000** | $15.500 | Zona 3 · Castilla, Robledo, Aranjuez bajo, Doce de Octubre y el casco urbano de Bello |
+| `MED-NL` | Medellín Norte Lomas | **$18.000** | $16.500 | Zona 3 · Popular, Santa Cruz, Manrique y las laderas del noroccidente |
+| `EXT-NOR` | Norte Extendido | **$21.000** | $21.000 | Zona 4 · sin cambios |
+| `EXT-SUR` | Sur Extendido | **$15.000** | $15.000 | Zona 5 · sin cambios |
 
-Dos tarifas cambian respecto a hoy: **Norte Extendido baja de $22.000 a
-$21.000** y **Sur Extendido sube de $14.000 a $15.000**. El resto de las
-sub-zonas hereda o afina el precio de la zona de la que sale.
+Las tarifas vigentes las puso
+`supabase/migrations/0114_las_tarifas_desde_sabaneta_pasan_a_miles_cerrados.sql`
+(2026-09-08): precios en miles cerrados, calculados sobre el costo real de
+salir del CEDI Sabaneta. Lo único que cambió son los números — el reparto de
+barrios que describe el resto de este documento sigue tal cual, y las cifras
+que aparecen más abajo son las de agosto, las que sustentaban cada decisión de
+reparto. El escalón que más se movió es `MED-NL` (+$1.500): la ladera del norte
+venía cobrándose casi igual que el plano y ahora hay $2.000 entre las dos.
+
+Antes de eso, y respecto a las 5 zonas originales, **Norte Extendido bajó de
+$22.000 a $21.000** y **Sur Extendido subió de $14.000 a $15.000**; el resto de
+las sub-zonas heredó o afinó el precio de la zona de la que sale.
 
 ## El reparto, sub-zona por sub-zona
 

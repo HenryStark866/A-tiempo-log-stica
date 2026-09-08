@@ -29,7 +29,12 @@ html {
 }
 
 body {
-  @apply bg-[#F2F2F7] text-slate-900 antialiased dark:bg-[#1C1C1E] dark:text-slate-100;
+  @apply text-slate-900 antialiased dark:text-slate-100;
+  /* El color sale de `--atl-suelo` (ver EL MANDO DE LA TRANSPARENCIA) y no de
+     utilidades por tema. Antes eran `bg-[#F2F2F7] dark:bg-[#1C1C1E]` más un
+     tercer color solo para el multicolor, y por eso los temas no se parecían
+     por debajo por mucho que se igualara el cristal de encima. */
+  background-color: rgb(var(--atl-suelo));
 }
 
 ::selection {
@@ -273,13 +278,9 @@ select option {
   pointer-events: none;
   /* Aísla el repintado del fondo del resto de la página. */
   contain: strict;
-  /* El color con el que la viñeta apaga el centro: el del fondo de cada tema,
-     para que el texto siempre caiga sobre superficie limpia. */
-  --atl-centro: rgba(242, 242, 247, 0.9);
-}
-
-.dark .atl-fondo {
-  --atl-centro: rgba(28, 28, 30, 0.88);
+  /* El color con el que la viñeta apaga el centro: el mismo suelo del tema, a
+     la fuerza que diga `--atl-vineta`. Ver EL MANDO DE LA TRANSPARENCIA. */
+  --atl-centro: rgb(var(--atl-suelo) / var(--atl-vineta));
 }
 
 /* El contenido siempre por encima del fondo. */
@@ -325,7 +326,15 @@ select option {
 
    Los tiempos están escalonados para que se lea como una secuencia y no como
    cosas apareciendo a la vez: ruta (260ms) → postas en cascada (320ms, cada
-   110ms) → correo (380ms) → cascabel (900ms) → salida (1180ms).
+   110ms) → señal (900ms) → señal otra vez (1600ms) → salida (2180ms).
+
+   La segunda señal y el segundo que se le añadió a la salida van juntos: la
+   señal ahora SUENA (ver SonidoDeArranque.tsx) y suena dos veces, así
+   que la pantalla tiene que durar lo suficiente para que se oiga entero el
+   par. Los 700ms que los separan están escritos en los dos sitios —aquí, en
+   el retraso de la segunda `atl-onda` que pinta Splash.tsx, y allá, en
+   PAUSA_ENTRE_CASCABELES—; no hay forma de que un archivo importe al otro,
+   así que si se toca uno hay que tocar el otro.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .atl-splash {
@@ -338,7 +347,7 @@ select option {
   pointer-events: none;
   /* Opaco: su trabajo es tapar la app hasta que esté lista. */
   background: #f2f2f7;
-  animation: atl-splash-salida 380ms ease-out 1180ms forwards;
+  animation: atl-splash-salida 380ms ease-out 2180ms forwards;
 }
 
 .dark .atl-splash {
@@ -479,34 +488,49 @@ textarea:-webkit-autofill:focus {
    siguiente paso, no disimulado con reglas que no funcionan.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── Los cuatro focos ──────────────────────────────────────────────────────
+   Naranja, violeta, turquesa y rosa. Fijos y detrás de todo: se mueven las
+   tarjetas por encima, no el degradado, que es lo que evita el mareo en un
+   scroll largo.
+
+   Estaban solo en `tema-multicolor`, y ahí estaba la diferencia que se veía:
+   una tarjeta translúcida sobre un gris plano no luce por mucho que se baje
+   su opacidad —no hay nada detrás que valga la pena ver—, mientras que sobre
+   estos focos el mismo cristal cobra sentido. Por eso ahora los llevan los
+   tres temas.
+
+   ── Solo en el tema multicolor ────────────────────────────────────────────
+   Los focos son la identidad de ESE tema, no un adorno para los otros dos. El
+   claro y el oscuro son temas sobrios a propósito: quien los elige está
+   pidiendo justamente que no haya colores de fondo.
+
+   Se intentó llevarlos a los tres y fue un error: un tema oscuro con manchas
+   naranjas y violetas deja de ser el tema oscuro, pasa a ser un multicolor mal
+   hecho. Lo que sí comparten los tres es el cristal traslúcido y el valle de
+   Medellín detrás — que es lo que se había pedido.
+
+   Queda en cero y no borrado para que siga siendo un solo número: encender los
+   focos en otro tema es cambiar un `0` por un `0.22`, no reescribir reglas.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --atl-foco: 0;
+}
+
 .tema-multicolor {
-  --mc-fondo: #0c0a1c;
+  --atl-foco: 0.22;
 }
 
-.tema-multicolor body {
-  background-color: var(--mc-fondo);
-}
-
-/* Los cuatro focos. Fijos y detrás de todo: se mueven las tarjetas por encima,
-   no el degradado, que es lo que evita el mareo en un scroll largo. */
-.tema-multicolor body::before {
+body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(60% 45% at 12% 8%,  rgba(255, 129, 44, 0.20), transparent 70%),
-    radial-gradient(55% 45% at 88% 18%, rgba(120, 90, 255, 0.22), transparent 70%),
-    radial-gradient(60% 50% at 78% 92%, rgba(0, 190, 190, 0.18), transparent 70%),
-    radial-gradient(50% 40% at 18% 88%, rgba(255, 70, 140, 0.16), transparent 70%);
-}
-
-/* La viñeta de los fondos animados apaga el centro con el color del tema. Sin
-   esto seguiría usando el gris del modo oscuro y dejaría un rectángulo más
-   claro justo en medio de la pantalla. */
-.tema-multicolor .atl-fondo {
-  --atl-centro: rgba(12, 10, 28, 0.86);
+    radial-gradient(60% 45% at 12% 8%,  rgb(255 129 44 / calc(var(--atl-foco) * 0.91)), transparent 70%),
+    radial-gradient(55% 45% at 88% 18%, rgb(120 90 255 / var(--atl-foco)), transparent 70%),
+    radial-gradient(60% 50% at 78% 92%, rgb(0 190 190 / calc(var(--atl-foco) * 0.82)), transparent 70%),
+    radial-gradient(50% 40% at 18% 88%, rgb(255 70 140 / calc(var(--atl-foco) * 0.73)), transparent 70%);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -527,23 +551,101 @@ textarea:-webkit-autofill:focus {
    Solo define fondo y desenfoque. Ni bordes ni sombras ni radios: eso lo pone
    cada sitio, y así esta clase nunca pisa lo que ya tenía escrito.
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ── El mando de la transparencia ──────────────────────────────────────────
+   Toda la opacidad de la app sale de estos cuatro números. Estaba escrita a
+   mano en unos doscientos sitios, así que «un poco más transparente» era un
+   día de trabajo y un riesgo; ahora es tocar aquí.
+
+   Son dos capas y el orden importa:
+
+     · SUPERFICIE — las tarjetas y paneles que se levantan sobre el fondo. Es
+       la que deja ver el valle de Medellín que hay debajo.
+     · RELLENO — lo que va DENTRO de una tarjeta: campos, botones secundarios,
+       fichas, cabeceras de tabla. Este no destapa el fondo, destapa la
+       tarjeta, así que va más transparente todavía: igual de opaco que la
+       tarjeta se vería como un parche pegado encima.
+
+   El relleno NO lleva desenfoque propio a propósito. Un `backdrop-filter` por
+   cada campo y cada ficha son decenas de capas que el navegador compone por
+   separado, y esto se usa en teléfonos de gama baja. El desenfoque de la
+   tarjeta que está encima ya hace el trabajo para lo que lleva dentro.
+   ────────────────────────────────────────────────────────────────────────── */
+/* ── El tinte del cristal ──────────────────────────────────────────────────
+   Además de CUÁNTO deja pasar (la opacidad), una superficie tiene un color:
+   el vidrio no es incoloro. Y ahí estaba la diferencia que se veía a simple
+   vista entre el multicolor y el oscuro aunque los dos tuvieran la misma
+   opacidad y los mismos focos detrás: el multicolor tiñe de navy profundo
+   (18 16 34) y el oscuro tiñía de gris neutro (44 44 46). Un gris sobre luces
+   de colores se ve sucio —el color le atraviesa en vez de quedarse detrás—;
+   el navy las deja limpias.
+
+   Así que el oscuro pasa a usar el mismo navy. Los dos temas oscuros quedan
+   parecidos, que es justo lo que se pidió: la misma apariencia en todos.
+
+   El claro NO puede llevar ese tinte —un cristal navy sobre fondo claro es un
+   tema oscuro con otro nombre—, así que conserva el blanco. Sobre los focos,
+   ese blanco se convierte en un vidrio esmerilado de color, que es la misma
+   idea leída en claro.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --atl-superficie: 0.58;
+  --atl-relleno: 0.42;
+  --atl-cristal: 255 255 255;
+  --atl-cristal-relleno: 242 242 247;
+  --atl-suelo: 242 242 247;
+}
+
+/**
+ * Cuánto apaga la viñeta el centro de la pantalla.
+ *
+ * Aquí estaba lo que hacía que los focos no se vieran POR NINGUNA PARTE.
+ * La viñeta —un degradado que cubre el 70% × 60% central— iba al 86-92% y
+ * vive dentro de `.atl-fondo`, o sea en z-index -1: por ENCIMA de los focos,
+ * que están en -2. Los tapaba justo donde está el contenido, en las tres
+ * pantallas y los tres temas. Se igualaba el cristal, se subían los focos, y
+ * no se notaba nada — porque el problema estaba en medio.
+ *
+ * Al 62% sigue haciendo su trabajo —dar un centro más tranquilo que los
+ * bordes— sin borrar lo que hay detrás. Puede bajar más si se quiere el fondo
+ * aún más presente; lo que no puede es volver al 88.
+ */
+:root {
+  --atl-vineta: 0.62;
+}
+
+.dark,
+.tema-multicolor {
+  /* En oscuro el mismo número se lee más tapado: hay menos luz detrás que
+     atravesar. Van más abajo para que se note igual. */
+  --atl-superficie: 0.48;
+  --atl-relleno: 0.3;
+  --atl-cristal: 18 16 34;
+  --atl-cristal-relleno: 12 10 28;
+  /* El suelo navy que solo tenía el multicolor. Sobre un suelo gris neutro los
+     focos se ven sucios: el color lo atraviesa en vez de quedarse detrás. */
+  --atl-suelo: 12 10 28;
+}
+
+/* Una sola regla para los tres temas: lo único que cambia es el tinte y la
+   opacidad, y los dos son variables. Antes había una regla por tema y era
+   donde se colaban las diferencias. */
 .atl-superficie {
-  background-color: rgb(255 255 255 / 0.82);
+  background-color: rgb(var(--atl-cristal) / var(--atl-superficie));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
 
-.dark .atl-superficie,
-.tema-multicolor .atl-superficie {
-  background-color: rgb(44 44 46 / 0.72);
+/* El relleno: campos, botones secundarios, fichas, cabeceras de tabla. */
+.atl-relleno {
+  background-color: rgb(var(--atl-cristal-relleno) / var(--atl-relleno));
 }
 
-/* El tercer tema tiene un fondo de colores mucho más vivo, y sobre él una
-   superficie gris se ve sucia. Se oscurece y se desatura un poco más para que
-   el color quede detrás del vidrio y no atravesándolo. */
-.tema-multicolor .atl-superficie {
-  background-color: rgb(18, 16, 34, 0.78);
+/* Al pasar el dedo o el ratón se opaca: es la señal de que responde. Sin ella
+   un botón traslúcido no se distingue de una etiqueta. */
+.atl-relleno-hover:hover {
+  background-color: rgb(var(--atl-cristal-relleno) / calc(var(--atl-relleno) + 0.25));
 }
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EL MAPA DE LA FLOTA

@@ -426,7 +426,7 @@ export function PositionReporter() {
     // Translucida y con blur (patrón probado en vivo: /90 sin blur no se
     // notaba). Es la tarjeta de estado, no un formulario: sin campos que
     // pierdan legibilidad.
-    <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-2xl shadow-sm p-4 space-y-3 transition-colors duration-300">
+    <div className="atl-superficie   rounded-2xl shadow-sm p-4 space-y-3 transition-colors duration-300">
       {/* Fila principal */}
       <div className="flex items-center gap-3">
         <div

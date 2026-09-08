@@ -630,7 +630,7 @@ export default function RecipientsPage() {
             />
             <button
               onClick={descargarPlantilla}
-              className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 min-h-[44px] text-[14px] font-semibold text-slate-600 dark:text-slate-300 active:scale-[0.98] transition-transform"
+              className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl atl-relleno  px-4 min-h-[44px] text-[14px] font-semibold text-slate-600 dark:text-slate-300 active:scale-[0.98] transition-transform"
             >
               <Download className="w-4 h-4" /> Plantilla
             </button>
@@ -656,7 +656,7 @@ export default function RecipientsPage() {
                 {(Object.keys(RECIPIENT_FIELD_LABELS) as RecipientField[]).map((field) => {
                   const requerido = REQUIRED_FIELDS.includes(field);
                   return (
-                    <div key={field} className="flex items-center gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-xl px-3 min-h-[52px]">
+                    <div key={field} className="flex items-center gap-3 atl-relleno  rounded-xl px-3 min-h-[52px]">
                       <label className="flex-1 text-[14px] text-slate-600 dark:text-slate-400">
                         {RECIPIENT_FIELD_LABELS[field]}
                         {requerido && <span className="text-[#ff812c] font-bold"> *</span>}
@@ -722,7 +722,7 @@ export default function RecipientsPage() {
 
                   <div className="overflow-x-auto rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.08]">
                     <table className="w-full text-left text-[14px] min-w-[620px]">
-                      <thead className="bg-[#F2F2F7] dark:bg-[#1C1C1E]">
+                      <thead className="atl-relleno ">
                         <tr>
                           <th className="px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400">Nombre</th>
                           <th className="px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400">Teléfono</th>
@@ -836,7 +836,7 @@ export default function RecipientsPage() {
           en vivo: /90 sin blur no se notaba). El formulario de edición y el
           importador de arriba se quedan opacos: son donde se lee y escribe
           con cuidado, no donde se echa un ojo. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm overflow-hidden transition-colors duration-300">
+      <div className="atl-superficie   rounded-3xl shadow-sm overflow-hidden transition-colors duration-300">
         {recipients === null ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-7 h-7 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -978,7 +978,7 @@ export default function RecipientsPage() {
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col"
+            className="w-full max-w-lg atl-relleno  rounded-3xl overflow-hidden shadow-2xl max-h-[92dvh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.08] shrink-0">
@@ -1116,7 +1116,7 @@ export default function RecipientsPage() {
 
             {/* La tarjeta del que ya existe: mismos datos que muestra la lista,
                 para que se reconozca de un vistazo sin tener que ir a buscarlo. */}
-            <div className="mt-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] p-4 space-y-1.5">
+            <div className="mt-4 rounded-2xl atl-relleno  p-4 space-y-1.5">
               <p className="text-[15px] font-semibold text-slate-900 dark:text-white truncate">
                 {duplicado.full_name}
               </p>
@@ -1154,7 +1154,7 @@ export default function RecipientsPage() {
               <button
                 onClick={(e) => guardar(e, true)}
                 disabled={guardando}
-                className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform disabled:opacity-50"
+                className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 rounded-xl atl-relleno  font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform disabled:opacity-50"
               >
                 {guardando && <Loader2 className="w-4 h-4 animate-spin" />}
                 {guardando ? "Creando…" : "Crear de todos modos"}
@@ -1190,7 +1190,7 @@ export default function RecipientsPage() {
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setBorrando(null)}
-                className="flex-1 min-h-[48px] rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                className="flex-1 min-h-[48px] rounded-xl atl-relleno  font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
               >
                 Cancelar
               </button>
@@ -1251,7 +1251,7 @@ export default function RecipientsPage() {
             </p>
             {/* Que se vea a QUIÉN se está borrando, no solo cuántos: un número
                 no se puede revisar, una lista de nombres sí. */}
-            <ul className="mt-4 max-h-32 overflow-y-auto rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-2 text-left">
+            <ul className="mt-4 max-h-32 overflow-y-auto rounded-2xl atl-relleno  px-4 py-2 text-left">
               {filtrados
                 .filter((r) => seleccion.has(r.id))
                 .slice(0, 50)
@@ -1270,7 +1270,7 @@ export default function RecipientsPage() {
               <button
                 onClick={() => setConfirmarMasivo(false)}
                 disabled={borrandoMasivo}
-                className="flex-1 min-h-[48px] rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform disabled:opacity-50"
+                className="flex-1 min-h-[48px] rounded-xl atl-relleno  font-semibold text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform disabled:opacity-50"
               >
                 Cancelar
               </button>

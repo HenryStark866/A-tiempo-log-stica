@@ -234,7 +234,7 @@ export function PermisosTurno() {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center sm:p-0">
-      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-[32px] bg-[#FFFFFF] shadow-2xl duration-300 animate-in slide-in-from-bottom-8 sm:zoom-in-95 dark:bg-[#2C2C2E]">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-[32px] atl-superficie shadow-2xl duration-300 animate-in slide-in-from-bottom-8 sm:zoom-in-95 ">
         <div className="space-y-1 p-6 pb-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff812c]/10">
             <ShieldCheck className="h-6 w-6 text-[#ff812c]" />
@@ -255,7 +255,7 @@ export function PermisosTurno() {
             return (
               <div
                 key={p.clave}
-                className="flex gap-3 rounded-2xl bg-[#F2F2F7] p-4 dark:bg-[#1C1C1E]"
+                className="flex gap-3 rounded-2xl atl-relleno p-4 "
               >
                 <div
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
@@ -347,7 +347,7 @@ export function PermisosTurno() {
               <button
                 type="button"
                 onClick={cerrar}
-                className="min-h-[52px] flex-1 rounded-2xl bg-[#F2F2F7] font-semibold text-slate-700 transition-transform active:scale-[0.98] dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="min-h-[52px] flex-1 rounded-2xl atl-relleno font-semibold text-slate-700 transition-transform active:scale-[0.98]  dark:text-slate-300"
               >
                 {todoResuelto ? "Listo" : "Seguir sin los demás"}
               </button>

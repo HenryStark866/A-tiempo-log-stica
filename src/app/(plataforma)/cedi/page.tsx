@@ -313,7 +313,7 @@ export default function CediPage() {
         {/* Reception Card */}
         {/* Translúcida y con blur (probado en vivo: /90 sin blur no se notaba).
             El input de abajo lleva su propio fondo opaco, sigue legible. */}
-        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        <section className="atl-superficie   rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-[#ff812c]/10 dark:bg-[#ff812c]/20 p-2 rounded-xl text-[#ff812c]">
               <ScanBarcode className="w-5 h-5" />
@@ -331,7 +331,7 @@ export default function CediPage() {
                 onChange={(e) => setScan(e.target.value)}
                 autoFocus
                 placeholder={`QR del lote o guía (${MARCA.prefijoGuia}-…)`}
-                className="flex-1 min-h-[48px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
+                className="flex-1 min-h-[48px] atl-relleno  border border-transparent focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-xl px-4 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none transition-all"
               />
               {/* Antes solo se podía teclear o disparar con pistola de código
                   de barras; esto abre la cámara del teléfono y decodifica el
@@ -341,7 +341,7 @@ export default function CediPage() {
                 onClick={() => setEscaneando(true)}
                 aria-label="Escanear con la cámara"
                 title="Escanear con la cámara"
-                className="min-h-[48px] min-w-[48px] shrink-0 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center"
+                className="min-h-[48px] min-w-[48px] shrink-0 rounded-xl atl-relleno  text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center"
               >
                 <Camera className="w-5 h-5" />
               </button>
@@ -385,7 +385,7 @@ export default function CediPage() {
                   <button
                     disabled={busy}
                     onClick={() => receive(g.id, g.guide_number)}
-                    className="min-h-[44px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all self-start sm:self-auto shrink-0"
+                    className="min-h-[44px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all self-start sm:self-auto shrink-0"
                   >
                     Recibir
                   </button>
@@ -397,7 +397,7 @@ export default function CediPage() {
 
         {/* Returns / Novedades Card */}
         {/* Translúcida y con blur, mismo patrón que la tarjeta de recepción. */}
-        <section className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
+        <section className="atl-superficie   rounded-3xl p-5 sm:p-6 shadow-sm transition-colors duration-300">
           <h2 className="mb-1 flex items-center gap-2 text-[19px] font-bold text-slate-900 dark:text-white">
             <div className="bg-amber-50 dark:bg-amber-500/10 p-2 rounded-xl text-amber-500">
               <Undo2 className="w-5 h-5" />
@@ -436,7 +436,7 @@ export default function CediPage() {
                   <button
                     disabled={busy}
                     onClick={() => processReturn(g.id)}
-                    className="min-h-[44px] px-4 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all self-start sm:self-auto shrink-0"
+                    className="min-h-[44px] px-4 rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95 transition-all self-start sm:self-auto shrink-0"
                   >
                     Procesar
                   </button>

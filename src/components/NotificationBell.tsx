@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Check } from "lucide-react";
+import { Bell, Check, Volume2 } from "lucide-react";
+import {
+  desbloquearSonido,
+  reproducirSonidoNotificacion,
+} from "@/lib/sonidoNotificacion";
 import { useNotificaciones } from "@/components/NotificationsContext";
 import { formatDateTime } from "@/lib/utils";
 import type { AppNotification } from "@/lib/types";
@@ -60,6 +64,19 @@ export function NotificationBell({
   const noti = useNotificaciones();
   const [abierto, setAbierto] = useState(false);
   const [esEscritorio, setEsEscritorio] = useState(false);
+  /**
+   * Si el navegador puede levantar avisos del sistema.
+   *
+   * Hasta ahora la app MIRABA este permiso pero no lo pedía nunca, y de
+   * fábrica vale "default", que no es concedido. O sea: el aviso con la app en
+   * segundo plano —el único que se oye cuando el teléfono está en el bolsillo—
+   * no se levantaba jamás, en ningún aparato, desde el primer día.
+   *
+   * Se pide aquí y no al abrir la app porque el navegador exige un gesto de la
+   * persona, y porque preguntar nada más entrar es la forma más segura de que
+   * digan que no sin leer. Quien abre la campana ya está pensando en avisos.
+   */
+  const [permiso, setPermiso] = useState<NotificationPermission | "sin-api">("sin-api");
   const caja = useRef<HTMLDivElement>(null);
   // La hoja vive fuera de `caja` —está en <body>—, así que para saber si un
   // toque cayó «dentro» del panel hay que preguntarle a ella por separado.
@@ -68,6 +85,10 @@ export function NotificationBell({
   // Se consulta en vivo y no una sola vez: girar el teléfono o cambiar de
   // tamaño la ventana cruza el umbral, y el panel abierto tiene que cambiar de
   // forma con el armazón, no quedarse en la que le tocó al abrirse.
+  useEffect(() => {
+    if (typeof Notification !== "undefined") setPermiso(Notification.permission);
+  }, []);
+
   useEffect(() => {
     const mq = window.matchMedia(ESCRITORIO);
     const leer = () => setEsEscritorio(mq.matches);
@@ -106,6 +127,32 @@ export function NotificationBell({
     await noti!.abrir(n);
   }
 
+  /**
+   * Oír el sonido a voluntad.
+   *
+   * Existe porque el del arranque no se puede dar por hecho: el navegador
+   * bloquea el audio hasta que la persona toca algo, y el splash sale ANTES de
+   * que haya tocado nada. En un teléfono recién estrenado no suena, y desde
+   * fuera eso no se distingue de «está roto».
+   *
+   * Aquí no hay esa duda: el toque que abre el sonido es el permiso que el
+   * navegador estaba pidiendo, así que si no se oye es el volumen del aparato
+   * y no la app.
+   */
+  function probarSonido() {
+    desbloquearSonido();
+    reproducirSonidoNotificacion();
+  }
+
+  async function pedirPermiso() {
+    if (typeof Notification === "undefined") return;
+    try {
+      setPermiso(await Notification.requestPermission());
+    } catch {
+      /* Safari viejo devuelve por callback en vez de promesa: no se insiste */
+    }
+  }
+
   /* Lo de dentro es idéntico en las dos formas; lo único que cambia es la caja
      que lo envuelve. Va aquí, en una variable, para que no haya dos listas que
      mantener en paralelo. */
@@ -126,6 +173,41 @@ export function NotificationBell({
           </button>
         )}
       </div>
+
+      {/* Solo cuando hay algo que hacer al respecto. Concedido no se dice:
+          nadie necesita que le recuerden que todo está bien. */}
+      {permiso === "default" && (
+        <div className="shrink-0 border-b border-slate-900/[0.06] bg-[#ff812c]/5 px-4 py-3 dark:border-white/[0.08]">
+          <p className="text-[13px] leading-snug text-slate-600 dark:text-slate-300">
+            Con la app cerrada o el teléfono en el bolsillo no te enteras de nada.
+            Activa los avisos y suenan igual.
+          </p>
+          <button
+            onClick={pedirPermiso}
+            className="mt-2 inline-flex min-h-[36px] items-center rounded-lg bg-[#ff812c] px-3 text-[13px] font-bold text-[#1C1C1E] transition-opacity active:opacity-70"
+          >
+            Activar avisos
+          </button>
+        </div>
+      )}
+
+      {permiso === "denied" && (
+        <div className="shrink-0 border-b border-slate-900/[0.06] px-4 py-3 dark:border-white/[0.08]">
+          <p className="text-[13px] leading-snug text-slate-500 dark:text-slate-400">
+            Los avisos están bloqueados en este navegador. Se vuelven a permitir
+            desde el candado de la barra de direcciones — desde aquí ya no se
+            puede preguntar.
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={probarSonido}
+        className="flex w-full shrink-0 items-center gap-2 border-b border-slate-900/[0.06] px-4 py-2.5 text-left text-[13px] text-slate-500 transition-colors hover:bg-slate-900/[0.04] active:opacity-70 dark:border-white/[0.08] dark:text-slate-400 dark:hover:bg-white/[0.06]"
+      >
+        <Volume2 className="size-4 shrink-0" />
+        Probar el sonido
+      </button>
 
       {items.length === 0 ? (
         <p className="px-4 py-10 text-center text-[14px] text-slate-500 dark:text-slate-400">
@@ -199,7 +281,7 @@ export function NotificationBell({
           campana— y no hay nada que capturarlo. */}
       {abierto && esEscritorio && (
         <div
-          className={`absolute z-[60] mt-2 flex max-h-[min(28rem,calc(100dvh-6rem))] w-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900/[0.06] bg-[#FFFFFF] shadow-2xl dark:border-white/[0.08] dark:bg-[#2C2C2E] ${
+          className={`absolute z-[60] mt-2 flex max-h-[min(28rem,calc(100dvh-6rem))] w-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900/[0.06] atl-superficie shadow-2xl dark:border-white/[0.08]  ${
             align === "left" ? "left-0" : "right-0"
           }`}
         >
@@ -221,7 +303,7 @@ export function NotificationBell({
             />
             <div
               ref={hoja}
-              className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t border-slate-900/[0.06] bg-[#FFFFFF] pb-safe shadow-2xl dark:border-white/[0.08] dark:bg-[#2C2C2E]"
+              className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[80dvh] flex-col overflow-hidden rounded-t-3xl border-t border-slate-900/[0.06] atl-superficie pb-safe shadow-2xl dark:border-white/[0.08] "
             >
               {/* Asa: indica que la hoja se puede cerrar deslizando. */}
               <div className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-gray-300 dark:bg-gray-600" />

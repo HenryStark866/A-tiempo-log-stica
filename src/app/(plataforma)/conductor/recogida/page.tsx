@@ -16,6 +16,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useOffline } from "@/components/OfflineContext";
+import { esFalloDeRed } from "@/lib/offline/queue";
 import { useProfile } from "@/components/ProfileContext";
 import { CediDestino } from "@/components/CediDestino";
 import { RecogidaQR } from "@/components/RecogidaQR";
@@ -80,6 +82,7 @@ export default function CourierPickupPage() {
   const [pickups, setPickups] = useState<Pickup[] | null>(null);
   const [marcadas, setMarcadas] = useState<Record<string, Set<string>>>({});
   const [nota, setNota] = useState<Record<string, string>>({});
+  const offline = useOffline();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Lo que acaba de recoger, para que elija qué hace con ello: entregar algo
@@ -165,9 +168,19 @@ export default function CourierPickupPage() {
     const { error } = await supabase.rpc("at_start_pickup", { p_pickup_id: p.pickup_id });
     setBusy(null);
     if (error) {
-      ventanaNav?.close();
-      setMsg({ ok: false, text: error.message });
-      return;
+      // Sin señal la salida no se cancela: se apunta y sube sola. El mensajero
+      // no puede quedarse parado en la puerta del CEDI esperando cobertura.
+      if (esFalloDeRed(error)) {
+        await offline.encolar("iniciar_recogida", { pickupId: p.pickup_id });
+        setMsg({
+          ok: true,
+          text: "Sin señal: la salida quedó apuntada y se envía sola cuando vuelva.",
+        });
+      } else {
+        ventanaNav?.close();
+        setMsg({ ok: false, text: error.message });
+        return;
+      }
     }
     await activarUbicacion();
     if (ventanaNav) {
@@ -223,7 +236,20 @@ export default function CourierPickupPage() {
       p_note: nota[p.pickup_id] || null,
     });
     setBusy(null);
-    if (error) {
+    if (error && esFalloDeRed(error)) {
+      // Lo mismo, y aquí importa más: esto ocurre DENTRO del comercio, que es
+      // donde peor entra la señal. Perder la confirmación obligaría a volver.
+      await offline.encolar("confirmar_recogida", {
+        pickupId: p.pickup_id,
+        guideIds: ids,
+        note: nota[p.pickup_id] || null,
+        comercio: p.business_name ?? null,
+      });
+      setMsg({
+        ok: true,
+        text: `Sin señal: ${ids.length} paquete(s) quedaron apuntados. Se envían solos cuando vuelva la conexión.`,
+      });
+    } else if (error) {
       setMsg({ ok: false, text: error.message });
     } else {
       const r = data as { recogidas: number; faltantes: number; comercio: string };
@@ -373,13 +399,13 @@ export default function CourierPickupPage() {
 
       {pickups === null ? (
         // Translucida y con blur (patron probado en vivo: /90 sin blur no se notaba).
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 text-slate-500 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75 dark:text-slate-400">
+        <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-16 text-slate-500 shadow-sm   dark:text-slate-400">
           <Loader2 className="h-7 w-7 animate-spin text-[#ff812c]" />
           <p className="text-[15px]">Cargando tus recogidas…</p>
         </div>
       ) : pickups.length === 0 ? (
         // Translucida y con blur, mismo motivo que arriba.
-        <div className="flex flex-col items-center gap-3 rounded-3xl bg-[#FFFFFF]/75 py-16 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+        <div className="flex flex-col items-center gap-3 rounded-3xl atl-superficie py-16 shadow-sm  ">
           <Package className="h-10 w-10 text-slate-300 dark:text-slate-600" />
           <p className="text-[16px] text-slate-500 dark:text-slate-400">
             No tienes recogidas asignadas ahora mismo
@@ -399,7 +425,7 @@ export default function CourierPickupPage() {
               // recogido) se quedan opacos a proposito.
               <section
                 key={p.pickup_id}
-                className="overflow-hidden rounded-3xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75"
+                className="overflow-hidden rounded-3xl atl-superficie shadow-sm  "
               >
                 <div className="border-b border-slate-900/[0.06] p-5 dark:border-white/[0.08]">
                   <p className="text-[19px] font-bold text-slate-900 dark:text-white">
@@ -435,7 +461,7 @@ export default function CourierPickupPage() {
                     </p>
                   )}
                   {p.notes && (
-                    <p className="mt-2 rounded-xl bg-[#F2F2F7] px-3 py-2 text-[14px] text-slate-600 dark:bg-[#1C1C1E] dark:text-slate-300">
+                    <p className="mt-2 rounded-xl atl-relleno px-3 py-2 text-[14px] text-slate-600  dark:text-slate-300">
                       {p.notes}
                     </p>
                   )}
@@ -549,7 +575,7 @@ export default function CourierPickupPage() {
                     value={nota[p.pickup_id] ?? ""}
                     onChange={(e) => setNota((n) => ({ ...n, [p.pickup_id]: e.target.value }))}
                     placeholder="Observación (opcional): caja mojada, faltó una…"
-                    className="w-full min-h-[48px] rounded-xl border border-transparent bg-[#F2F2F7] px-4 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700 dark:bg-[#1C1C1E] dark:text-white"
+                    className="w-full min-h-[48px] rounded-xl border border-transparent atl-relleno px-4 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-[#ff812c] focus:outline-none focus:ring-1 focus:ring-[#ff812c] dark:border-slate-700  dark:text-white"
                   />
 
                   <button
@@ -605,7 +631,7 @@ export default function CourierPickupPage() {
 
       {eligiendo && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-sm rounded-3xl bg-[#FFFFFF] p-6 shadow-2xl dark:bg-[#2C2C2E]">
+          <div className="w-full max-w-sm rounded-3xl atl-superficie p-6 shadow-2xl ">
             <h3 className="text-[19px] font-bold text-slate-900 dark:text-white">
               ¿Con qué app navegas?
             </h3>
@@ -624,7 +650,7 @@ export default function CourierPickupPage() {
               ))}
               <button
                 onClick={() => setEligiendo(null)}
-                className="min-h-[48px] w-full rounded-xl bg-[#F2F2F7] font-semibold text-slate-700 dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="min-h-[48px] w-full rounded-xl atl-relleno font-semibold text-slate-700  dark:text-slate-300"
               >
                 Cancelar
               </button>
@@ -641,7 +667,7 @@ export default function CourierPickupPage() {
           le cabe en la moto. */}
       {directa && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] bg-[#FFFFFF] shadow-2xl dark:bg-[#2C2C2E]">
+          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-[32px] atl-superficie shadow-2xl ">
             <div className="shrink-0 border-b border-slate-900/[0.06] px-6 pt-6 pb-4 dark:border-white/[0.08]">
               <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff812c]/10">
                 <Navigation2 className="h-5 w-5 text-[#ff812c]" />
@@ -737,7 +763,7 @@ export default function CourierPickupPage() {
               <button
                 onClick={llevarAlCedi}
                 disabled={busy !== null}
-                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] font-bold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50 dark:bg-[#1C1C1E] dark:text-slate-300"
+                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl atl-relleno font-bold text-slate-700 transition-transform active:scale-[0.98] disabled:opacity-50  dark:text-slate-300"
               >
                 {busy === "traslado" ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

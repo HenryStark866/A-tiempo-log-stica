@@ -153,7 +153,7 @@ export default function MiRecaudoPage() {
       {/* El titular: lo que le falta por recibir. Es la pregunta que trae a
           alguien a esta pantalla, así que va primero y en grande. */}
       {/* Translucida y con blur (patrón probado en vivo: /90 sin blur no se notaba). */}
-      <div className="rounded-3xl bg-[#FFFFFF]/75 p-6 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+      <div className="rounded-3xl atl-superficie p-6 shadow-sm  ">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff812c]/10">
             <Banknote className="h-6 w-6 text-[#ff812c]" />
@@ -189,7 +189,7 @@ export default function MiRecaudoPage() {
           const dato = r?.[e.clave];
           const Icono = e.icono;
           return (
-            <div key={e.clave} className="rounded-2xl bg-[#FFFFFF]/75 p-5 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+            <div key={e.clave} className="rounded-2xl atl-superficie p-5 shadow-sm  ">
               <div className="flex items-center gap-3">
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${e.fondo}`}>
                   <Icono className={`h-5 w-5 ${e.color}`} />
@@ -220,7 +220,7 @@ export default function MiRecaudoPage() {
           Giros
         </h2>
         {/* Translucida y con blur; el desglose interno (fondo gris) se queda opaco. */}
-        <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+        <div className="overflow-hidden rounded-2xl atl-superficie shadow-sm  ">
           {(datos?.remesas.length ?? 0) === 0 ? (
             <p className="px-5 py-10 text-center text-[15px] text-slate-400">
               Todavía no te hemos hecho ningún giro.
@@ -259,7 +259,7 @@ export default function MiRecaudoPage() {
                       explica por qué el giro no coincide con lo recaudado, y
                       es justo la duda que genera una desconfianza sorda. */}
                   {(m.shipping_kept > 0 || m.invoice_offset > 0) && (
-                    <div className="mt-3 space-y-1 rounded-xl bg-[#F2F2F7] p-3 text-[13px] dark:bg-[#1C1C1E]">
+                    <div className="mt-3 space-y-1 rounded-xl atl-relleno p-3 text-[13px] ">
                       <div className="flex justify-between text-slate-500 dark:text-slate-400">
                         <span>Recaudado a tus compradores</span>
                         <span>{formatCOP(m.gross_amount)}</span>
@@ -305,7 +305,7 @@ export default function MiRecaudoPage() {
           Pedido por pedido
         </h2>
         {/* Translucida y con blur, mismo patrón que el resto de la pantalla. */}
-        <div className="overflow-hidden rounded-2xl bg-[#FFFFFF]/75 shadow-sm backdrop-blur-xl dark:bg-[#2C2C2E]/75">
+        <div className="overflow-hidden rounded-2xl atl-superficie shadow-sm  ">
           {(datos?.pedidos.length ?? 0) === 0 ? (
             <p className="px-5 py-10 text-center text-[15px] text-slate-400">
               Todavía no tienes pedidos contraentrega entregados.

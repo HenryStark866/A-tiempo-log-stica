@@ -16,6 +16,7 @@ import { FondoPlataforma } from "@/components/fondos/FondoPlataforma";
 import { STORAGE_KEY as UBICACION_STORAGE_KEY } from "@/components/PositionReporter";
 import { desbloquearSonido } from "@/lib/sonidoNotificacion";
 import { createClient } from "@/lib/supabase/client";
+import * as cache from "@/lib/offline/cache";
 import { ROLE_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -48,12 +49,30 @@ export function AppShell({
   }, [pathname]);
 
   // El sonido de las notificaciones necesita un toque real antes de poder
-  // sonar — así es en todos los navegadores móviles. Con `once: true` se
-  // desengancha solo después del primer toque de la sesión.
+  // sonar — así es en todos los navegadores.
+  //
+  // Esto escuchaba con `once: true`, o sea el primer toque de la sesión y se
+  // acabó. El problema es que el navegador vuelve a suspender el audio cada
+  // vez que la pestaña pasa un rato de fondo: bastaba con mirar el correo y
+  // volver para que las notificaciones enmudecieran hasta recargar, sin nadie
+  // escuchando ya para despertarlas.
+  //
+  // Ahora se queda escuchando, y además se despierta al volver a primer plano,
+  // que es justo el momento en que el navegador acaba de suspenderlo. Cuesta
+  // una llamada que se sale por la primera línea cuando ya está despierto.
   useEffect(() => {
-    const desbloquear = () => desbloquearSonido();
-    window.addEventListener("pointerdown", desbloquear, { once: true });
-    return () => window.removeEventListener("pointerdown", desbloquear);
+    const despertar = () => desbloquearSonido();
+    const alVolver = () => {
+      if (document.visibilityState === "visible") despertar();
+    };
+    window.addEventListener("pointerdown", despertar);
+    window.addEventListener("keydown", despertar);
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      window.removeEventListener("pointerdown", despertar);
+      window.removeEventListener("keydown", despertar);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
   }, []);
 
   useEffect(() => {
@@ -75,6 +94,16 @@ export function AppShell({
     // sesión. No es solo un estado que sobra: es rastrear a alguien sin que
     // lo haya consentido.
     window.localStorage.removeItem(UBICACION_STORAGE_KEY);
+
+    // Y por lo mismo, fuera lo que se bajó para trabajar sin señal: la ruta
+    // guardada trae nombres, direcciones y teléfonos de destinatarios, y el
+    // service worker guarda el HTML de las pantallas de campo. Quien entre
+    // después en este teléfono no tiene por qué ver nada de eso.
+    cache.olvidarTodo();
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.controller?.postMessage({ tipo: "yam:cerrar-sesion" });
+    }
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
@@ -149,7 +178,7 @@ export function AppShell({
                 por un portal, ver NotificationBell—, pero la capa se queda:
                 cuesta un div y evita que el próximo `fixed` que alguien
                 ponga aquí dentro se rompa por un motivo invisible. */}
-            <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
+            <div className="absolute inset-0 -z-10 atl-superficie  " />
             {/* `overflow-hidden`: en pantallas de 320 px el logo, el reloj y
                 los dos controles no caben juntos. Que lo que ceda sea el
                 descriptor de la marca —que ya se sabe de memoria— y no la
@@ -284,7 +313,7 @@ export function AppShell({
             {/* Misma separación que en el header móvil: el fondo esmerilado
                 no debe envolver nada position:fixed que se agregue aquí más
                 adelante. */}
-            <div className="absolute inset-0 -z-10 bg-[#FFFFFF]/80 dark:bg-[#2C2C2E]/80 backdrop-blur-xl" />
+            <div className="absolute inset-0 -z-10 atl-superficie  " />
             <div className="flex items-center justify-start h-[var(--atl-nav)] px-2 overflow-x-auto overscroll-x-contain no-scrollbar gap-1">
               {items.map((item) => {
                 const active = pathname.startsWith(item.href);

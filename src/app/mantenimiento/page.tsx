@@ -38,7 +38,7 @@ export default function MantenimientoPage() {
           <Logo />
         </div>
 
-        <div className="rounded-3xl bg-[#FFFFFF] p-8 shadow-sm dark:bg-[#2C2C2E]">
+        <div className="rounded-3xl atl-superficie p-8 shadow-sm ">
           <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#ff812c]/10">
             <Wrench className="h-8 w-8 text-[#ff812c]" />
           </div>
@@ -57,7 +57,7 @@ export default function MantenimientoPage() {
             recaudo están a salvo.
           </p>
 
-          <div className="mt-6 rounded-2xl bg-[#F2F2F7] px-4 py-4 text-left dark:bg-[#1C1C1E]">
+          <div className="mt-6 rounded-2xl atl-relleno px-4 py-4 text-left ">
             <p className="text-[14px] leading-relaxed text-slate-600 dark:text-slate-300">
               <strong className="font-semibold text-slate-900 dark:text-white">
                 ¿Tienes un paquete en camino?

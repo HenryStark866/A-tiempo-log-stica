@@ -38,7 +38,9 @@ export type TipoAccion =
   | "recibir_guia"
   | "recibir_lote"
   | "crear_guia"
-  | "solicitar_recogida";
+  | "solicitar_recogida"
+  | "iniciar_recogida"
+  | "confirmar_recogida";
 
 export interface AccionEnCola {
   id: string;
@@ -81,6 +83,16 @@ export interface PayloadCrearGuia {
 export interface PayloadSolicitarRecogida {
   args: Record<string, unknown>;
 }
+export interface PayloadIniciarRecogida {
+  pickupId: string;
+}
+export interface PayloadConfirmarRecogida {
+  pickupId: string;
+  guideIds: string[];
+  note: string | null;
+  /** Para el resumen del panel; el servidor no lo necesita. */
+  comercio: string | null;
+}
 
 /**
  * Distingue "no hubo señal" de "el servidor dijo que no".
@@ -122,6 +134,13 @@ function resumenDe(tipo: TipoAccion, payload: unknown): string {
       return `Nueva guía · ${(payload as PayloadCrearGuia).fila.recipient_name ?? ""}`;
     case "solicitar_recogida":
       return "Solicitar recogida";
+    case "iniciar_recogida":
+      return "Salir a recoger";
+    case "confirmar_recogida": {
+      const p = payload as PayloadConfirmarRecogida;
+      const n = p.guideIds.length;
+      return `Recogida en ${p.comercio ?? "el comercio"} · ${n} paquete${n === 1 ? "" : "s"}`;
+    }
   }
 }
 
@@ -146,6 +165,41 @@ export function descartar(id: string): Promise<void> {
 }
 
 // ── Ejecutores: el mismo camino que ya usaba cada pantalla ──────────────
+
+/**
+ * ¿El servidor rechazó esto porque YA existía?
+ *
+ * Es el caso de «se ejecutó y no me enteré»: la petición llegó, se guardó, y la
+ * respuesta se perdió en el camino de vuelta. Al reintentar, el índice único
+ * sobre client_request_id la rechaza con 23505. No es un error: es la prueba de
+ * que el trabajo ya está hecho, así que la acción se da por cumplida.
+ */
+function esDuplicado(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return false;
+  return (
+    e.code === "23505" ||
+    /duplicate key|client_request_id/i.test(e.message ?? "")
+  );
+}
+
+/**
+ * ¿El servidor rechazó esto porque el trabajo YA está hecho?
+ *
+ * Las recogidas no se pueden reintentar a ciegas como una inserción: al
+ * reproducir una confirmación que sí llegó, `at_confirm_pickup` responde
+ * «esta recogida ya está completada». Eso no es un fallo —es la prueba de que
+ * funcionó— pero sin distinguirlo la cola lo trataría como error y estaría
+ * reintentándolo eternamente, con el mensajero viendo un pendiente que nunca
+ * baja.
+ *
+ * Se mira el texto porque la excepción viene de un `raise` de PL/pgSQL y todas
+ * llegan con el mismo código (P0001): no hay nada más fino a lo que agarrarse.
+ */
+function yaEstabaHecho(error: unknown): boolean {
+  const m = (error as { message?: string } | null)?.message ?? "";
+  return /ya está (completada|cancelada|en_curso|en curso)/i.test(m);
+}
 
 async function ejecutar(accion: AccionEnCola): Promise<void> {
   const supabase = createClient();
@@ -208,13 +262,49 @@ async function ejecutar(accion: AccionEnCola): Promise<void> {
     }
     case "crear_guia": {
       const p = accion.payload as PayloadCrearGuia;
-      const { error } = await supabase.from("at_guides").insert(p.fila);
-      if (error) throw error;
+      // El id de la acción viaja como identificador de la petición. Si esta
+      // misma ya se ejecutó —porque llegó al servidor y la respuesta se
+      // perdió de vuelta—, el índice único la rechaza y eso es exactamente lo
+      // que queremos: significa que el pedido YA existe.
+      const { error } = await supabase
+        .from("at_guides")
+        .insert({ ...p.fila, client_request_id: accion.id });
+      if (error) {
+        if (esDuplicado(error)) return; // ya se había creado: nada que hacer
+        throw error;
+      }
+      return;
+    }
+    case "iniciar_recogida": {
+      const p = accion.payload as PayloadIniciarRecogida;
+      const { error } = await supabase.rpc("at_start_pickup", { p_pickup_id: p.pickupId });
+      if (error) {
+        if (yaEstabaHecho(error)) return;
+        throw error;
+      }
+      return;
+    }
+    case "confirmar_recogida": {
+      const p = accion.payload as PayloadConfirmarRecogida;
+      const { error } = await supabase.rpc("at_confirm_pickup", {
+        p_pickup_id: p.pickupId,
+        p_guide_ids: p.guideIds,
+        p_note: p.note,
+      });
+      if (error) {
+        if (yaEstabaHecho(error)) return;
+        throw error;
+      }
       return;
     }
     case "solicitar_recogida": {
       const p = accion.payload as PayloadSolicitarRecogida;
-      const { error } = await supabase.rpc("at_request_pickup", p.args);
+      // Aquí no hace falta atrapar el duplicado: la función devuelve la
+      // recogida que ya existía en vez de crear otra (migración 0099).
+      const { error } = await supabase.rpc("at_request_pickup", {
+        ...p.args,
+        p_request_id: accion.id,
+      });
       if (error) throw error;
       return;
     }

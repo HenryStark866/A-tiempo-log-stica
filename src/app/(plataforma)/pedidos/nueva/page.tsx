@@ -116,6 +116,10 @@ export default function NewGuidePage() {
     recipient_address: "",
     recipient_city: "",
     zone_id: "",
+    // Barrio escrito a mano cuando el cotizador no encuentra el destino. Vive
+    // aquí, con el resto del pedido, y se va con él: no toca el catálogo de
+    // zonas ni se guarda en ninguna otra parte.
+    recipient_neighborhood: "",
     is_cod: false,
     cod_amount: "",
     cod_includes_shipping: false,
@@ -371,6 +375,7 @@ export default function NewGuidePage() {
       recipient_address: "",
       recipient_city: "Medellín",
       zone_id: "",
+      recipient_neighborhood: "",
     }));
   }
 
@@ -411,6 +416,12 @@ export default function NewGuidePage() {
       recipient_address: form.recipient_address,
       recipient_city: form.recipient_city,
       zone_id: form.zone_id || null,
+      // Solo viaja si de verdad se escribió y el pedido quedó sin zona: en un
+      // pedido zonificado con normalidad no significa nada y va en null.
+      recipient_neighborhood:
+        !form.zone_id && form.recipient_neighborhood.trim()
+          ? form.recipient_neighborhood.trim()
+          : null,
       is_cod: form.is_cod,
       cod_amount: form.is_cod ? Number(form.cod_amount) || 0 : 0,
       cod_includes_shipping: form.is_cod && form.cod_includes_shipping,
@@ -511,7 +522,7 @@ export default function NewGuidePage() {
           <ChevronLeft className="w-6 h-6 -ml-2" />
           <span className="text-[17px]">Atrás</span>
         </button>
-        <div className="rounded-3xl bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl p-10 text-center shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08]">
+        <div className="rounded-3xl atl-superficie   p-10 text-center shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08]">
           <PackagePlus className="mx-auto mb-4 size-10 text-slate-400" />
           <h2 className="text-[19px] font-bold text-slate-900 dark:text-white">Creación de guías reservada a comercios</h2>
           <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600 dark:text-slate-400">
@@ -584,7 +595,7 @@ export default function NewGuidePage() {
                   {/* Con más de media docena, buscar es más rápido que barrer
                       una lista con el dedo. */}
                   {products.length > 6 && (
-                    <div className="flex items-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-3 min-h-[44px]">
+                    <div className="flex items-center gap-2 rounded-xl atl-relleno  px-3 min-h-[44px]">
                       <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                       <input
                         value={buscadorProducto}
@@ -653,7 +664,7 @@ export default function NewGuidePage() {
                                 Agregar
                               </button>
                             ) : (
-                              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] p-1">
+                              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg atl-relleno  p-1">
                                 <button
                                   type="button"
                                   onClick={() => cambiarCantidadProducto(p, -1)}
@@ -689,7 +700,7 @@ export default function NewGuidePage() {
                   </p>
                   <Link
                     href="/productos"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 min-h-[44px] text-[15px] font-semibold text-[#ff812c] active:scale-[0.98] transition-transform"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl atl-relleno  px-4 min-h-[44px] text-[15px] font-semibold text-[#ff812c] active:scale-[0.98] transition-transform"
                   >
                     <Tag className="w-4 h-4" /> Cargar mis productos
                   </Link>
@@ -700,7 +711,7 @@ export default function NewGuidePage() {
                   que la cuadrícula de arriba muestra: solo el total, que es lo
                   único que no se ve de un vistazo ahí arriba. */}
               {items.length > 0 && (
-                <div className="flex items-center justify-between gap-3 border-t border-slate-900/[0.06] dark:border-white/[0.08] bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-3">
+                <div className="flex items-center justify-between gap-3 border-t border-slate-900/[0.06] dark:border-white/[0.08] atl-relleno  px-4 py-3">
                   <p className="text-[14px] font-medium text-slate-500 dark:text-slate-400">
                     {unidades} artículo{unidades === 1 ? "" : "s"} · valor declarado
                   </p>
@@ -744,7 +755,7 @@ export default function NewGuidePage() {
                           "rounded-xl px-4 min-h-[42px] text-[14px] font-semibold transition-colors",
                           activo
                             ? "bg-[#ff812c] text-[#1C1C1E]"
-                            : "bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-300"
+                            : "atl-relleno  text-slate-600 dark:text-slate-300"
                         )}
                       >
                         {t.label}
@@ -780,7 +791,7 @@ export default function NewGuidePage() {
                           "rounded-xl px-2 py-2 min-h-[56px] text-[14px] font-semibold leading-tight transition-colors",
                           activo
                             ? "bg-[#ff812c] text-[#1C1C1E]"
-                            : "bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-600 dark:text-slate-300"
+                            : "atl-relleno  text-slate-600 dark:text-slate-300"
                         )}
                       >
                         {t.label}
@@ -871,7 +882,7 @@ export default function NewGuidePage() {
                     </p>
                     <Link
                       href="/destinatarios"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 min-h-[44px] text-[15px] font-semibold text-[#ff812c] active:scale-[0.98] transition-transform"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl atl-relleno  px-4 min-h-[44px] text-[15px] font-semibold text-[#ff812c] active:scale-[0.98] transition-transform"
                     >
                       <Upload className="w-4 h-4" /> Subir mi base de clientes
                     </Link>
@@ -1277,7 +1288,17 @@ export default function NewGuidePage() {
             </div>
           </section>
 
-          <PriceList zones={zones} activeZoneId={form.zone_id || null} tarifas={tarifaPorZona} />
+          {/* El barrio escrito a mano sube hasta aquí y se queda en `form`, con
+              el resto del pedido. El cotizador no guarda nada por su cuenta. */}
+          <PriceList
+            zones={zones}
+            activeZoneId={form.zone_id || null}
+            tarifas={tarifaPorZona}
+            barrioManual={form.recipient_neighborhood}
+            onBarrioManual={(barrio) =>
+              setForm((f) => ({ ...f, recipient_neighborhood: barrio }))
+            }
+          />
 
           {error && (
             <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">
@@ -1290,7 +1311,7 @@ export default function NewGuidePage() {
           {/* En el teléfono se apoya encima de la barra de pestañas, no en el
               borde de la pantalla: con `bottom-0` el botón «Crear guía» caía
               dentro de los 68 px de las pestañas y quedaba tapado a medias. */}
-          <div className="fixed bottom-nav left-0 right-0 p-4 bg-[#F2F2F7]/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border-t border-slate-900/[0.06] dark:border-white/[0.08] z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
+          <div className="fixed bottom-nav left-0 right-0 p-4 atl-relleno  backdrop-blur-xl border-t border-slate-900/[0.06] dark:border-white/[0.08] z-20 md:static md:bg-transparent md:border-0 md:p-0 md:backdrop-blur-none transition-colors duration-300">
             <div className="flex gap-3 max-w-2xl mx-auto">
               <button
                 type="button"

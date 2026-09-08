@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass, QrCode, ChevronDown } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, X, PackageOpen, Loader2, MessageCircle, TriangleAlert, Warehouse, Clock, Package, UserCheck, Pencil, Ban, Hourglass, QrCode, ChevronDown, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -41,25 +41,267 @@ function whatsappUrl(phone: string, businessName: string) {
   return `https://wa.me/${withCountry}?text=${text}`;
 }
 
-function PickupBadge({ status }: { status: PickupStatus }) {
-  let colorClass = "bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-400";
+/**
+ * El color de cada estado, en tono suave.
+ *
+ * Antes cada estado traía un relleno propio y distinto por tema: cinco rellenos
+ * sólidos compitiendo en la misma columna hacían que la tabla se leyera como un
+ * semáforo averiado, y el naranja de marca —que solo debería marcar «hay
+ * alguien conduciendo hacia allá»— quedaba igual de fuerte que el resto.
+ *
+ * Ahora el color lo pone el TEXTO y el fondo apenas lo insinúa (10 %), con un
+ * aro de un pelo que separa la etiqueta del cristal de la tarjeta. El estado se
+ * sigue distinguiendo de un vistazo, pero deja de gritar.
+ *
+ * Un solo juego de clases para los tres temas: el `dark:` de este proyecto
+ * cubre también `.tema-multicolor` (ver el `@custom-variant` de globals.css),
+ * así que el contraste se define una vez y vale en claro, oscuro y multicolor.
+ * En claro manda el tono 700 sobre el fondo tenue; en los dos oscuros, el 300.
+ */
+const TONO_ESTADO: Record<PickupStatus, string> = {
+  pendiente: "bg-slate-500/10 text-slate-600 ring-slate-500/20 dark:text-slate-300",
+  asignada: "bg-blue-500/10 text-blue-700 ring-blue-500/20 dark:text-blue-300",
+  // El naranja de marca sigue siendo el único estado con color propio de la
+  // casa. En claro se oscurece: #ff812c sobre fondo tenue no llega al contraste
+  // mínimo para texto pequeño.
+  en_curso: "bg-[#ff812c]/12 text-[#b45309] ring-[#ff812c]/25 dark:text-[#ffa869]",
+  completada: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/20 dark:text-emerald-300",
+  cancelada: "bg-rose-500/10 text-rose-700 ring-rose-500/20 dark:text-rose-300",
+};
 
-  if (status === "asignada") {
-    colorClass = "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400";
-  } else if (status === "en_curso") {
-    // Naranja de marca: es el único estado donde hay alguien conduciendo hacia
-    // el comercio ahora mismo, y el CEDI necesita verlo de un vistazo.
-    colorClass = "bg-[#ff812c]/10 text-[#ff812c] dark:bg-[#ff812c]/15 dark:text-[#ff812c]";
-  } else if (status === "completada") {
-    colorClass = "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400";
-  } else if (status === "cancelada") {
-    colorClass = "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400";
+function PickupBadge({ status, title }: { status: PickupStatus; title?: string }) {
+  return (
+    <span
+      title={title}
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+        TONO_ESTADO[status] ?? TONO_ESTADO.pendiente
+      )}
+    >
+      {PICKUP_STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
+/**
+ * Etiqueta neutra: cuenta un dato de apoyo (guías, paquetes) sin pelearse con
+ * el badge de estado que tiene al lado. Sin color propio a propósito — el único
+ * color de la fila es el del estado.
+ */
+function Etiqueta({
+  children,
+  title,
+  alerta = false,
+}: {
+  children: React.ReactNode;
+  title?: string;
+  alerta?: boolean;
+}) {
+  return (
+    <span
+      title={title}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] font-medium",
+        "atl-relleno ring-1 ring-inset ring-slate-900/[0.06] dark:ring-white/[0.08]",
+        alerta
+          ? "text-amber-700 dark:text-amber-300"
+          : "text-slate-500 dark:text-slate-400"
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Un nombre propio en una celda estrecha.
+ *
+ * Los nombres de comercio y de mensajero se van a tres y cuatro palabras
+ * («Distribuidora La Esperanza S.A.S.», «Juan Carlos Restrepo Vélez») y
+ * reventaban el ancho de la tabla en dos y tres renglones. A partir de la
+ * tercera palabra se corta en una sola línea y el nombre completo queda en el
+ * `title`: el navegador lo muestra al pasar el cursor sin que haya que montar
+ * un tooltip propio. Con dos palabras o menos no se toca — no hace falta.
+ */
+function NombreCorto({
+  nombre,
+  className,
+}: {
+  nombre: string | null | undefined;
+  className?: string;
+}) {
+  if (!nombre) return <span className={className}>—</span>;
+  const largo = nombre.trim().split(/\s+/).length > 2;
+  return (
+    <span
+      title={largo ? nombre : undefined}
+      className={cn("block", largo && "truncate", className)}
+    >
+      {nombre}
+    </span>
+  );
+}
+
+/** Una entrada del menú «…» de una recogida. */
+type AccionMenu = {
+  key: string;
+  label: string;
+  icono: React.ReactNode;
+  onClick: () => void;
+  /** Rojo para lo que destruye (cancelar); neutro para el resto. */
+  peligro?: boolean;
+};
+
+/**
+ * Hasta dónde puede crecer un panel hacia abajo sin que lo recorten.
+ *
+ * Sube por los padres hasta encontrar el primero que no tenga `overflow:
+ * visible` —aquí es el `overflow-x-auto` de la tabla, y por encima el
+ * `overflow-hidden` de la tarjeta— y devuelve su borde inferior, o el de la
+ * ventana si llega antes. Ojo con el detalle que se cuela siempre: declarar
+ * `overflow-x: auto` hace que el eje Y pase de `visible` a `auto` por sí solo
+ * (lo dice la especificación), así que ese contenedor recorta ARRIBA Y ABAJO
+ * aunque en el marcado solo se pidiera scroll horizontal.
+ */
+function limiteInferior(el: HTMLElement): number {
+  let n: HTMLElement | null = el.parentElement;
+  while (n && n !== document.body) {
+    const { overflowX, overflowY } = getComputedStyle(n);
+    if (overflowX !== "visible" || overflowY !== "visible") {
+      return Math.min(n.getBoundingClientRect().bottom, window.innerHeight);
+    }
+    n = n.parentElement;
+  }
+  return window.innerHeight;
+}
+
+/**
+ * El menú «…» de la fila.
+ *
+ * La columna de acciones llevaba hasta cinco botones con texto —QR, Editar,
+ * Cancelar, Reasignar y encima el aviso de «Espera al mensajero»— y era, con
+ * diferencia, lo más ancho y ruidoso de la tabla: se comía el espacio que
+ * necesitaban Dirección y Operario. Ahora quedan dos elementos fijos, iguales
+ * en todas las filas: WhatsApp, que es lo único que el CEDI usa a diario, y
+ * este desplegable con el resto.
+ *
+ * ── Por qué el panel se dibujaba desplazado ──────────────────────────────
+ *
+ * Estaba en `position: fixed` con coordenadas sacadas de
+ * `getBoundingClientRect()`, que son relativas a la VENTANA. Y no llegaban a
+ * medirse contra la ventana: la tarjeta que envuelve la tabla lleva
+ * `.atl-superficie`, y esa clase aplica `backdrop-filter: blur(20px)`. Un
+ * elemento con `backdrop-filter` (igual que con `filter`, `transform` o
+ * `will-change`) se convierte en el bloque contenedor de sus descendientes
+ * `fixed`: el panel ya no se colocaba contra la ventana sino contra la esquina
+ * de la tarjeta, así que aparecía corrido justo lo que la tarjeta está separada
+ * del borde de la pantalla. La misma trampa se llevaba por delante la capa de
+ * cierre `fixed inset-0`, que solo cubría la tarjeta.
+ *
+ * La solución es la simple: `absolute` colgando de un contenedor `relative` que
+ * es el propio botón. Ahí no hay coordenadas que calcular —el panel va pegado a
+ * su disparador por definición— y el desfase no puede volver, porque ya no
+ * depende de contra qué se esté midiendo.
+ *
+ * Lo único que sí hay que mirar es si cabe: el contenedor de la tabla recorta
+ * por abajo (ver `limiteInferior`), así que en las últimas filas el panel se
+ * abre hacia arriba. Es la única cuenta que queda, y se hace una vez al abrir.
+ */
+function MenuAcciones({ acciones }: { acciones: AccionMenu[] }) {
+  const [abierto, setAbierto] = useState(false);
+  const [haciaArriba, setHaciaArriba] = useState(false);
+  const cajaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!abierto) return;
+
+    // Un clic fuera lo baja. Va en el documento y no en una capa `fixed`
+    // encima de todo: esa capa era otra víctima del `backdrop-filter` de la
+    // tarjeta —se quedaba del tamaño de la tarjeta, no de la pantalla— y
+    // además tapaba el hover de las filas mientras el menú estaba abierto.
+    const fuera = (e: PointerEvent) => {
+      if (!cajaRef.current?.contains(e.target as Node)) setAbierto(false);
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAbierto(false);
+    };
+    document.addEventListener("pointerdown", fuera, true);
+    window.addEventListener("keydown", tecla);
+    return () => {
+      document.removeEventListener("pointerdown", fuera, true);
+      window.removeEventListener("keydown", tecla);
+    };
+  }, [abierto]);
+
+  if (acciones.length === 0) return null;
+
+  function alternar() {
+    if (!abierto && cajaRef.current) {
+      // 44 px por entrada más el aire del panel: no hace falta medirlo de
+      // verdad, solo saber si el sitio da o no da.
+      const alto = acciones.length * 44 + 12;
+      const abajo = cajaRef.current.getBoundingClientRect().bottom;
+      setHaciaArriba(abajo + alto > limiteInferior(cajaRef.current) - 8);
+    }
+    setAbierto((v) => !v);
   }
 
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${colorClass}`}>
-      {PICKUP_STATUS_LABELS[status] || status}
-    </span>
+    // El ancla del desplegable. `relative` aquí y nada más arriba: el panel se
+    // cuelga del botón, no de la celda ni de la fila.
+    <div ref={cajaRef} className="relative inline-flex">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        aria-label="Más acciones"
+        title="Más acciones"
+        onClick={alternar}
+        className={cn(
+          "inline-flex size-10 shrink-0 items-center justify-center rounded-xl transition-all active:scale-95",
+          "atl-relleno atl-relleno-hover text-slate-600 dark:text-slate-300",
+          "ring-1 ring-inset ring-slate-900/[0.06] dark:ring-white/[0.08]",
+          abierto && "ring-[#ff812c]/40 text-[#ff812c]"
+        )}
+      >
+        <MoreHorizontal className="size-4" />
+      </button>
+
+      {abierto && (
+        <div
+          role="menu"
+          className={cn(
+            // Alineado al borde derecho del botón y pegado debajo. El panel
+            // crece hacia la izquierda, que es hacia dentro de la tabla: por
+            // ese lado no hay nada que lo recorte.
+            "absolute right-0 z-50 min-w-[200px] overflow-hidden rounded-2xl py-1.5 shadow-xl",
+            "atl-superficie border border-slate-900/[0.08] dark:border-white/[0.10]",
+            haciaArriba ? "bottom-full mb-1" : "top-full mt-1"
+          )}
+        >
+          {acciones.map((a) => (
+            <button
+              key={a.key}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAbierto(false);
+                a.onClick();
+              }}
+              className={cn(
+                "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[14px] font-medium transition-colors",
+                a.peligro
+                  ? "text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                  : "text-slate-700 hover:bg-slate-900/[0.05] dark:text-slate-200 dark:hover:bg-white/[0.08]"
+              )}
+            >
+              {a.icono}
+              {a.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -226,6 +468,19 @@ function Pickups() {
   // La tarjeta del LTR abre aquí las recogidas ya completadas, que son las que
   // entran en el promedio de esa métrica.
   const estadoFiltro = params.get("estado") as PickupStatus | null;
+  /**
+   * El pedido desde el que se llegó, si se llegó desde uno.
+   *
+   * La pantalla del pedido enlaza aquí con `?pedido=<id>` para que el comercio
+   * pueda pedir la recogida sin buscarse a sí mismo en una lista. Se abre la
+   * hoja con ESE paquete marcado y ninguno más: quien viene de un pedido
+   * concreto quiere ese, no los doce que tenga pendientes.
+   *
+   * Toda la validación de horarios, dirección y contacto es la de siempre, que
+   * es el motivo de traerlo aquí en vez de meter un formulario de recogida
+   * dentro de la pantalla del pedido: dos formularios se separan solos.
+   */
+  const pedidoDeLaUrl = params.get("pedido");
   // La recogida siempre la solicita un comercio: si es un cliente, se autoaprovisiona.
   const { client: miComercio, clientId, loading: cargandoComercio } = useMyClient();
   const offline = useOffline();
@@ -367,6 +622,12 @@ function Pickups() {
       });
   }, [esCliente, clientId, miComercio]);
 
+  // Llegando desde un pedido, la hoja se abre sola: el comercio ya dijo lo
+  // que quería al tocar «Solicitar recogida» allá.
+  useEffect(() => {
+    if (pedidoDeLaUrl) setShowNew(true);
+  }, [pedidoDeLaUrl]);
+
   // Guías que se pueden incluir en la solicitud.
   useEffect(() => {
     if (!form.client_id) return;
@@ -382,10 +643,18 @@ function Pickups() {
       .then(({ data }) => {
         const list = (data as Guide[]) ?? [];
         setPendientes(list);
-        // Por defecto se incluyen todas: es lo que el comercio espera.
-        setSeleccionadas(new Set(list.map((g) => g.id)));
+        // Viniendo de un pedido, solo ese. Si ya no está en la lista —porque
+        // alguien le pidió recogida mientras tanto— se cae al comportamiento
+        // normal en vez de dejar la selección vacía sin explicación.
+        const soloEse = pedidoDeLaUrl && list.some((g) => g.id === pedidoDeLaUrl);
+        setSeleccionadas(
+          soloEse
+            ? new Set([pedidoDeLaUrl])
+            // Por defecto se incluyen todas: es lo que el comercio espera.
+            : new Set(list.map((g) => g.id))
+        );
       });
-  }, [form.client_id, showNew]);
+  }, [form.client_id, showNew, pedidoDeLaUrl]);
 
   function toggleGuia(id: string) {
     setSeleccionadas((prev) => {
@@ -589,95 +858,134 @@ function Pickups() {
    * agrega una acción, no hay que acordarse de agregarla dos veces.
    */
   function acciones(p: Pickup) {
+    // Las mismas acciones de siempre, con los mismos handlers: lo único que
+    // cambia es dónde se dibujan. Todo lo secundario se va al «…» y en la fila
+    // solo queda WhatsApp, que es lo que el CEDI toca de verdad a diario.
+    const menu: AccionMenu[] = [];
+
+    // El QR del lote. Va de primero y lo ven todos: el comercio lo imprime
+    // y lo pega en la estiba apenas pide la recogida, y el CEDI lo tiene a
+    // mano si el papel no llegó. Deja de ofrecerse cuando la recogida se
+    // cancela, que es cuando ya no hay lote que recibir.
+    if (p.status !== "cancelada") {
+      menu.push({
+        key: "qr",
+        label: "QR del lote",
+        icono: <QrCode className="size-4 shrink-0 text-[#ff812c]" />,
+        onClick: () => setQrDe(p),
+      });
+    }
+
+    // Reasignar: solo el CEDI, y mientras la recogida siga viva.
+    // Aquí había un botón «Completar» que ponía la recogida en completada de
+    // un plumazo, con un número de paquetes escrito a mano y sin tocar ninguna
+    // guía. No es de esta pantalla: la recogida la cierra el mensajero en el
+    // local, cuando tiene las cajas delante, verifica guía por guía y
+    // confirma. Eso es lo que pasa las guías a «recogida» y deja el rastro de
+    // quién recibió qué. Desde el CEDI se asigna y se coordina; no se da por
+    // recibido lo que nadie ha visto.
+    if (isStaff && p.status !== "completada" && p.status !== "cancelada") {
+      menu.push({
+        key: "asignar",
+        label: p.operator ? "Reasignar mensajero" : "Asignar mensajero",
+        icono: <UserCheck className="size-4 shrink-0 text-[#ff812c]" />,
+        onClick: () => {
+          setAssigningPickup(p);
+          setSelectedCourierId(p.operator_id || "");
+        },
+      });
+    }
+
+    // Corregir y cancelar: para el comercio dueño y para el CEDI, mientras el
+    // mensajero no haya arrancado.
+    if (EDITABLES.includes(p.status)) {
+      menu.push({
+        key: "editar",
+        label: "Editar solicitud",
+        icono: <Pencil className="size-4 shrink-0 text-[#ff812c]" />,
+        onClick: () => abrirEdicion(p),
+      });
+      menu.push({
+        key: "cancelar",
+        label: "Cancelar solicitud",
+        icono: <Ban className="size-4 shrink-0" />,
+        peligro: true,
+        onClick: () => {
+          setCancelando(p);
+          setMotivoCancelar("");
+          setError(null);
+        },
+      });
+    }
+
+    // Booleano de verdad: `isStaff && p.contact_phone` daba una cadena, y una
+    // cadena vacía en un `&&` de JSX se pinta como texto en la celda.
+    const wa = Boolean(isStaff && p.contact_phone);
+
     return (
       <>
-        {/* El QR del lote. Va de primero y lo ven todos: el comercio lo imprime
-            y lo pega en la estiba apenas pide la recogida, y el CEDI lo tiene a
-            mano si el papel no llegó. Deja de ofrecerse cuando la recogida se
-            cancela, que es cuando ya no hay lote que recibir. */}
-        {p.status !== "cancelada" && (
-          <button
-            onClick={() => setQrDe(p)}
-            title="QR del lote para el ingreso al CEDI"
-            className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
+        {wa && (
+          <a
+            href={whatsappUrl(p.contact_phone!, p.at_clients?.business_name ?? "")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/10 text-[#1C7F45] transition-all hover:bg-[#25D366]/20 active:scale-95 dark:text-[#34C759]"
+            title="Coordinar vía WhatsApp"
           >
-            <QrCode className="w-4 h-4 text-[#ff812c]" />
-            QR
-          </button>
+            <MessageCircle className="size-4 fill-[#25D366] text-[#25D366]" />
+          </a>
         )}
-
-        {/* Corregir y cancelar: para el comercio dueño y para el
-            CEDI, mientras el mensajero no haya arrancado. */}
-        {EDITABLES.includes(p.status) && (
-          <>
-            <button
-              onClick={() => abrirEdicion(p)}
-              title="Corregir esta solicitud"
-              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
-            >
-              <Pencil className="w-4 h-4 text-[#ff812c]" />
-              Editar
-            </button>
-            <button
-              onClick={() => {
-                setCancelando(p);
-                setMotivoCancelar("");
-                setError(null);
-              }}
-              title="Cancelar esta solicitud"
-              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 active:scale-95 transition-all text-xs sm:text-sm"
-            >
-              <Ban className="w-4 h-4" />
-              Cancelar
-            </button>
-          </>
-        )}
-        {isStaff && (
-          <>
-            {p.contact_phone && (
-              <a
-                href={whatsappUrl(p.contact_phone, p.at_clients?.business_name ?? "")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#25D366]/10 text-[#1C7F45] dark:text-[#34C759] hover:bg-[#25D366]/20 active:scale-95 transition-all shrink-0"
-                title="Coordinar vía WhatsApp"
-              >
-                <MessageCircle className="w-4 h-4 fill-[#25D366] text-[#25D366]" />
-              </a>
-            )}
-            {p.status !== "completada" && p.status !== "cancelada" && (
-              <button
-                onClick={() => {
-                  setAssigningPickup(p);
-                  setSelectedCourierId(p.operator_id || "");
-                }}
-                className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 active:scale-95 transition-all text-xs sm:text-sm"
-              >
-                <UserCheck className="w-4 h-4 text-[#ff812c]" />
-                {p.operator ? "Reasignar" : "Asignar mensajero"}
-              </button>
-            )}
-            {/* Aquí había un botón «Completar» que ponía la recogida en
-                completada de un plumazo, con un número de paquetes escrito a
-                mano y sin tocar ninguna guía. No es de esta pantalla: la
-                recogida la cierra el mensajero en el local, cuando tiene las
-                cajas delante, verifica guía por guía y confirma. Eso es lo que
-                pasa las guías a «recogida» y deja el rastro de quién recibió
-                qué. Desde el CEDI se asigna y se coordina; no se da por
-                recibido lo que nadie ha visto. */}
-            {(p.status === "asignada" || p.status === "en_curso") && (
-              <span className="inline-flex items-center gap-1.5 min-h-[40px] px-3 text-[13px] font-medium text-slate-500 dark:text-slate-400">
-                <Hourglass className="w-3.5 h-3.5 shrink-0" />
-                {p.status === "en_curso" ? "Mensajero en camino" : "Espera al mensajero"}
-              </span>
-            )}
-          </>
-        )}
+        <MenuAcciones acciones={menu} />
         {/* Sin nada que hacer: guion para que la celda no quede vacía */}
-        {!isStaff && !EDITABLES.includes(p.status) && (
+        {!wa && menu.length === 0 && (
           <span className="text-[13px] text-slate-400 dark:text-slate-500">—</span>
         )}
       </>
+    );
+  }
+
+  /**
+   * El estado de la solicitud, con su matiz operativo debajo.
+   *
+   * El «Espera al mensajero» / «Mensajero en camino» vivía entre los botones de
+   * la columna de acciones, que es donde menos pinta: no es algo que se pueda
+   * pulsar, es el estado contado con más detalle. Aquí, bajo el badge, se lee
+   * como lo que es. Se dibuja igual en la tabla y en la tarjeta del teléfono.
+   */
+  function celdaEstado(p: Pickup) {
+    const bajoMinimo =
+      p.status === "completada" &&
+      p.package_count !== null &&
+      p.package_count < MIN_PACKAGES;
+
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <PickupBadge
+          status={p.status}
+          title={p.completed_at ? `Completada el ${formatDateTime(p.completed_at)}` : undefined}
+        />
+
+        {isStaff && (p.status === "asignada" || p.status === "en_curso") && (
+          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500 dark:text-slate-400">
+            <Hourglass className="size-3 shrink-0" />
+            {p.status === "en_curso" ? "Mensajero en camino" : "Espera al mensajero"}
+          </span>
+        )}
+
+        {p.status === "completada" && p.package_count !== null && (
+          <Etiqueta
+            alerta={bajoMinimo}
+            title={
+              bajoMinimo
+                ? `Bajo el mínimo de ${MIN_PACKAGES} paquetes por recogida`
+                : undefined
+            }
+          >
+            {bajoMinimo && <TriangleAlert className="size-3 shrink-0" />}
+            {p.package_count} paquete{p.package_count === 1 ? "" : "s"}
+          </Etiqueta>
+        )}
+      </div>
     );
   }
 
@@ -733,7 +1041,7 @@ function Pickups() {
           por batería. Los modales de abajo (nueva solicitud, asignar,
           editar, cancelar, QR) se quedan opacos: existen para aislar una
           decisión, y dejar ver el fondo ahí resta foco en vez de sumarlo. */}
-      <div className="bg-[#FFFFFF]/75 dark:bg-[#2C2C2E]/75 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors">
+      <div className="atl-superficie   rounded-3xl shadow-sm border border-slate-900/[0.06] dark:border-white/[0.08] overflow-hidden transition-colors">
         {pickups === null ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500 dark:text-slate-400">
             <div className="w-8 h-8 border-2 border-[#ff812c] border-t-transparent rounded-full animate-spin" />
@@ -765,9 +1073,11 @@ function Pickups() {
                       {p.scheduled_time ? ` · ${p.scheduled_time.slice(0, 5)}` : ""}
                     </p>
                   </div>
-                  <div className="shrink-0">
-                    <PickupBadge status={p.status} />
-                  </div>
+                  {/* La misma celda de estado de la tabla: el badge suave, el
+                      matiz operativo y la etiqueta de paquetes salen de un solo
+                      sitio, así que el teléfono y el escritorio no se pueden
+                      separar con el tiempo. */}
+                  <div className="shrink-0">{celdaEstado(p)}</div>
                 </div>
 
                 <p className="text-[14px] text-slate-700 dark:text-slate-200">{p.address}</p>
@@ -775,27 +1085,14 @@ function Pickups() {
                   <p className="text-[13px] text-slate-500 dark:text-slate-400">{p.notes}</p>
                 )}
 
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slate-500 dark:text-slate-400">
-                  <span>Operario: {p.operator?.full_name ?? "—"}</span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-slate-500 dark:text-slate-400">
+                  <span className="min-w-0 truncate" title={p.operator?.full_name ?? undefined}>
+                    Operario: {p.operator?.full_name ?? "—"}
+                  </span>
                   {(p.at_guides?.length ?? 0) > 0 && (
                     <span className="flex items-center gap-1">
                       <Package className="w-3.5 h-3.5 shrink-0" />
                       {p.at_guides!.length} guía(s)
-                    </span>
-                  )}
-                  {p.status === "completada" && p.package_count !== null && (
-                    <span
-                      className={`flex items-center gap-1 font-medium ${
-                        p.package_count < MIN_PACKAGES
-                          ? "text-amber-600 dark:text-amber-400"
-                          : ""
-                      }`}
-                    >
-                      {p.package_count < MIN_PACKAGES && (
-                        <TriangleAlert className="w-3.5 h-3.5 shrink-0" />
-                      )}
-                      {p.package_count} paquete{p.package_count === 1 ? "" : "s"}
-                      {p.package_count < MIN_PACKAGES && ` · bajo el mínimo (${MIN_PACKAGES})`}
                     </span>
                   )}
                 </div>
@@ -806,67 +1103,95 @@ function Pickups() {
           </ul>
 
           <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            {/* `table-fixed` + `colgroup`: sin ancho declarado el navegador
+                repartía la tabla según el contenido, y como la columna de
+                acciones era la más ancha (cinco botones con texto), Dirección y
+                Operario se quedaban con las sobras y partían cada valor en tres
+                renglones. Ahora el reparto lo manda el diseño, no el dato más
+                largo de la página — y es lo que hace que `truncate` funcione
+                dentro de una celda. */}
+            <table className="w-full min-w-[900px] table-fixed border-collapse text-left">
+              <colgroup>
+                <col className="w-[19%]" />
+                <col className="w-[11%]" />
+                <col className="w-[26%]" />
+                <col className="w-[17%]" />
+                <col className="w-[15%]" />
+                <col className="w-[12%]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-slate-900/[0.06] dark:border-slate-800 bg-[#F2F2F7]/50 dark:bg-[#1C1C1E]/50">
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cliente</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Fecha</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Dirección</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Operario</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Estado</th>
-                  <th className="px-6 py-4 text-[14px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">Acciones</th>
+                  <th className="px-4 py-3.5 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Cliente</th>
+                  <th className="px-4 py-3.5 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Fecha</th>
+                  <th className="px-4 py-3.5 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Dirección</th>
+                  <th className="px-4 py-3.5 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Operario</th>
+                  <th className="px-4 py-3.5 text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Estado</th>
+                  <th className="px-4 py-3.5 text-right text-[12px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-900/[0.06] dark:divide-slate-700">
                 {pickups.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-[16px] text-slate-900 dark:text-white">{p.at_clients?.business_name}</p>
-                      {p.notes && <p className="text-[14px] text-slate-500 dark:text-slate-400 mt-0.5">{p.notes}</p>}
+                  <tr key={p.id} className="group transition-colors hover:bg-[#F2F2F7]/30 dark:hover:bg-[#1C1C1E]/30">
+                    <td className="px-4 py-3 align-top">
+                      <NombreCorto
+                        nombre={p.at_clients?.business_name}
+                        className="text-[15px] font-semibold text-slate-900 dark:text-white"
+                      />
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {(p.at_guides?.length ?? 0) > 0 && (
+                          <Etiqueta title="Guías incluidas en este lote">
+                            <Package className="size-3 shrink-0" />
+                            {p.at_guides!.length}
+                          </Etiqueta>
+                        )}
+                        {p.notes && (
+                          // La nota entera en el `title`: en la celda ocupa una
+                          // línea como mucho, y el que la necesite la lee al
+                          // pasar el cursor.
+                          <span
+                            title={p.notes}
+                            className="min-w-0 flex-1 truncate text-[13px] text-slate-500 dark:text-slate-400"
+                          >
+                            {p.notes}
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-[15px] font-medium text-slate-700 dark:text-slate-200">
+                    {/* Dos líneas y ni una más: el día arriba, la franja de
+                        recogida debajo en secundario. «Solicitada el …» era una
+                        tercera línea que nadie leía de corrido — se va al
+                        `title` de la celda, donde sigue estando para quien la
+                        busque. */}
+                    <td
+                      className="px-4 py-3 align-top"
+                      title={`Solicitada el ${formatDateTime(p.requested_at)}`}
+                    >
+                      <p className="whitespace-nowrap text-[14px] font-medium tabular-nums text-slate-700 dark:text-slate-200">
                         {formatDate(p.scheduled_date)}
                       </p>
-                      {p.scheduled_time && (
-                        <p className="mt-0.5 flex items-center gap-1 text-[13px] font-medium text-[#ff812c]">
-                          <Clock className="w-3.5 h-3.5 shrink-0" />
-                          {p.scheduled_time.slice(0, 5)}
-                        </p>
-                      )}
-                      <p className="mt-0.5 text-[12px] text-slate-400 dark:text-slate-500">
-                        Solicitada {formatDateTime(p.requested_at)}
+                      <p className="mt-0.5 whitespace-nowrap text-[12px] text-slate-500 dark:text-slate-400">
+                        {p.scheduled_time
+                          ? etiquetaDeHora(p.scheduled_time.slice(0, 5))
+                          : "Sin preferencia"}
                       </p>
-                      {(p.at_guides?.length ?? 0) > 0 && (
-                        <p className="mt-0.5 flex items-center gap-1 text-[12px] text-slate-500 dark:text-slate-400">
-                          <Package className="w-3.5 h-3.5 shrink-0" />
-                          {p.at_guides!.length} guía(s)
-                        </p>
-                      )}
                     </td>
-                    <td className="px-6 py-4 text-[15px] text-slate-700 dark:text-slate-200">
-                      {p.address}
+                    <td className="px-4 py-3 align-top">
+                      <span
+                        title={p.address}
+                        className="block text-[14px] leading-snug text-slate-700 dark:text-slate-200"
+                      >
+                        {p.address}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-[15px] text-slate-700 dark:text-slate-200">
-                      {p.operator?.full_name ?? "—"}
+                    <td className="px-4 py-3 align-top">
+                      <NombreCorto
+                        nombre={p.operator?.full_name}
+                        className="text-[14px] text-slate-700 dark:text-slate-200"
+                      />
                     </td>
-                    <td className="px-6 py-4">
-                      <PickupBadge status={p.status} />
-                      {p.completed_at && (
-                        <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">{formatDateTime(p.completed_at)}</p>
-                      )}
-                      {p.status === "completada" && p.package_count !== null && (
-                        <p className={`mt-1 text-[13px] font-medium flex items-center gap-1 ${
-                          p.package_count < MIN_PACKAGES ? "text-amber-600 dark:text-amber-400" : "text-slate-500 dark:text-slate-400"
-                        }`}>
-                          {p.package_count < MIN_PACKAGES && <TriangleAlert className="w-3.5 h-3.5 shrink-0" />}
-                          {p.package_count} paquete{p.package_count === 1 ? "" : "s"}
-                          {p.package_count < MIN_PACKAGES && ` · bajo el mínimo (${MIN_PACKAGES})`}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">{acciones(p)}</div>
+                    <td className="px-4 py-3 align-top">{celdaEstado(p)}</td>
+                    <td className="px-4 py-3 align-top text-right">
+                      <div className="flex items-center justify-end gap-1.5">{acciones(p)}</div>
                     </td>
                   </tr>
                 ))}
@@ -893,7 +1218,7 @@ function Pickups() {
               <button
                 type="button"
                 onClick={() => setShowNew(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -906,7 +1231,7 @@ function Pickups() {
                   Comercio que solicita
                 </label>
                 {esCliente ? (
-                  <div className="w-full min-h-[52px] flex items-center gap-3 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-lg px-4">
+                  <div className="w-full min-h-[52px] flex items-center gap-3 atl-relleno  rounded-lg px-4">
                     <Warehouse className="w-4 h-4 text-[#ff812c] shrink-0" />
                     <span className="text-[16px] font-semibold text-slate-900 dark:text-white truncate">
                       {miComercio?.business_name ?? (cargandoComercio ? "Preparando…" : "—")}
@@ -917,7 +1242,7 @@ function Pickups() {
                     required
                     value={form.client_id}
                     onChange={(e) => setForm((f) => ({ ...f, client_id: e.target.value }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   >
                     <option value="" disabled>Selecciona el comercio…</option>
                     {clients.map((c) => (
@@ -943,7 +1268,7 @@ function Pickups() {
                     min={hoy}
                     value={form.scheduled_date}
                     onChange={(e) => setForm((f) => ({ ...f, scheduled_date: e.target.value }))}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -958,7 +1283,7 @@ function Pickups() {
                     value={form.scheduled_time}
                     onChange={(hora) => setForm((f) => ({ ...f, scheduled_time: hora }))}
                     horas={turnosNueva}
-                    className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                    className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                   />
                   {turnosNueva.length > 0 && (
                     <p className="text-[13px] text-slate-500 dark:text-slate-400">
@@ -975,7 +1300,7 @@ function Pickups() {
                 <input
                   value={form.contact_phone}
                   onChange={(e) => setForm((f) => ({ ...f, contact_phone: e.target.value }))}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>
 
@@ -1003,7 +1328,7 @@ function Pickups() {
                 </div>
 
                 {pendientes.length === 0 ? (
-                  <div className="rounded-lg bg-[#F2F2F7] dark:bg-[#1C1C1E] px-4 py-4 space-y-3">
+                  <div className="rounded-lg atl-relleno  px-4 py-4 space-y-3">
                     <p className="text-[14px] text-slate-500 dark:text-slate-400">
                       No hay guías pendientes de recoger. Puedes solicitar la recogida igual y
                       registrar las guías después, o crearlas ahora.
@@ -1055,7 +1380,7 @@ function Pickups() {
                   required
                   value={form.address}
                   onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>
 
@@ -1068,7 +1393,7 @@ function Pickups() {
                   onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                   rows={2}
                   placeholder="Cantidad estimada de paquetes, horario…"
-                  className="w-full bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg p-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all resize-none"
+                  className="w-full atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg p-4 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none transition-all resize-none"
                 />
               </div>
 
@@ -1082,7 +1407,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => setShowNew(false)}
-                  className="flex-1 min-h-[52px] rounded-xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform border border-slate-900/[0.06] dark:border-white/[0.08]"
+                  className="flex-1 min-h-[52px] rounded-xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform border border-slate-900/[0.06] dark:border-white/[0.08]"
                 >
                   Cancelar
                 </button>
@@ -1119,7 +1444,7 @@ function Pickups() {
                   setAssigningPickup(null);
                   setSelectedCourierId("");
                 }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 transition-opacity shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1134,7 +1459,7 @@ function Pickups() {
                   required
                   value={selectedCourierId}
                   onChange={(e) => setSelectedCourierId(e.target.value)}
-                  className="w-full min-h-[52px] bg-[#F2F2F7] dark:bg-[#1C1C1E] border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
+                  className="w-full min-h-[52px] atl-relleno  border border-slate-300 dark:border-slate-700 focus:border-[#ff812c] focus:ring-1 focus:ring-[#ff812c] rounded-lg px-4 text-[16px] text-slate-900 dark:text-white focus:outline-none transition-all"
                 >
                   <option value="" disabled>
                     Elige un mensajero activo...
@@ -1157,7 +1482,7 @@ function Pickups() {
                     setAssigningPickup(null);
                     setSelectedCourierId("");
                   }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Cancelar
                 </button>
@@ -1191,7 +1516,7 @@ function Pickups() {
               <button
                 type="button"
                 onClick={() => { setEditando(null); setGuiasEdit(null); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-500 dark:text-slate-400 hover:opacity-80 shrink-0"
+                className="w-8 h-8 flex items-center justify-center rounded-full atl-relleno  text-slate-500 dark:text-slate-400 hover:opacity-80 shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1207,7 +1532,7 @@ function Pickups() {
                     min={hoy}
                     value={editForm.scheduled_date}
                     onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1222,7 +1547,7 @@ function Pickups() {
                     value={editForm.scheduled_time}
                     onChange={(hora) => setEditForm({ ...editForm, scheduled_time: hora })}
                     horas={turnosEdit}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                   {turnosEdit.length > 0 && (
                     <p className="mt-1 text-[13px] text-slate-500 dark:text-slate-400">
@@ -1239,7 +1564,7 @@ function Pickups() {
                   required
                   value={editForm.address}
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                 />
               </div>
 
@@ -1250,7 +1575,7 @@ function Pickups() {
                     type="text"
                     value={editForm.contact_name}
                     onChange={(e) => setEditForm({ ...editForm, contact_name: e.target.value })}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1259,7 +1584,7 @@ function Pickups() {
                     type="tel"
                     value={editForm.contact_phone}
                     onChange={(e) => setEditForm({ ...editForm, contact_phone: e.target.value })}
-                    className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                    className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                   />
                 </div>
               </div>
@@ -1270,7 +1595,7 @@ function Pickups() {
                   rows={2}
                   value={editForm.notes}
                   onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                  className="w-full px-4 py-3 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none resize-none"
+                  className="w-full px-4 py-3 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none resize-none"
                 />
               </div>
 
@@ -1284,11 +1609,11 @@ function Pickups() {
                     <Loader2 className="w-4 h-4 animate-spin" /> Cargando guías…
                   </div>
                 ) : guiasEdit.length === 0 ? (
-                  <p className="text-[14px] text-slate-500 dark:text-slate-400 bg-[#F2F2F7] dark:bg-[#1C1C1E] rounded-2xl p-4">
+                  <p className="text-[14px] text-slate-500 dark:text-slate-400 atl-relleno  rounded-2xl p-4">
                     No hay guías sin recoger para incluir. La recogida sigue en pie igual.
                   </p>
                 ) : (
-                  <div className="max-h-44 overflow-y-auto rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] divide-y divide-slate-200 dark:divide-slate-700">
+                  <div className="max-h-44 overflow-y-auto rounded-2xl atl-relleno  divide-y divide-slate-200 dark:divide-slate-700">
                     {guiasEdit.map((g) => (
                       <label key={g.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer">
                         <input
@@ -1335,7 +1660,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => { setEditando(null); setGuiasEdit(null); }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Descartar
                 </button>
@@ -1384,7 +1709,7 @@ function Pickups() {
                   value={motivoCancelar}
                   onChange={(e) => setMotivoCancelar(e.target.value)}
                   placeholder="Los paquetes no alcanzaron a estar listos"
-                  className="w-full min-h-[52px] px-4 rounded-2xl bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
+                  className="w-full min-h-[52px] px-4 rounded-2xl atl-relleno  text-slate-900 dark:text-white border-0 focus:ring-2 focus:ring-[#ff812c] outline-none"
                 />
               </div>
 
@@ -1399,7 +1724,7 @@ function Pickups() {
                 <button
                   type="button"
                   onClick={() => { setCancelando(null); setError(null); }}
-                  className="flex-1 min-h-[52px] rounded-2xl font-semibold bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
+                  className="flex-1 min-h-[52px] rounded-2xl font-semibold atl-relleno  text-slate-700 dark:text-slate-300 active:scale-[0.98] transition-transform"
                 >
                   Mejor no
                 </button>

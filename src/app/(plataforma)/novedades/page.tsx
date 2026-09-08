@@ -12,6 +12,7 @@ import {
   Package,
   Phone,
   RefreshCcw,
+  SearchX,
   TruckIcon,
   X,
 } from "lucide-react";
@@ -54,27 +55,54 @@ function StatusBadge({ status }: { status: GuideStatus }) {
 }
 
 // ── KPI card ──────────────────────────────────────────────────────────────────
+/**
+ * El tono de una tarjeta de métrica.
+ *
+ * Antes había cuatro colores primarios repartidos entre las cuatro tarjetas
+ * —ámbar, azul, rosa y rosa— y el color no significaba nada: era decoración por
+ * turnos. Con las cuatro encendidas a la vez, la que sí pedía atención («En
+ * novedad ahora») no se distinguía de la que solo informa («Reprogramadas»).
+ *
+ * Ahora el color solo aparece cuando dice algo:
+ * · `neutro`   — dato de contexto. Sin color propio.
+ * · `atencion` — hay trabajo operativo esperando. Ámbar.
+ * · `riesgo`   — hay plata en juego. Rojo.
+ *
+ * El neutro se apoya en `atl-relleno`, el token de relleno del proyecto: en
+ * claro da un gris muy suave y en los dos temas oscuros el navy del cristal,
+ * así que la pastilla del ícono responde sola al tema sin una clase por tema.
+ * Los otros dos van en el mismo idioma que los badges de Recogidas —color al
+ * 12 % con aro al 20 % y el tono en el texto—, que es lo que los mantiene
+ * legibles en claro, oscuro y multicolor con una sola definición: el `dark:`
+ * de este proyecto cubre también `.tema-multicolor`.
+ */
+type TonoKpi = "neutro" | "atencion" | "riesgo";
+
+const TONO_KPI: Record<TonoKpi, string> = {
+  neutro:
+    "atl-relleno ring-1 ring-inset ring-slate-900/[0.06] text-slate-600 " +
+    "dark:ring-white/[0.10] dark:text-slate-200",
+  atencion:
+    "bg-amber-500/12 ring-1 ring-inset ring-amber-500/25 text-amber-700 dark:text-amber-300",
+  riesgo:
+    "bg-rose-500/12 ring-1 ring-inset ring-rose-500/25 text-rose-700 dark:text-rose-300",
+};
+
 function KpiCard({
   icon: Icon,
   label,
   value,
   sub,
-  color = "amber",
+  tono = "neutro",
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   sub?: string;
-  color?: "amber" | "rose" | "emerald" | "blue";
+  tono?: TonoKpi;
 }) {
-  const iconBg: Record<string, string> = {
-    amber: "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
-    rose: "bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400",
-    emerald: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
-    blue: "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400",
-  };
   return (
-    <div className="bg-white dark:bg-[#2C2C2E] rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-3 transition-colors">
+    <div className="atl-superficie  rounded-3xl p-5 sm:p-6 shadow-sm flex flex-col justify-between gap-3 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold text-slate-500 dark:text-slate-400 truncate">{label}</p>
@@ -82,7 +110,7 @@ function KpiCard({
             {value}
           </p>
         </div>
-        <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ${iconBg[color]}`}>
+        <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ${TONO_KPI[tono]}`}>
           <Icon className="w-6 h-6" />
         </div>
       </div>
@@ -142,7 +170,7 @@ function GuideNovedadCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-[#2C2C2E] rounded-3xl shadow-sm overflow-hidden transition-all">
+    <div className="atl-superficie  rounded-3xl shadow-sm overflow-hidden transition-all">
       {/* Header */}
       <div
         className="flex items-start justify-between gap-4 p-5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
@@ -281,7 +309,7 @@ function ActionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-white dark:bg-[#2C2C2E] rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto atl-superficie  rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-5 animate-in slide-in-from-bottom-4 duration-300">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -346,7 +374,7 @@ function ActionModal({
             onChange={(e) => setExtra(e.target.value)}
             rows={2}
             placeholder={isReprogramar ? "Ej: Cliente disponible a partir de las 3pm..." : "Ej: Paquete en buen estado, sin abrir..."}
-            className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.10] bg-[#F2F2F7] dark:bg-[#1C1C1E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+            className="w-full text-[13px] px-4 py-3 rounded-xl border border-slate-900/[0.06] dark:border-white/[0.10] atl-relleno  text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
           />
         </div>
 
@@ -497,7 +525,7 @@ export default function NovedadesPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-[#2C2C2E] border border-slate-900/[0.06] dark:border-white/[0.10] hover:border-[#ff812c] hover:text-[#ff812c] rounded-2xl px-4 py-2.5 transition-all active:scale-95 self-start sm:self-end"
+          className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 dark:text-slate-400 atl-superficie  border border-slate-900/[0.06] dark:border-white/[0.10] hover:border-[#ff812c] hover:text-[#ff812c] rounded-2xl px-4 py-2.5 transition-all active:scale-95 self-start sm:self-end"
         >
           <RefreshCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           Actualizar
@@ -511,28 +539,28 @@ export default function NovedadesPage() {
           label="En novedad ahora"
           value={String(novedad)}
           sub="Requieren acción inmediata"
-          color="amber"
+          tono="atencion"
         />
         <KpiCard
           icon={CalendarClock}
           label="Reprogramadas"
           value={String(reprogramada)}
           sub="Pendientes de despacho"
-          color="blue"
+          tono="neutro"
         />
         <KpiCard
           icon={TruckIcon}
           label="En devolución"
           value={String(enDevolucion)}
           sub="Logística inversa activa"
-          color="rose"
+          tono="neutro"
         />
         <KpiCard
           icon={Package}
           label="COD en riesgo"
           value={formatCOP(codAtRisk)}
           sub={`${multipleAttempts} guías con ≥2 intentos`}
-          color="rose"
+          tono="riesgo"
         />
       </div>
 
@@ -563,17 +591,26 @@ export default function NovedadesPage() {
               <button
                 key={f.value}
                 onClick={() => setFilterStatus(f.value)}
+                // El filtro activo era ámbar sólido con texto blanco: pesaba
+                // más que «Actualizar» y que los botones de acción de cada
+                // guía, y una pestaña de filtro no es la acción principal de
+                // esta pantalla. Ahora el mismo ámbar al 15 % con el borde de
+                // acento: se ve cuál está puesto sin robarle el turno a nada.
                 className={`flex items-center gap-1.5 whitespace-nowrap text-[12px] font-semibold px-3.5 py-2 rounded-full border transition-all ${
                   filterStatus === f.value
-                    ? "bg-amber-500 border-amber-500 text-white"
-                    : "border-slate-900/[0.06] dark:border-white/[0.10] text-slate-500 dark:text-slate-400 hover:border-amber-400 bg-white dark:bg-[#2C2C2E]"
+                    ? "bg-amber-500/15 border-amber-500/50 text-amber-700 dark:text-amber-300"
+                    : "border-slate-900/[0.06] dark:border-white/[0.10] text-slate-500 dark:text-slate-400 hover:border-amber-400 atl-superficie "
                 }`}
               >
                 {f.label}
+                {/* El contador seguía el fondo sólido del padre (`bg-white/20`)
+                    y sobre el fondo tenue quedaba invisible. El inactivo usaba
+                    `bg-gray-100 dark:bg-gray-700`, un gris a mano que ignora el
+                    tema: pasa a `atl-relleno`, que sí lo sigue. */}
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   filterStatus === f.value
-                    ? "bg-white/20 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300"
+                    ? "bg-amber-500/20 text-amber-800 dark:text-amber-200"
+                    : "atl-relleno text-slate-600 dark:text-slate-300"
                 }`}>
                   {count}
                 </span>
@@ -588,7 +625,7 @@ export default function NovedadesPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar guía, destinatario, dirección…"
-          className="w-full sm:w-72 sm:shrink-0 text-[13px] px-4 py-2.5 rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.10] bg-white dark:bg-[#2C2C2E] text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+          className="w-full sm:w-72 sm:shrink-0 text-[13px] px-4 py-2.5 rounded-2xl border border-slate-900/[0.06] dark:border-white/[0.10] atl-superficie  text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
         />
       </div>
 
@@ -599,14 +636,39 @@ export default function NovedadesPage() {
           <p className="text-[15px]">Cargando novedades…</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400 dark:text-slate-500">
-          <CheckCircle2 className="w-12 h-12 text-emerald-400" />
-          <p className="text-[16px] font-semibold text-slate-600 dark:text-slate-300">
-            {search || filterStatus !== "all" ? "Sin resultados para este filtro" : "¡Sin novedades activas!"}
-          </p>
-          <p className="text-[13px]">
-            {!search && filterStatus === "all" && "Todas las guías están en estado normal."}
-          </p>
+        // Dos vacíos que parecían uno solo.
+        //
+        // «No hay novedades en toda la operación» es una buena noticia y el
+        // visto verde estaba bien puesto. «Tu filtro no encontró nada» no lo
+        // es: no dice nada del estado de la operación, solo que hay que
+        // ampliar la búsqueda. Compartían el mismo visto verde, así que
+        // filtrar por «En devolución» y no encontrar coincidencias se
+        // celebraba como si no hubiera devoluciones — justo lo contrario de lo
+        // que el filtro estaba preguntando.
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center text-slate-400 dark:text-slate-500">
+          {search || filterStatus !== "all" ? (
+            <>
+              <SearchX className="w-12 h-12 text-slate-300 dark:text-slate-600" />
+              <p className="text-[16px] font-semibold text-slate-600 dark:text-slate-300">
+                Sin resultados para este filtro
+              </p>
+              <p className="max-w-[42ch] text-[13px]">
+                Puede que la guía exista pero esté en otro estado. Prueba a
+                quitar el filtro o a buscar otro término.
+              </p>
+            </>
+          ) : (
+            <>
+              {/* El único sitio de la pantalla donde el verde dice la verdad:
+                  no queda ninguna incidencia por atender. Sin brillo, que es
+                  una constatación y no una felicitación. */}
+              <CheckCircle2 className="w-12 h-12 text-emerald-600/70 dark:text-emerald-400/60" />
+              <p className="text-[16px] font-semibold text-slate-600 dark:text-slate-300">
+                ¡Sin novedades activas!
+              </p>
+              <p className="text-[13px]">Todas las guías están en estado normal.</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

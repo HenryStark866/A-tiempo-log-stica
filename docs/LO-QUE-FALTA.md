@@ -121,17 +121,23 @@ el admin lo ve todo.
 | Logo de *collar accesorios* | El rótulo sale sin marca. El sistema ya lo soporta | No tengo el archivo, y el bucket solo acepta escrituras con sesión del propio comercio |
 | Tres sedes sin dirección | Se crearon con los datos que el comercio tenía, y esos tres no la tienen registrada | Que cada comercio complete sus datos |
 
-## Una decisión que conviene repasar
+## Las tarifas: zanjado el 2026-08-27
 
-La migración **0089** (las diez subzonas) dejó **inactivas las cinco zonas
-reales** de la operación — Zona 1 · Sur Metropolitano, Zona 2 · Centro Sur, etc.,
-con sus tarifas de $11.500 a $22.000 — y activó en su lugar diez subzonas cuyo
-propio comentario admite que son «geografía inferida, no dato de la operación».
+La migración **0089** cambió de cinco zonas a diez subzonas, y no fue solo un
+cambio de nombres: **movió precios hasta ±$1.500 por envío**. El Poblado pasó
+de $12.500 a $14.000; el Centro, de $15.000 a $13.500; Popular y Manrique, de
+$15.000 a $16.500; Copacabana, de $22.000 a $21.000.
 
-**Nada se borró**: las cinco siguen ahí, solo desactivadas y con el `sort_order`
-desplazado 90 posiciones. Volver atrás es reactivarlas, desactivar las diez y
-re-zonificar. Si las tarifas que manda hoy la app no son las que cobra la
-operación de verdad, esto es lo primero que hay que mirar.
+Estuvo un tiempo marcado como duda porque el comentario de la propia migración
+admitía que las subzonas eran «geografía inferida, no dato de la operación», y
+nadie había confirmado cuál lista se cobraba de verdad.
+
+**Henry lo confirmó: la buena es la actual, con los precios actuales.** Las diez
+subzonas activas son las que cobra la operación. No hay nada que revertir.
+
+Las cinco viejas siguen en la tabla, desactivadas y con el `sort_order`
+desplazado 90 posiciones. Se quedan como historial; no estorban porque
+`active = false` las saca de todo. Si alguien las ve y le extraña, es esto.
 
 ## Higiene del proceso
 

@@ -160,13 +160,12 @@ Deno.serve(async (req) => {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  // Basta con que UNO de los dos esté configurado. Antes exigía Twilio y se
-  // rendía: con el puente propio funcionando, eso dejaba la cola sin vaciar.
-  if (!hayPuente && !(SID && TOKEN)) {
-    console.warn("Ni puente de WhatsApp ni Twilio configurados: no se envía nada.");
-    return Response.json({ enviados: 0, motivo: "sin credenciales" }, { status: 200 });
-  }
-
+  // La cola se lee SIEMPRE, haya o no con qué enviar. Sin credenciales todavía
+  // hay trabajo —archivar lo caducado— y saltárselo fue lo que tumbó la base el
+  // 2026-09-08: un código que nadie recogió en 12 h no es que sobre, es que
+  // mantiene vivo el reloj `at-enviar-mensajes`, que llama aquí cada dos
+  // minutos mientras algo siga «pendiente». En un `t4g.nano` ese goteo
+  // constante agota los workers. Ver la migración 0112.
   const { data: pendientes, error } = await supabase
     .from("at_message_outbox")
     .select("*")
@@ -179,25 +178,42 @@ Deno.serve(async (req) => {
 
   let ok = 0;
   let fallidos = 0;
-
   let caducados = 0;
 
-  for (const m of pendientes ?? []) {
-    // Lo viejo no se manda: se archiva. Antes que el teléfono, porque un
-    // mensaje caducado no merece ni que se le mire el número.
-    const horas = (Date.now() - new Date(m.created_at).getTime()) / 3_600_000;
-    if (horas > CADUCA_TRAS_HORAS) {
-      await supabase
-        .from("at_message_outbox")
-        .update({
-          status: "fallido",
-          error: `Caducado: se encoló hace ${Math.round(horas)} h y ya no sirve`,
-        })
-        .eq("id", m.id);
-      caducados++;
-      continue;
-    }
+  const ahora = Date.now();
+  const esCaducado = (m: { created_at: string }) =>
+    (ahora - new Date(m.created_at).getTime()) / 3_600_000 > CADUCA_TRAS_HORAS;
 
+  // Paso 1 — no depende de credenciales: lo viejo se archiva, no se manda.
+  for (const m of (pendientes ?? []).filter(esCaducado)) {
+    const horas = Math.round((ahora - new Date(m.created_at).getTime()) / 3_600_000);
+    await supabase
+      .from("at_message_outbox")
+      .update({
+        status: "fallido",
+        error: `Caducado: se encoló hace ${horas} h y ya no sirve`,
+      })
+      .eq("id", m.id);
+    caducados++;
+  }
+
+  const frescos = (pendientes ?? []).filter((m) => !esCaducado(m));
+
+  // Paso 2 — enviar. Si no hay canal, se termina aquí: la cola ya quedó sin
+  // caducados, así que el reloj no vuelve a llamar en balde por lo de siempre.
+  if (!hayPuente && !(SID && TOKEN)) {
+    if (frescos.length > 0) {
+      console.warn(
+        `Sin canal configurado (ni puente ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
+      );
+    }
+    return Response.json(
+      { enviados: 0, caducados, revisados: pendientes?.length ?? 0, motivo: "sin credenciales" },
+      { status: 200 },
+    );
+  }
+
+  for (const m of frescos) {
     const to = m.to_phone ? aE164(m.to_phone) : null;
 
     if (!to) {

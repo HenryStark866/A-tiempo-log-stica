@@ -124,6 +124,24 @@ De ahí, tres reglas que no se negocian:
   ```bash
   git -c user.name="Henry Taborda" -c user.email="henrytaborda57@gmail.com" commit -m "..."
   ```
+  **Esta regla no es de estilo: Vercel la hace cumplir.** El plan es *Hobby*, y
+  en Hobby Vercel solo construye los commits cuyo autor de Git es el dueño de
+  la cuenta. Un commit firmado con otro correo sale **«Deployment was
+  blocked»** y esa vista previa no existe nunca — le pasó a los 17 commits de
+  `feat/ajustes-perfil-admin` (2026-09-09), seis despliegues seguidos
+  bloqueados, mientras `main` desplegaba sin problema. No hay forma de
+  desactivarlo sin subir a Pro.
+
+  Quien colabore, lo deja puesto una sola vez **en el repo**, y firma su
+  trabajo con un *trailer* en vez de con el autor:
+  ```bash
+  git config user.name  "Henry Taborda"
+  git config user.email "henrytaborda57@gmail.com"
+  # y en cada commit, para que el crédito no se pierda:
+  #   Co-authored-by: Maria Isabel <isarias09@gmail.com>
+  ```
+  El autor es de quién despliega; la coautoría es de quién lo escribió, y
+  GitHub la muestra igual en el commit y en el perfil.
 - **Una migración aplicada no se edita jamás.** Se corrige con una nueva, con
   el siguiente número libre. Antes de numerar, mirar la carpeta: ya hubo una
   colisión (`0101`).

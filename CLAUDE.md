@@ -31,11 +31,22 @@ Lo mínimo, si no vas a leerlo entero:
 
 ## La memoria del proyecto
 
-Está en una bóveda de Obsidian, en `C:\Users\tabor\CLAUDE_CDH`. Son archivos `.md`
-normales: Obsidian y Claude escriben sobre los mismos, así que no hay nada que
-sincronizar a mano.
+**Cada quien tiene la suya, y la ruta cambia según el equipo.** No hay una bóveda
+compartida, así que no vale escribir aquí una ruta absoluta y darla por buena:
 
-**Al empezar una sesión de trabajo sobre este repo, leer primero:**
+| Equipo | Ruta de la bóveda |
+| --- | --- |
+| Henry | `C:\Users\tabor\CLAUDE_CDH` |
+| Maria Isabel | `C:\Users\Maria_Isabel\Documents\notas-atl` |
+
+Son archivos `.md` normales: Obsidian y Claude escriben sobre los mismos, así que
+dentro de una bóveda no hay nada que sincronizar a mano. **Entre bóvedas no hay
+sincronización ninguna**: lo que se escriba en una no le llega al otro. Por eso lo
+que tenga que saber todo el mundo —cómo se hace algo, una decisión que ata a quien
+venga después— va a `docs/` de este repo, que sí viaja. La bóveda es para el día a
+día de cada uno.
+
+**Al empezar una sesión de trabajo sobre este repo, leer primero la bóveda propia:**
 
 | Archivo de la bóveda | Qué trae |
 | --- | --- |

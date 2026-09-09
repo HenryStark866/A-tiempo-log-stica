@@ -447,7 +447,7 @@ export interface Guide {
   /**
    * Barrio o sector escrito a mano cuando el destino no cayó en ninguna zona.
    * Dato del pedido, no del catálogo: no crea ni modifica at_zones. NULL en
-   * todo pedido zonificado con normalidad (migración 0113).
+   * todo pedido zonificado con normalidad (migración 0121).
    */
   recipient_neighborhood: string | null;
   declared_value: number;
@@ -617,7 +617,7 @@ export interface TrackingByToken extends TrackingResult {
    *
    * Salen SOLO por esta vía. El rastreo por número de guía (`at_track_guide`)
    * no dice de quién es el envío, y no puede: los números son consecutivos.
-   * Ver migración 0112.
+   * Ver migración 0120.
    */
   business_website: string | null;
   business_instagram: string | null;

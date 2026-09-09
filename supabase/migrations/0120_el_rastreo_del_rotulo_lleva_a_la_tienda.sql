@@ -29,13 +29,17 @@
 -- La firma no cambia y las llaves anteriores siguen todas, así que el
 -- frontend anterior no se rompe: simplemente ignora las nuevas.
 
--- ── Por qué esta migración se llama 0112 y no 0101 ────────────────────────
--- Se escribió como 0101 y el merge con la rama de Henry se la llevó por
--- delante: él ya tenía su propia 0101 (y hasta la 0111). Renumerada al primer
--- hueco libre. Las 0098, 0099 y 0100 quedaron DUPLICADAS en la carpeta tras
--- ese mismo merge; se resolvieron renumerando las nuestras a 0116, 0117 y
--- 0118, porque el CLI indexa cada migración por su versión y dos filas con la
--- misma clave no caben en supabase_migrations.
+-- ── Por qué esta migración se llama 0120 y no 0101 ────────────────────────
+-- Se escribió como 0101, y ya van tres veces que un merge con la rama de
+-- Henry se lleva su número por delante: primero la 0101, luego la 0112.
+-- Renumerada al hueco libre de turno.
+--
+-- Es el mismo choque que dejó DUPLICADAS las 0098, 0099 y 0100 —resueltas
+-- renumerando las nuestras a 0116, 0117 y 0118— y después las 0112 y 0113.
+-- La causa no es el número sino trabajar dos ramas largas sobre la misma
+-- carpeta: quien numera primero gana, y el otro se entera al fusionar. El CLI
+-- indexa cada migración por su versión y dos filas con la misma clave no caben
+-- en supabase_migrations, así que esto hay que mirarlo en CADA merge.
 
 create or replace function public.at_track_guide_by_token(p_token text)
 returns json

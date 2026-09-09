@@ -4,16 +4,21 @@
 // propósito: si el proveedor se cae o se demora, el CEDI sigue despachando y
 // el mensaje se reintenta después. Nunca al revés.
 //
-// DESPLIEGUE. Basta con UNO de los dos caminos de salida:
+// DESPLIEGUE. Basta con UNO de los caminos de salida. En orden de preferencia:
 //
-//   · El puente propio (recomendado, sin coste por mensaje):
-//       supabase secrets set OPENWA_API_URL=https://…
-//       supabase secrets set OPENWA_API_KEY=…
-//       supabase secrets set OPENWA_SESSION_NAME=walle
-//   · Twilio (respaldo, y el único para SMS):
+//   · WhatsApp Cloud API de Meta (recomendado: oficial, sin servidor propio):
+//       supabase secrets set WHATSAPP_TOKEN=EAAG...            (token permanente)
+//       supabase secrets set WHATSAPP_PHONE_ID=1234567890
+//     y una plantilla `codigo_entrega` aprobada (categoría UTILITY, 2 huecos:
+//     pedido y código). Paso a paso en docs/whatsapp-cloud-api.md.
+//   · Twilio (para SMS, y como respaldo del canal WhatsApp):
 //       supabase secrets set TWILIO_ACCOUNT_SID=ACxxxx
 //       supabase secrets set TWILIO_AUTH_TOKEN=xxxx
 //       supabase secrets set TWILIO_SMS_FROM=+57300xxxxxxx
+//   · El puente propio OpenWA (si algún día se monta un servidor para él):
+//       supabase secrets set OPENWA_API_URL=https://…
+//       supabase secrets set OPENWA_API_KEY=…
+//       supabase secrets set OPENWA_SESSION_NAME=walle
 //
 // No hace falta configurar ningún secreto más: la función comprueba la
 // cabecera `x-at-cron` contra el vault de la propia base. Con `verify_jwt`, la
@@ -21,10 +26,11 @@
 // invocarla y forzar el vaciado en bucle, así que esa puerta es lo único que
 // la protege (ver migraciones 0102 y 0103).
 //
-// WhatsApp por Twilio exige una plantilla aprobada por Meta para escribir
-// primero a alguien. Mientras no esté aprobada, ese canal va a fallar y el SMS
-// va a pasar: por eso se encolan los dos y basta con que uno llegue. El puente
-// propio no tiene esa limitación — usa una sesión de WhatsApp de verdad.
+// Meta no deja escribir texto libre a alguien que no ha escrito primero: por
+// eso el canal `whatsapp` sale por PLANTILLA (Cloud API) y el SMS por texto
+// (Twilio). Se encola una fila de cada canal por código y basta con que una
+// llegue. Los parámetros de la plantilla vienen de at_message_outbox.template_params
+// (migración 0113), no del texto de `body`.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -47,6 +53,21 @@ const WA_URL = Deno.env.get("OPENWA_API_URL")?.replace(/\/+$/, "");
 const WA_LLAVE = Deno.env.get("OPENWA_API_KEY");
 const WA_SESION = Deno.env.get("OPENWA_SESSION_NAME") || "walle";
 const hayPuente = !!(WA_URL && WA_LLAVE);
+
+/**
+ * WhatsApp Cloud API de Meta — la vía oficial y la preferida para el canal
+ * `whatsapp`. Es una llamada HTTPS a graph.facebook.com: sin servidor
+ * intermedio, sin riesgo de que bloqueen el número. Ver docs/whatsapp-cloud-api.md.
+ *
+ * La versión del Graph API va en variable para poder subirla sin redesplegar
+ * el día que Meta jubile la actual.
+ */
+const WA_CLOUD_TOKEN = Deno.env.get("WHATSAPP_TOKEN");
+const WA_CLOUD_PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID");
+const WA_CLOUD_TEMPLATE = Deno.env.get("WHATSAPP_TEMPLATE") || "codigo_entrega";
+const WA_CLOUD_LANG = Deno.env.get("WHATSAPP_LANG") || "es";
+const WA_CLOUD_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v22.0";
+const hayCloud = !!(WA_CLOUD_TOKEN && WA_CLOUD_PHONE_ID);
 
 const MAX_INTENTOS = 3;
 const LOTE = 50;
@@ -104,6 +125,58 @@ async function enviarPorPuente(to: string, body: string): Promise<string> {
   }
   const json = await res.json().catch(() => ({}));
   return String(json?.id ?? json?.messageId ?? "puente");
+}
+
+/**
+ * WhatsApp por la Cloud API de Meta.
+ *
+ * Meta no permite texto libre a quien no ha escrito primero: se manda una
+ * PLANTILLA aprobada y se rellenan sus huecos. `codigo_entrega` tiene dos:
+ * {{1}} el número de pedido, {{2}} el código de seis dígitos. Vienen en
+ * `template_params`, que llena at_issue_delivery_code (migración 0113).
+ *
+ * Devuelve el id del mensaje (wamid…) o lanza con el motivo de Meta, que la
+ * bandeja de fallidos enseña tal cual al operario.
+ */
+async function enviarPorCloudApi(
+  to: string,
+  plantilla: { pedido: string; codigo: string },
+): Promise<string> {
+  const res = await fetch(
+    `https://graph.facebook.com/${WA_CLOUD_VERSION}/${WA_CLOUD_PHONE_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WA_CLOUD_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        // Meta quiere solo dígitos con indicativo: +57 300… → 57300…
+        to: to.replace(/\D/g, ""),
+        type: "template",
+        template: {
+          name: WA_CLOUD_TEMPLATE,
+          language: { code: WA_CLOUD_LANG },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: plantilla.pedido },
+                { type: "text", text: plantilla.codigo },
+              ],
+            },
+          ],
+        },
+      }),
+      signal: AbortSignal.timeout(15000),
+    },
+  );
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`Cloud API: ${json?.error?.message ?? `HTTP ${res.status}`}`);
+  }
+  return String(json?.messages?.[0]?.id ?? "cloud");
 }
 
 async function enviarTwilio(to: string, body: string, canal: "sms" | "whatsapp") {
@@ -201,10 +274,10 @@ Deno.serve(async (req) => {
 
   // Paso 2 — enviar. Si no hay canal, se termina aquí: la cola ya quedó sin
   // caducados, así que el reloj no vuelve a llamar en balde por lo de siempre.
-  if (!hayPuente && !(SID && TOKEN)) {
+  if (!hayCloud && !hayPuente && !(SID && TOKEN)) {
     if (frescos.length > 0) {
       console.warn(
-        `Sin canal configurado (ni puente ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
+        `Sin canal configurado (ni Cloud API, ni puente, ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
       );
     }
     return Response.json(
@@ -229,14 +302,31 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // WhatsApp por el puente propio si lo hay; lo demás, y el respaldo, por
-    // Twilio. Si un canal no tiene por dónde salir se salta sin gastar
-    // intento: no es un fallo del mensaje, es que falta configuración.
-    const porPuente = m.channel === "whatsapp" && hayPuente;
-    if (!porPuente && !(SID && TOKEN)) continue;
+    // El canal `whatsapp` sale por la Cloud API si está configurada; si no,
+    // por el puente propio. Todo lo demás —y el respaldo— por Twilio. Si un
+    // canal no tiene por dónde salir se salta SIN gastar intento: no es un
+    // fallo del mensaje, es que falta configuración, y gastarle intentos lo
+    // mataría a los tres minutos sin que nadie hubiera intentado nada.
+    //
+    // La Cloud API necesita los parámetros de la plantilla. Si la fila es
+    // vieja y no los trae (se encoló antes de la migración 0113), cae al
+    // puente o a Twilio, que mandan el texto de `body`.
+    const esWhatsApp = m.channel === "whatsapp";
+    const plantilla = m.template_params as
+      | { pedido?: string; codigo?: string }
+      | null
+      | undefined;
+    const porCloud = esWhatsApp && hayCloud && !!plantilla?.codigo;
+    const porPuente = esWhatsApp && !porCloud && hayPuente;
+    if (!porCloud && !porPuente && !(SID && TOKEN)) continue;
 
     try {
-      const sid = porPuente
+      const sid = porCloud
+        ? await enviarPorCloudApi(to, {
+            pedido: String(plantilla?.pedido ?? ""),
+            codigo: String(plantilla?.codigo),
+          })
+        : porPuente
         ? await enviarPorPuente(to, m.body)
         : await enviarTwilio(to, m.body, m.channel);
       await supabase

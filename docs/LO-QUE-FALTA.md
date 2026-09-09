@@ -116,7 +116,7 @@ el admin lo ve todo.
 | Qué | Por qué importa | Bloqueado en |
 | --- | --- | --- |
 | **Medio de cobro de *collar accesorios*** | **Sin número de cuenta no hay a dónde girarles el contraentrega.** Es lo más urgente de la lista | Que ellos lo registren en Mi perfil → Mi comercio |
-| `OPENWA_API_URL`, `OPENWA_API_KEY`, `OPENWA_SESSION_NAME` en Vercel | Sin ellas el botón «Enviar» del código avisa de que el puente no está configurado | Falta una URL **pública** del gateway (túnel o VPS). `localhost` no sirve desde Vercel |
+| ~~`OPENWA_API_URL`, `OPENWA_API_KEY`, `OPENWA_SESSION_NAME`~~ **Superado el 2026-09-08**: el envío automático pasa a la **Cloud API de Meta**, que no necesita servidor. Paso a paso en `docs/whatsapp-cloud-api.md` | Falta que Henry cree la app de Meta, registre el número y apruebe la plantilla `codigo_entrega` | Panel de Meta |
 | Probar el envío automático | El pedido **ATL-100163** está creado, con su código encolado al 3196070176, esperando | Que el gateway OpenWA esté encendido |
 | Logo de *collar accesorios* | El rótulo sale sin marca. El sistema ya lo soporta | No tengo el archivo, y el bucket solo acepta escrituras con sesión del propio comercio |
 | Tres sedes sin dirección | Se crearon con los datos que el comercio tenía, y esos tres no la tienen registrada | Que cada comercio complete sus datos |

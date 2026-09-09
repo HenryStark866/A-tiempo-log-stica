@@ -166,8 +166,8 @@ export default function DashboardPage() {
    * falta separarlos. En la base la misma distinción la hace `at_soy_dueno()`.
    *
    * Esconderlas aquí es la mitad del trabajo: la RPC `at_dashboard_kpis`
-   * todavía manda esos dos números al navegador del asesor. La migración 0100
-   * es la que de verdad deja de enviárselos.
+   * todavía manda esos dos números al navegador del asesor. Las migraciones
+   * 0118 y 0119 son las que de verdad dejan de enviárselos.
    */
   const esAsesor = profile.role === "asesor";
   const puede = (destino: keyof typeof ALCANCE) => ALCANCE[destino].includes(profile.role);

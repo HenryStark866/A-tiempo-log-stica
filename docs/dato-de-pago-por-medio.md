@@ -9,7 +9,7 @@
 | `src/lib/constants.ts` | formatos, filtros de tecleo, armar/partir la cuenta, revisión |
 | `src/components/MiComercioPanel.tsx` | modal «Nuevo medio de pago» (se abre desde `/mi-perfil`) |
 | `src/app/pagar/[token]/page.tsx` | vista pública del QR: presentación y qué se copia |
-| `supabase/migrations/0098_la_cuenta_bancaria_se_guarda_en_partes.sql` | la misma regla, exigida por la base |
+| `supabase/migrations/0116_la_cuenta_bancaria_se_guarda_en_partes.sql` | la misma regla, exigida por la base |
 
 ## Qué estaba mal
 

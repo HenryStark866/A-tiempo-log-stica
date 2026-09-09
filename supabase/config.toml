@@ -28,5 +28,12 @@
 # para que la base local sea la misma versión que la de arriba. No lo puse
 # porque no sé cuál es, y adivinarla es peor que dejarla en el valor por
 # defecto — se ve en el panel de Supabase, en Settings → Infrastructure.
+#
+# 2026-09-08: confirmado contra la nube — `get_project` dice PostgreSQL 17
+# (17.6.1.084). Se fija `major_version = 17` para que el staging local sea la
+# misma versión que producción.
 
 project_id = "a-tiempo-logistica"
+
+[db]
+major_version = 17

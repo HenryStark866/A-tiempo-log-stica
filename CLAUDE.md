@@ -90,6 +90,7 @@ supabase/functions/    edge functions (enviar-mensajes, shopify-sync)
 | Necesitas | Archivo |
 | --- | --- |
 | Cómo tiene que estar hecho cada frente | `docs/estandares-de-plataforma.md` |
+| Plan de migración a AWS (Vía 5) y por dónde va | `docs/migracion-aws/plan-maestro.md` + `docs/migracion-aws/estado.md` · skill `migracion-aws` |
 | Forma y caché de las respuestas de /api | `src/lib/api/respuesta.ts` |
 | Tope de peticiones en las rutas de Next | `src/lib/api/freno.ts` |
 | Cliente de Supabase sin persona detrás | `src/lib/supabase/servicio.ts` |

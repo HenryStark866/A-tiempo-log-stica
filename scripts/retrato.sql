@@ -40,27 +40,41 @@ select jsonb_pretty(jsonb_build_object(
      'destinatarios', (select count(*) from public.at_recipients))
 )) as retrato;
 
--- ── El retrato del proyecto VIEJO, tomado el 2026-08-09 ──────────────────
+-- ── Retrato-control, tomado de producción el 2026-09-08 ──────────────────
 --
---   tablas         28        cron           at-limpiar-rate-limit,
---   funciones     111                       at-notificar-pendientes
---   politicas      55        buckets        at-brand-logos, at-courier-docs,
---   triggers       15                       at-delivery-evidence,
---   indices        77                       at-facility-docs,
---   enums          12                       at-payment-receipts, evidencias
---   archivos       39        usuarios_auth  15
+--   Es la referencia de la migración a AWS. Después de cada corte tiene que
+--   dar esto o más. Copia viva en `docs/migracion-aws/estado.md`.
+--
+--   tablas         33        cron           at-cuota-saas, at-enviar-mensajes,
+--   funciones     150                       at-limpiar-registros,
+--   politicas      62                       at-notificar-pendientes, at-shopify
+--   triggers       23        buckets        at-brand-logos, at-courier-docs,
+--   indices       100                       at-delivery-evidence,
+--   enums          12                       at-facility-docs,
+--   archivos       70                       at-payment-receipts, evidencias
+--   usuarios_auth  17
 --
 --   extensiones    pg_cron, pg_net, pg_stat_statements, pgcrypto, plpgsql,
 --                  supabase_vault, uuid-ossp
 --
---   datos          comercios 9 · perfiles 15 · pedidos 28 · eventos 135 ·
---                  recogidas 14 · facturas 7 · remesas 4 · zonas 5 ·
---                  tarifas_par 25 · productos 12 · destinatarios 22
+--   datos          comercios 10 · perfiles 17 · pedidos 6 · eventos 23 ·
+--                  recogidas 9 · facturas 12 · remesas 1 · zonas 15 ·
+--                  tarifas_par 125 · productos 5 · destinatarios 2803
 --
--- Dos diferencias son ESPERABLES y no son un fallo:
+-- ── El retrato ANTERIOR, del 2026-08-09 (se conserva como historia) ──────
+--
+--   tablas 28 · funciones 111 · politicas 55 · triggers 15 · indices 77 ·
+--   archivos 39 · usuarios_auth 15 · datos: comercios 9 · perfiles 15 ·
+--   pedidos 28 · recogidas 14 · facturas 7 · remesas 4 · zonas 5 ·
+--   tarifas_par 25 · productos 12 · destinatarios 22
+--
+-- Diferencias ESPERABLES que no son un fallo:
 --
 --   · `evidencias` no debería aparecer entre los buckets del nuevo. Es el que
 --     quedó de la app de monitoreo industrial y ya no lo usa nadie; el script
 --     de copia lo recrea vacío, así que si sobra, se borra desde el panel.
 --   · `at_rate_limit` puede tener otro número de filas. Es el contador del
 --     freno de solicitudes y se llena y se purga solo.
+--   · Las tareas `cron` cambian al pasar a EventBridge en la Fase 2.5 de la
+--     migración a AWS. Eso es esperado; el retrato de después de esa fase lo
+--     refleja.

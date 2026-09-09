@@ -35,17 +35,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    # El dominio CANÓNICO, no el `environment_url` que manda Vercel.
+    #
+    # `environment_url` apunta a la URL propia del despliegue
+    # (atiempo-logistica-xxxx-henry-stark-s-projects.vercel.app), y esa está
+    # detrás de la Deployment Protection de Vercel: contesta 200 con la página
+    # de login de SSO en HTML. `curl --fail` la da por buena —es un 200— y el
+    # `sed` no encuentra ningún "version", así que este workflow fallaba
+    # SIEMPRE diciendo que la app publicada no dice nada.
+    #
+    # Es el mismo error que ya se pagó en vigilancia.yml: comprobar contra una
+    # URL que responde algo que no es la app. Lo que interesa saber es si el
+    # dominio por el que entra la gente sirve este commit, y ese es el de
+    # abajo. Con www: sin él, atiempologistica.com responde un 308.
+    env:
+      APP: https://www.atiempologistica.com
+
     steps:
       - name: Esperar a que el primer arranque termine
         # La primera petición a una función recién publicada la levanta de
         # cero. Preguntar en el mismo segundo mide el arranque, no la salud.
-        run: sleep 20
+        run: sleep 30
 
       - name: Está en pie y la base responde
         run: |
-          curl --fail-with-body --show-error --silent \
+          curl --fail-with-body --location --show-error --silent \
                --max-time 30 --retry 3 --retry-delay 10 \
-               "${{ github.event.deployment_status.environment_url }}/api/salud"
+               "$APP/api/salud"
 
       - name: Se publicó ESTE commit y no el anterior
         # `generateBuildId` en next.config.ts hace que la versión publicada sea
@@ -55,7 +71,7 @@ jobs:
         run: |
           esperado="$(echo '${{ github.sha }}' | cut -c1-8)"
           publicado="$(curl --fail --location --show-error --silent --max-time 30 \
-            "${{ github.event.deployment_status.environment_url }}/api/version" \
+            "$APP/api/version" \
             | sed -n 's/.*"version":"\([^"]*\)".*/\1/p')"
 
           echo "Esperado:  $esperado"

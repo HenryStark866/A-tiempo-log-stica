@@ -27,6 +27,9 @@ npm-debug.log*
 /BASES DEDATOS ATL/
 /volcado/
 
+# enlace del CLI de Supabase — local a cada máquina, no se commitea
+/supabase/.temp/
+
 # generado por scripts/copiar-worker-maplibre.mjs (predev/prebuild) — nunca a mano
 /public/maplibre-gl-worker.mjs
 /public/maplibre-gl-shared.mjs

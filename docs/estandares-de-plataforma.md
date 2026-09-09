@@ -438,12 +438,50 @@ pestaña abierta: **escala con el uso real en vez de ser un suelo fijo.**
 **Los límites que hay que tener presentes.**
 
 - Los **crons de `pg_cron`** son de un solo hilo por trabajo. `at-enviar-mensajes`
-  corre cada minuto y despacha lotes de 50; si un envío tarda más de un minuto,
+  corre cada dos minutos y despacha lotes de 50; si un envío tarda más de eso,
   el siguiente espera.
 - El **realtime** de Supabase tiene tope de conexiones simultáneas en el plan
   gratis. Cada pestaña abierta cuenta.
 - Los **índices marcados «sin usar»** no se borran: «sin usar» hoy significa
   «la operación todavía no tiene volumen».
+
+**El incidente del 2026-09-08: un cron golpeando en balde tumbó la base.**
+
+De 14:04 a ~18:50 la base dejó de aceptar conexiones y **toda la app dio 504**
+(`src/middleware.ts` habla con Supabase en cada request). Reinicio manual desde
+el panel. La cadena:
+
+1. Un código de entrega quedó `pendiente` para siempre: no hay canal de envío
+   configurado, y `enviar-mensajes` —sin credenciales— salía con 200 **antes**
+   del barrido que caduca lo viejo.
+2. `at_despachar_buzon()` decide con `status='pendiente' AND attempts<3`. Ese
+   mensaje cumplía las dos indefinidamente (`attempts` solo sube si hay un
+   intento real), así que el cron llamaba a la edge function **cada minuto para
+   siempre**.
+3. La instancia es **`t4g.nano`**: `max_worker_processes = 6`, dos fijos
+   (lanzador de pg_cron, worker de pg_net) → 4 libres, CPU por créditos de
+   ráfaga. El goteo agotó los créditos; al throttlearse, `at_despachar_buzon`
+   dejó de terminar en un minuto, las ejecuciones se apilaron ocupando los 4
+   slots, y **pg_cron no pudo arrancar ningún trabajo** (`job startup timeout`
+   ×266). El postmaster no pudo forkear backends. Base caída.
+
+**Las reglas que salen de aquí, con su guardián:**
+
+- **Un cron que llama a un servicio externo tiene que poder vaciar su propia
+  cola sin ese servicio.** `at_despachar_buzon` (migración 0112) caduca lo de
+  más de 12 h **él mismo** antes de decidir si despacha. Guardián: el propio
+  `create or replace` de la 0112 y su comentario.
+- **Toda función de cron lleva `set statement_timeout` corto a nivel de
+  función.** `at_despachar_buzon` en 10 s: una ejecución lenta se corta sola en
+  vez de ocupar un worker durante minutos y arrastrar a los demás. Guardián: el
+  `SET` en la definición.
+- **Un tope por `attempts < N` no sirve si `attempts` no sube siempre.** Cuando
+  falta configuración, tiene que contar igual, o el mensaje es inmortal.
+- **`t4g.nano` es demasiado pequeña** para pg_cron + pg_net + PostgREST + GoTrue
+  + Storage + la app. **Aceptado a sabiendas hasta subir a `t4g.micro`** (o
+  hasta la Fase 2 de `docs/migracion-aws/`): con 4 workers libres, cualquier
+  trabajo que se atasque un rato puede tumbarlo. El semáforo `/api/salud` ya
+  mira «cron fallido en la última hora» — pero avisa, no lo impide.
 
 ---
 

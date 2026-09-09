@@ -244,7 +244,7 @@ export function PriceList({
         // destino existía. Ahora se pregunta y se guarda con el pedido.
         //
         // Lo que NO hace, a propósito: crear una zona. El texto viaja en la
-        // guía —columna `recipient_neighborhood`, migración 0113— y muere ahí.
+        // guía —columna `recipient_neighborhood`, migración 0121— y muere ahí.
         // `at_zones` no se toca desde esta pantalla.
         <div className="rounded-2xl border border-[#ff812c]/30 bg-[#ff812c]/[0.06] p-5 shadow-sm">
           <div className="flex items-start gap-3">
@@ -268,7 +268,7 @@ export function PriceList({
             type="text"
             value={barrioManual}
             onChange={(e) => onBarrioManual?.(e.target.value)}
-            // El mismo tope que la base (migración 0113): un barrio es un
+            // El mismo tope que la base (migración 0121): un barrio es un
             // nombre corto, no un segundo campo de notas.
             maxLength={80}
             placeholder="Escribe el nombre de tu barrio o sector (ej. Zúñiga Alto)…"

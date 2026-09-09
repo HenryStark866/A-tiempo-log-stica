@@ -54,7 +54,7 @@ comment on column public.at_payment_methods.kind is
 
 -- ── 2. El identificador, con la forma nueva ────────────────────────────
 --
--- Reemplaza la regla de 0097/0098. Va aquí y no editando aquellas porque
+-- Reemplaza la regla de 0097/0116. Va aquí y no editando aquellas porque
 -- pueden estar ya aplicadas en la nube, y `supabase db push` no vuelve a
 -- correr una migración registrada: la base se habría quedado con la regla
 -- vieja y el comercio se llevaría un error crudo de Postgres al guardar. Esta

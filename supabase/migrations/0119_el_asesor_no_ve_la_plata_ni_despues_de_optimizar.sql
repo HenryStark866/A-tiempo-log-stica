@@ -4,26 +4,31 @@
 -- Dos migraciones reescribieron `at_dashboard_kpis` sin saber una de la otra,
 -- porque vivían en ramas distintas:
 --
---   · 0100 (rama de perfil/admin) le quitó al asesor comercial `tli_pct` y
+--   · 0118 (rama de perfil/admin) le quitó al asesor comercial `tli_pct` y
 --     `cod_pending`: trabaja PARA un comercio, no es su dueño, y la salud
 --     financiera es del dueño;
 --   · 0109 (main) reescribió la misma función para que hiciera UN solo
 --     recorrido de at_guides en vez de siete subconsultas.
 --
--- Las dos son buenas y ninguna es la culpable. El problema es el orden: 0109
--- lleva número más alto, así que al aplicarse pisa entera la definición de la
--- 0100 y devuelve el margen y el recaudo pendiente a quien no le toca. Sin
--- error, sin aviso: la función sigue existiendo y respondiendo, solo que con
--- una cifra de más para el asesor.
+-- Las dos son buenas y ninguna es la culpable: cada una reescribe la función
+-- ENTERA, así que la última en aplicarse borra lo que hizo la otra. Y como
+-- `create or replace` no avisa de nada, se pierde en silencio: la función
+-- sigue existiendo y respondiendo, solo que a la que gane le falta la mitad.
+--
+-- Con la numeración de hoy gana la 0118, así que lo que se perdería es el
+-- recorrido único. Antes de renumerarlas gana la 0109, y lo que se perdía era
+-- el recorte del asesor: el margen y el recaudo del comercio a la vista de
+-- quien no le toca. Cuál de los dos destrozos toque depende de un número, que
+-- es exactamente la clase de cosa que no debe decidir si se filtra la plata.
 --
 -- Esta migración escribe la versión que ninguna de las dos alcanzó a escribir:
--- el recorrido único de la 0109 con el recorte por rol de la 0100.
+-- el recorrido único de la 0109 con el recorte por rol de la 0118.
 --
 -- Es `create or replace`, así que da igual en qué orden se aplique respecto a
--- las otras dos mientras se aplique DESPUÉS. Con el número 0115 lo está.
+-- las otras dos mientras se aplique DESPUÉS. Con el número 0119 lo está.
 --
--- ── Un matiz respecto a la 0100 ───────────────────────────────────────────
--- La 0100 decía «al asesor ni siquiera se le corre la consulta», y era cierto:
+-- ── Un matiz respecto a la 0118 ───────────────────────────────────────────
+-- La 0118 decía «al asesor ni siquiera se le corre la consulta», y era cierto:
 -- cada métrica era su propia subconsulta y el `case` la evitaba entera. Aquí
 -- ya no hay siete consultas que evitar, hay un recorrido único del que salen
 -- todas las cifras a la vez. El `case` sigue decidiendo qué se DEVUELVE, que

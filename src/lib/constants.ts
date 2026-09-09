@@ -442,7 +442,7 @@ export function limpiarEnlace(valor: string): string {
 /**
  * Devuelve el reclamo para mostrar, o `null` si el medio está bien. Vive junto
  * a todo lo demás para que el formulario y la restricción de la base
- * (migración 0099) cuenten exactamente la misma historia: si aquí se dejara
+ * (migración 0117) cuenten exactamente la misma historia: si aquí se dejara
  * pasar algo que allá se rechaza, el comercio se llevaría un error crudo de
  * Postgres en vez de una frase en español.
  */

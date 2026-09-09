@@ -8,7 +8,7 @@
 | `src/lib/constants.ts` | categorías, listas, traducción pantalla ↔ base, revisión |
 | `src/components/MiComercioPanel.tsx` | modal «Nuevo medio de pago» (se abre desde `/mi-perfil`) |
 | `src/app/pagar/[token]/page.tsx` | vista pública del QR |
-| `supabase/migrations/0099_el_medio_de_pago_se_captura_por_partes.sql` | la misma regla, exigida por la base |
+| `supabase/migrations/0117_el_medio_de_pago_se_captura_por_partes.sql` | la misma regla, exigida por la base |
 
 ## La forma nueva
 
@@ -52,7 +52,7 @@ ninguno.** Meterlos a la fuerza haría que el QR le dijera «Otro banco» a quie
 va a pagarle a una billetera, o que pusiera un botón «Abrir link de pago»
 apuntando a un número de celular.
 
-La migración 0099 le agrega dos valores al CHECK: `billetera` y `otro`. **No
+La migración 0117 le agrega dos valores al CHECK: `billetera` y `otro`. **No
 agrega columnas, no quita valores, no toca ninguna fila, y `at_payment_info`
 devuelve exactamente los mismos campos** — la vista pública no cambió de
 contrato. Si aun así se prefiere no tocarlo, revertirlo es una migración.

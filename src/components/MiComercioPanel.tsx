@@ -274,7 +274,7 @@ export function MiComercioPanel() {
 
     // El medio se revisa con la regla de su categoría: una cuenta necesita
     // banco, tipo y un número que sea un número; una billetera, plataforma y
-    // llave. La misma regla la exige la base (migración 0099), porque este
+    // llave. La misma regla la exige la base (migración 0117), porque este
     // formulario no es la única puerta a la tabla: con la sesión abierta se
     // puede escribir por PostgREST.
     const reclamo = revisarMedioDePago(form);

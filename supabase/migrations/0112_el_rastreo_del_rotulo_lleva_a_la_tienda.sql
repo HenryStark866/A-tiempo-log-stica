@@ -32,8 +32,10 @@
 -- ── Por qué esta migración se llama 0112 y no 0101 ────────────────────────
 -- Se escribió como 0101 y el merge con la rama de Henry se la llevó por
 -- delante: él ya tenía su propia 0101 (y hasta la 0111). Renumerada al primer
--- hueco libre. Ojo con las 0098, 0099 y 0100, que quedaron DUPLICADAS en la
--- carpeta tras ese mismo merge — hay que resolverlas antes de hacer push.
+-- hueco libre. Las 0098, 0099 y 0100 quedaron DUPLICADAS en la carpeta tras
+-- ese mismo merge; se resolvieron renumerando las nuestras a 0116, 0117 y
+-- 0118, porque el CLI indexa cada migración por su versión y dos filas con la
+-- misma clave no caben en supabase_migrations.
 
 create or replace function public.at_track_guide_by_token(p_token text)
 returns json

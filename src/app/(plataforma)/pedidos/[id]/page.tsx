@@ -11,6 +11,7 @@ import {
   Circle,
   ExternalLink,
   Pencil,
+  Plus,
   Printer,
   Trash2,
   AlertTriangle,
@@ -240,52 +241,107 @@ export default function GuideDetailPage() {
     guide.status === "novedad" &&
     ["admin", "coordinador", "operario", "admin_cedi"].includes(profile.role);
 
+  /**
+   * El naranja de marca de los iconos de la barra de acciones de arriba.
+   *
+   * Un solo sitio para los cinco: si mañana cambia el acento se cambia aquí y
+   * no en cinco líneas repartidas que se desincronizan sin que nadie lo note.
+   *
+   * Son DOS tonos y no uno porque el mismo naranja no sirve en los dos suelos:
+   * `#ff812c` sobre el fondo claro se lava —2.2:1, por debajo de lo legible—
+   * y `brand-600` sobre el oscuro se apaga. Con los dos, el icono se lee igual
+   * en los tres temas.
+   */
+  const tintaAcento = "text-brand-600 dark:text-[#ff812c]";
+
   return (
     <>
       <PageHeader
         title={guide.guide_number}
         subtitle={`Cliente: ${guide.at_clients?.business_name ?? "—"}`}
         actions={
+          /* La barra va de menos a más compromiso, de izquierda a derecha:
+             consultar, imprimir, corregir, despachar, borrar, y al final lo
+             siguiente que se quiere hacer. */
           <>
+            {/* 1. Rastreo público — enlace neutro.
+                Era naranja de marca, y sobre el fondo claro ese naranja da
+                3.19:1: por debajo del mínimo legible. En gris se lee en los
+                tres temas y deja el acento libre para el botón primario, que
+                es el que sí quiere que lo miren. */}
             <Link
               href={`/rastreo/t/${guide.tracking_token}`}
               target="_blank"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
+              className="inline-flex min-h-[44px] items-center gap-1.5 px-1 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 hover:underline dark:text-slate-300 dark:hover:text-white"
             >
-              Rastreo público <ExternalLink className="size-3.5" />
+              Rastreo público <ExternalLink className={`size-3.5 ${tintaAcento}`} />
             </Link>
+
+            {/* 2. Rótulo */}
             <Link href={`/pedidos/rotulos?ids=${id}`} target="_blank">
               <Button variant="secondary">
-                <Printer className="size-4" /> Rótulo
+                <Printer className={`size-4 ${tintaAcento}`} /> Rótulo
               </Button>
             </Link>
-            {puedePedirRecogida && (
-              <Link href={`/recogidas?pedido=${id}`}>
-                <Button>
-                  <Truck className="size-4" /> Solicitar recogida
+
+            {/* 3. Editar */}
+            {canEditDelete && (
+              <Link href={`/pedidos/${id}/editar`}>
+                <Button variant="secondary">
+                  <Pencil className={`size-4 ${tintaAcento}`} /> Editar
                 </Button>
               </Link>
             )}
-            {canEditDelete && (
-              <>
-                <Link href={`/pedidos/${id}/editar`}>
-                  <Button variant="secondary">
-                    <Pencil className="size-4" /> Editar
-                  </Button>
-                </Link>
-                <Button
-                  variant="danger"
-                  onClick={() => { setDeleteError(null); setShowDeleteModal(true); }}
-                >
-                  <Trash2 className="size-4" /> Eliminar
+
+            {/* 4. Solicitar recogida — secundario, con el icono en el naranja
+                de marca. El acento va en el glifo y no en el fondo: el fondo
+                naranja es del botón primario, y dos naranjas sólidos en la
+                misma fila dejan de señalar nada. */}
+            {puedePedirRecogida && (
+              <Link href={`/recogidas?pedido=${id}`}>
+                <Button variant="secondary">
+                  <Truck className={`size-4 ${tintaAcento}`} /> Solicitar recogida
                 </Button>
-              </>
+              </Link>
             )}
-            <Link href="/pedidos">
-              <Button variant="secondary">
-                <ArrowLeft className="size-4" /> Volver
+
+            {/* 5. Eliminar — el mismo botón neutro que Rótulo y Editar.
+                Sin rojo: en esta barra el único color es el del botón
+                primario, y así la fila entera se lee de un vistazo.
+
+                Que no avise por el color lo vuelve más fácil de apretar sin
+                querer, y borrar un pedido no tiene vuelta atrás. Quien
+                sostiene la advertencia es el diálogo de confirmación que abre
+                este `onClick` —con su triángulo y su botón rojo—: ahí es donde
+                hay que decir que sí. Si algún día se quita ese diálogo, este
+                botón tiene que volver a distinguirse. */}
+            {canEditDelete && (
+              <Button
+                variant="secondary"
+                onClick={() => { setDeleteError(null); setShowDeleteModal(true); }}
+              >
+                <Trash2 className={`size-4 ${tintaAcento}`} /> Eliminar
               </Button>
-            </Link>
+            )}
+
+            {/* 6. La acción principal.
+                Para el comercio, lo que sigue después de mirar un pedido es
+                hacer el próximo, no devolverse a la lista —a la lista se llega
+                por el menú—. Al personal de la operación, que no crea pedidos,
+                se le deja el «Volver» de siempre. */}
+            {ROLES_DEL_COMERCIO.includes(profile.role) ? (
+              <Link href="/pedidos/nueva">
+                <Button>
+                  <Plus className="size-4" /> Crear otro pedido
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/pedidos">
+                <Button variant="secondary">
+                  <ArrowLeft className="size-4" /> Volver
+                </Button>
+              </Link>
+            )}
           </>
         }
       />

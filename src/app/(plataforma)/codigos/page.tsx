@@ -47,6 +47,21 @@ function aWhatsapp(raw: string): string | null {
   return null;
 }
 
+/**
+ * ¿Este error es «se venció la ventana» y no «esto falló de verdad»?
+ *
+ * `ultimo_error` mezcla dos cosas que no se parecen. «Caducado: …» es la
+ * ventana de 24 h de WhatsApp cerrándose: el número está bien, el código
+ * existe, y basta con reenviar. Al lado viven los fallos de verdad —número
+ * inválido, cuenta bloqueada—, donde reenviar no arregla nada.
+ *
+ * Los dos se pintaban del mismo rojo, así que lo rutinario tenía el mismo peso
+ * visual que lo grave y el CEDI acababa ignorando los dos por igual.
+ */
+function esCaducado(error: string): boolean {
+  return error.trimStart().toLowerCase().startsWith("caducado");
+}
+
 export default function DeliveryCodesPage() {
   const profile = useProfile();
   const [rows, setRows] = useState<CodeRow[] | null>(null);
@@ -180,7 +195,7 @@ export default function DeliveryCodesPage() {
       <>
         <PageHeader title="Códigos de entrega" />
         <Card>
-          <p className="p-6 text-center text-slate-500">No tienes acceso a esta sección.</p>
+          <p className="p-6 text-center text-slate-500 dark:text-slate-400">No tienes acceso a esta sección.</p>
         </Card>
       </>
     );
@@ -263,7 +278,7 @@ export default function DeliveryCodesPage() {
                         <Send className="size-3" /> Enviado
                       </span>
                     ) : (
-                      <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:border-white/[0.12] dark:text-slate-300">
                         En cola de envío
                       </span>
                     )}
@@ -273,9 +288,28 @@ export default function DeliveryCodesPage() {
                     {formatDateTime(r.created_at)}
                     {r.attempts > 0 && !r.verificado && ` · ${r.attempts} intento(s) fallido(s)`}
                   </p>
-                  {r.ultimo_error && !r.algun_envio_ok && (
-                    <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{r.ultimo_error}</p>
-                  )}
+                  {r.ultimo_error &&
+                    !r.algun_envio_ok &&
+                    (esCaducado(r.ultimo_error) ? (
+                      // Aviso, no fallo: naranja de marca en tono tenue.
+                      //
+                      // El color sale de `--color-brand-*`, la escala que el
+                      // proyecto registra en `@theme` (globals.css): Tailwind
+                      // v4 genera de ahí `bg-brand-500`, `text-brand-300` y
+                      // demás, así que esto es el token de acento global y no
+                      // un naranja nuevo escrito a mano. En claro manda el 700
+                      // sobre el relleno al 10 %; en oscuro y multicolor, el
+                      // 300 —el `dark:` de este proyecto cubre los dos.
+                      <p className="mt-2 inline-block rounded-md border border-brand-500/20 bg-brand-500/10 px-3 py-1.5 text-xs font-medium text-brand-700 dark:text-brand-300">
+                        {r.ultimo_error}
+                      </p>
+                    ) : (
+                      // Un fallo real conserva el rojo: es el único sitio de la
+                      // tarjeta donde el rojo significa algo.
+                      <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">
+                        {r.ultimo_error}
+                      </p>
+                    ))}
                 </div>
 
                 {!r.verificado && r.status !== "entregada" && (

@@ -116,6 +116,10 @@ export default function NewGuidePage() {
     recipient_address: "",
     recipient_city: "",
     zone_id: "",
+    // Barrio escrito a mano cuando el cotizador no encuentra el destino. Vive
+    // aquí, con el resto del pedido, y se va con él: no toca el catálogo de
+    // zonas ni se guarda en ninguna otra parte.
+    recipient_neighborhood: "",
     is_cod: false,
     cod_amount: "",
     cod_includes_shipping: false,
@@ -371,6 +375,7 @@ export default function NewGuidePage() {
       recipient_address: "",
       recipient_city: "Medellín",
       zone_id: "",
+      recipient_neighborhood: "",
     }));
   }
 
@@ -411,6 +416,12 @@ export default function NewGuidePage() {
       recipient_address: form.recipient_address,
       recipient_city: form.recipient_city,
       zone_id: form.zone_id || null,
+      // Solo viaja si de verdad se escribió y el pedido quedó sin zona: en un
+      // pedido zonificado con normalidad no significa nada y va en null.
+      recipient_neighborhood:
+        !form.zone_id && form.recipient_neighborhood.trim()
+          ? form.recipient_neighborhood.trim()
+          : null,
       is_cod: form.is_cod,
       cod_amount: form.is_cod ? Number(form.cod_amount) || 0 : 0,
       cod_includes_shipping: form.is_cod && form.cod_includes_shipping,
@@ -1277,7 +1288,17 @@ export default function NewGuidePage() {
             </div>
           </section>
 
-          <PriceList zones={zones} activeZoneId={form.zone_id || null} tarifas={tarifaPorZona} />
+          {/* El barrio escrito a mano sube hasta aquí y se queda en `form`, con
+              el resto del pedido. El cotizador no guarda nada por su cuenta. */}
+          <PriceList
+            zones={zones}
+            activeZoneId={form.zone_id || null}
+            tarifas={tarifaPorZona}
+            barrioManual={form.recipient_neighborhood}
+            onBarrioManual={(barrio) =>
+              setForm((f) => ({ ...f, recipient_neighborhood: barrio }))
+            }
+          />
 
           {error && (
             <div className="rounded-2xl bg-rose-50 dark:bg-rose-500/10 p-4">

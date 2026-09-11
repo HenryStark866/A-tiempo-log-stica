@@ -141,4 +141,4 @@ export const ZONE_STATUS_LABELS: Record<ZoneStatus, string> = {
 
 /** Lo que se le dice a quien intenta despachar fuera del Valle de Aburrá. */
 export const MSG_FUERA_DE_COBERTURA =
-  "Fuera de Cobertura: Actualmente solo realizamos entregas en el Área Metropolitana del Valle de Aburrá.";
+  "Fuera de Cobertura: Actualmente entregamos en el Área Metropolitana del Valle de Aburrá y en el Oriente cercano (Rionegro).";

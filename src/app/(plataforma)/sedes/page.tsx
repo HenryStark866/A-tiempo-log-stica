@@ -268,7 +268,7 @@ export default function SedesPage() {
       <>
         <PageHeader title="Sedes" />
         <Card>
-          <p className="p-6 text-center text-slate-500">
+          <p className="p-6 text-center text-slate-500 dark:text-slate-400">
             Afiliar y liquidar CEDIs es una decisión del administrador nacional.
           </p>
         </Card>
@@ -665,7 +665,7 @@ export default function SedesPage() {
               className={inputCls}
             />
           </Field>
-          <p className="mb-3 mt-2 text-sm text-slate-500">
+          <p className="mb-3 mt-2 text-sm text-slate-500 dark:text-slate-400">
             Quien solicita recibe este mensaje y puede volver a subir el documento corregido.
           </p>
           <Button disabled={guardando || !motivoRechazo.trim()} onClick={rechazarDocumento} className="w-full justify-center">

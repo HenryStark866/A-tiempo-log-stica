@@ -115,7 +115,7 @@ export default function RoutingPage() {
     return (
       <div className="pb-10 font-sans">
         <h1 className="text-[28px] font-bold text-slate-900 dark:text-white">Ruteo</h1>
-        <p className="mt-6 text-slate-500">No tienes acceso a esta sección.</p>
+        <p className="mt-6 text-slate-500 dark:text-slate-400">No tienes acceso a esta sección.</p>
       </div>
     );
   }

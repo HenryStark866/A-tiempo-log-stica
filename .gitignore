@@ -36,3 +36,9 @@ npm-debug.log*
 
 .vercel
 .env*.local
+
+# Caché del CLI de Supabase, no es código del proyecto
+supabase/.temp/
+
+# Ajustes personales de Claude Code: cada quien los suyos
+.claude/settings.local.json

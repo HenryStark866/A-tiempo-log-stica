@@ -327,13 +327,25 @@ export interface Product {
   created_at: string;
 }
 
-/** Cómo quiere el comercio que le paguen lo que se recauda contraentrega. */
+/**
+ * Cómo quiere el comercio que le paguen lo que se recauda contraentrega.
+ *
+ * Es la casilla gruesa, no la marca: la marca exacta —Davivienda, Dale!,
+ * Wompi— viaja adelante del identificador (ver `armarDato` en
+ * `lib/constants.ts`). Estos valores los exige un CHECK en la base, así que
+ * agregar uno aquí obliga a una migración (0017 los creó, 0099 sumó
+ * `billetera` y `otro`).
+ */
 export type PaymentKind =
   | "nequi"
   | "daviplata"
   | "bancolombia"
   | "otro_banco"
+  /** Billetera que no es Nequi ni Daviplata: Transfiya, Dale!, otra. */
+  | "billetera"
   | "link"
+  /** Un dato de cobro que no es cuenta, ni billetera, ni link. */
+  | "otro"
   | "efectivo";
 
 export interface PaymentMethod {
@@ -432,6 +444,12 @@ export interface Guide {
   recipient_address: string;
   recipient_city: string;
   zone_id: string | null;
+  /**
+   * Barrio o sector escrito a mano cuando el destino no cayó en ninguna zona.
+   * Dato del pedido, no del catálogo: no crea ni modifica at_zones. NULL en
+   * todo pedido zonificado con normalidad (migración 0121).
+   */
+  recipient_neighborhood: string | null;
   declared_value: number;
   is_cod: boolean;
   cod_amount: number;
@@ -592,6 +610,19 @@ export interface TrackingResult {
 export interface TrackingByToken extends TrackingResult {
   recipient_name: string;
   business_name: string | null;
+  /**
+   * «Tu tienda en línea» del comercio remitente: los cuatro enlaces que él
+   * mismo escribió en Mi perfil, para que quien recibió el paquete pueda
+   * volver a comprarle.
+   *
+   * Salen SOLO por esta vía. El rastreo por número de guía (`at_track_guide`)
+   * no dice de quién es el envío, y no puede: los números son consecutivos.
+   * Ver migración 0120.
+   */
+  business_website: string | null;
+  business_instagram: string | null;
+  business_facebook: string | null;
+  business_tiktok: string | null;
   courier_name: string | null;
   courier_lat: number | null;
   courier_lng: number | null;

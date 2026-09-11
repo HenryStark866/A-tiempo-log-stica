@@ -147,3 +147,32 @@ Las migraciones **0090, 0091 y 0092 están en la base pero NO en
 una— pero el historial no las registra. Quien audite el historial va a creer que
 faltan. Conviene aplicar siempre por `apply_migration` para que el registro no
 mienta.
+
+### Al 2026-09-09: el CLI ya está, pero el historial sigue incompleto
+
+`supabase` es ahora una dependencia de desarrollo del repo (`npm i -D supabase`),
+así que la versión es la misma para todos. Lo que **no** hay todavía: Docker —y
+por tanto no se puede levantar staging con `supabase start` ni encender los tests
+de base—, ni el proyecto enlazado con `supabase link`.
+
+**Y hasta que el historial se repare, `supabase db push` es peligroso aquí.** Si
+`supabase_migrations` no registra lo que ya está aplicado —y sabemos que al menos
+la 0090, 0091 y 0092 no figuran—, el CLI intentará correr las migraciones desde
+la 0001. Diez de ellas tienen `create table` o `add constraint` sin guarda y
+reventarían a mitad, dejando el esquema a medias en un proyecto que además es
+**compartido con TaxiYa**. El orden seguro es `migration list` → `migration
+repair --status applied` de todo lo ya aplicado → y solo entonces `push`.
+
+Queda una incógnita para cuando se enlace: el CLI espera nombres con timestamp de
+14 dígitos y aquí todos son de 4 (`0001_`, `0121_`). Entre ellos el orden es
+consistente; si el CLI los ignorase, `migration list` lo dirá enseguida.
+
+### Numerar migraciones en ramas paralelas
+
+Tres veces en un mismo día un merge con `main` se llevó por delante el número de
+una migración de la rama de perfil/admin (`0101` → `0112` → `0120`), y hubo que
+renumerar seis archivos en total. Mientras dos ramas largas numeren a la vez
+sobre la misma carpeta va a seguir pasando, y con el CLI ya no es cosmético: cada
+migración se indexa por su versión y dos filas con la misma clave no caben en
+`supabase_migrations`. **Revisar los números duplicados en cada merge**, o
+acordar un reparto de rangos por rama.

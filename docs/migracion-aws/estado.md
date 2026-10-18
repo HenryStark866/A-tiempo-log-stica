@@ -8,7 +8,12 @@
 > añadir la línea del día a la bitácora de la bóveda (`40 Bitácora/`).
 
 **Fase actual: 0 — Red de seguridad**
-**Última actualización: 2026-09-08 — 0.2 y 0.6 avanzados; 0.1 bloqueado en Docker**
+**Última actualización: 2026-10-18 — Docker instalado; 0.1 ya no está bloqueado: el staging arranca pero falla en la migración 0100 (falta baseline de producción); Fase 1 ya estaba aplicada**
+
+> **2026-10-18 (verificado contra AWS, solo lectura).** Cuenta `126356678380`, usuario `henry-terraform`, `us-east-1`.
+> - Fase 1 está **aplicada desde 2026-08-17**: estado `s3://atl-terraform-estado/yam/1-hibrido.tfstate`, zona Route 53 `atiempologistica.com`, SES (identidad del dominio), CloudFront `E1U307A1V4FDED`, bucket `atl-yam-logos-marca`, Lambda `yam-shopify-sync`, regla `yam-shopify-cada-15-min` ENABLED, secreto `yam/shopify-reloj`.
+> - Fase 2 **no** aplicada: no hay ECS ni Aurora. `terraform validate` OK y `plan` = **101 a crear, 0 a destruir** (sin aplicar, a petición de Henry).
+> - El dominio **sigue en GoDaddy** (`ns29/ns30.domaincontrol.com`) y resuelve a Vercel (`216.198.79.1`): el paso 1.4 está pendiente.
 
 ---
 
@@ -49,10 +54,13 @@ Reglas de comparación después de un corte:
 
 ## Fase 0 — Red de seguridad · bloqueante
 
-- [~] **0.1** Staging local: `supabase start` + `db reset` reconstruye las 106 migraciones sin error
-      → **BLOQUEADO**: Docker Desktop no arranca el daemon. Henry tiene que abrirlo y confirmar que está corriendo. `[db] major_version = 17` ya añadido a `supabase/config.toml`.
+- [~] **0.1** Staging local: `supabase start` + `db reset` reconstruye las migraciones sin error
+      → **FALLA en 0100** (2026-10-18, Docker ya instalado, `supabase start` aplica 0001-0100 bien): `0100_nadie_sin_sesion_llama_lo_que_no_es_suyo.sql:45` hace `revoke execute on function public.at_evento_al_crear_pedido()` y esa función **no la crea ninguna migración local** (solo existe en producción). Veredicto de la rama (3) de «Notas»: **la carpeta local no es fiel → hay que regenerar un baseline desde producción** (`supabase db dump`, necesita la contraseña de la BD) y usarlo como `0000` del staging. **Actualización:** con 3 funciones + 2 tablas + 1 membresía de publicación como stubs (`docs/migracion-aws/staging-stubs/`), las 119 migraciones aplican completas. Retrato local vs control: tablas 33=33, índices 100=100, enums 12=12, cron 5=5; **funciones 143 vs 150, triggers 22 vs 23, políticas 63 vs 62, falta bucket `evidencias`**. Sigue pendiente el baseline real (producción pausada por facturas impagas de la org).
+      → _(superado: con red nueva las imágenes bajaron y `supabase start` llegó hasta la migración 0100; lo de abajo describe el bloqueo previo)_ Docker Desktop 4.95 ya está instalado y el daemon responde (29.8.2; hizo falta `wsl --shutdown` para destrabar WSL2). `supabase start` falló al bajar las imágenes: (1) errores TLS intermitentes contra public.ecr.aws / ghcr.io / docker.io (la red, no Supabase; no se desactivó la verificación) y (2) **disco C: sin espacio** (~1 GB libres de 237; las imágenes necesitan ~4 GB). Hecho: postgrest y kong bajados. Falta: gotrue, realtime, storage-api, postgres. Para retomar: liberar ≥ 8 GB en C: (caches de npm/.cache/Temp) y reintentar `npx supabase@latest start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,supavisor,postgres-meta` con `C:\Program Files\Docker\Docker\resources\bin` en el PATH. `[db] major_version = 17` ya añadido a `supabase/config.toml`.
 - [x] **0.2** Huecos de numeración explicados — **veredicto abajo**. Pero apareció algo más gordo: la carpeta local **no corresponde** al historial de la nube. Ver «Notas».
-- [ ] **0.3** Los 75 tests de BD despiertos y en verde contra staging (`npm run test:db`) — depende de 0.1
+- [~] **0.3** Tests de BD contra staging parchado (`npm run test:db`) — 2026-10-18: **81 de 83 en verde**.
+      Los 3 fallos de `catalogo.test.ts` NO eran un objeto faltante: eran un defecto del arnés. (1) `crearUsuario` pasa `{role}` en `user_metadata` pero `at_handle_new_user` nunca lo lee: todo perfil nace `pendiente`, así que `at_ensure_my_client` lanzaba «Solo una cuenta de cliente…» y muchos tests pasaban en vacío por sus `if (!clientId) return`. (2) Sin nombre, `at_ensure_my_client`/`at_autocreate_client` enlazan por nombre normalizado y todos caen en «Comercio sin nombre» = el MISMO comercio (A veía el catálogo de B). Arreglo en `tests/db/harness.ts` (sin commitear): asigna el rol con la llave de servicio y un `business_name` único.
+      Quedan 2 en `cobro.test.ts`, sin diagnosticar del todo: (a) «sin return_rate cobra cero» hace `update return_rate = null` pero la columna es `not null default 3000` (0001) → el update falla en silencio y cobra 7.500; a menos que producción la haya vuelto nullable fuera de migraciones. (b) «trigger = botón»: el trigger cobra 16.000 con `shipping_fee` 14.500 y el botón no factura la guía (-2). Probable prueba vieja frente a migraciones 0114-0124, sin confirmar.
 - [~] **0.4** `test:db` en CI — **borrador listo** en `docs/migracion-aws/ci-tests-base.draft.yml`, se arma cuando 0.3 esté verde
 - [ ] **0.5** Mudanza de Supabase por transferencia ejecutada · proyecto bajo org propia · subido a Pro · MCP reconectado · `retrato.sql` idéntico — **acción de Henry en el panel**
 - [x] **0.6** Retrato-control completo pegado arriba + pie de `retrato.sql` actualizado
@@ -119,11 +127,11 @@ resultado decide si vamos por (2) o por (3).
 
 ## Fase 1 — Piezas de borde (`infra/aws/1-hibrido/`) · puede ir en paralelo
 
-- [ ] **1.1** Bucket `atl-terraform-estado` (us-east-1) con versionado y bloqueo público
-- [ ] **1.2** `terraform plan` de `1-hibrido/` revisado — ~25 recursos, cero `destroy`
-- [ ] **1.3** `terraform apply` — Route 53, SES, S3+CloudFront, Lambda Shopify, presupuesto
-- [ ] **1.4** Dominio: NS al registrador · Vercel Domains · Supabase Auth URL Configuration
-- [ ] **1.5** Reloj de Shopify en Lambda verde (`invoke` sin 401) · cron viejo apagado (`cron.unschedule('at-shopify')`)
+- [x] **1.1** Bucket `atl-terraform-estado` (us-east-1) con versionado (`Enabled`, verificado 2026-10-18)
+- [~] **1.2** `terraform plan` de `1-hibrido/` revisado — no hay constancia; el estado ya existe. Falta correr un `plan` para confirmar que no hay deriva
+- [~] **1.3** `terraform apply` — **aplicado el 2026-08-17** (zona Route 53, identidad SES, CloudFront, Lambda, regla EventBridge, secreto existen). Falta confirmar presupuesto/SNS y deriva con un `plan`
+- [ ] **1.4** Dominio: NS al registrador · Vercel Domains · Supabase Auth URL Configuration — **pendiente: los NS siguen en GoDaddy** (2026-10-18)
+- [~] **1.5** Reloj de Shopify: Lambda y regla (cada 15 min) ENABLED. Sin verificar: `invoke` sin 401 y `cron.unschedule('at-shopify')` en Supabase
 - [ ] **1.6** Salida del sandbox de SES solicitada
 - [ ] **1.7** Suscripción SNS confirmada (clic en el correo de AWS)
 
@@ -135,7 +143,24 @@ _(vacío)_
 
 ---
 
-## Fase 2 — Camino A (`infra/aws/2-plataforma/`) · ventana de mantenimiento
+## Fase 1b — La web en AWS Amplify · **siguiente paso** (decidido 2026-10-18)
+
+Solo la web; Supabase Cloud intacto. Detalle en `plan-maestro.md`.
+
+- [ ] **1b.1** Región de la web decidida con latencia medida (Supabase está en `us-west-2`)
+- [ ] **1b.2** `NEXT_PUBLIC_VERSION` repuesta en el build de Amplify (`AWS_COMMIT_ID`)
+- [ ] **1b.3** App de Amplify creada desde `main` · variables cargadas (secretos solo servidor) · build verde
+- [ ] **1b.4** Verificación a mano en la URL `*.amplifyapp.com` (login, pedidos, recaudo, documento, pedido de prueba)
+- [ ] **1b.5** Presupuesto de 20 USD activo · sin NAT Gateways
+- [ ] **1b.6** Corte: dominio a Amplify · NS a Route 53 · Supabase Auth URL Configuration
+- [ ] **1b.7** «No apagar Vercel antes de: ____» (fecha, +7 días del corte)
+
+**Puerta 1b → fin:** 7 días sirviendo desde Amplify sin sorpresas.
+Estado de la puerta: **cerrada**
+
+---
+
+## Fase 2 — Camino A (`infra/aws/2-plataforma/`) · **opcional** · ventana de mantenimiento
 
 - [ ] **2.0** AWS Pricing Calculator con la carga real — cifra pegada aquí
 - [ ] **2.1** `terraform apply` de `2-plataforma/` — Aurora + RDS Proxy + ECS + ALB + WAF, sirviendo a nadie

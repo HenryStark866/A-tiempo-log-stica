@@ -137,7 +137,7 @@ resultado decide si vamos por (2) o por (3).
 - [ ] **1.4** Dominio: NS al registrador · Vercel Domains · Supabase Auth URL Configuration — **pendiente: los NS siguen en GoDaddy** (2026-10-18)
 - [~] **1.5** Reloj de Shopify: Lambda y regla (cada 15 min) ENABLED. Sin verificar: `invoke` sin 401 y `cron.unschedule('at-shopify')` en Supabase
 - [ ] **1.6** Salida del sandbox de SES solicitada
-- [ ] **1.7** Suscripción SNS confirmada (clic en el correo de AWS)
+- [x] **1.7** Suscripción SNS `yam-alertas` confirmada (Confirmed=1, Pending=0, 2026-10-18)
 
 **Puerta 1 → 2:** dominio resuelve por Route 53 · Lambda de Shopify estable · alarmas llegan de verdad.
 Estado de la puerta: **cerrada**
@@ -147,15 +147,27 @@ _(vacío)_
 
 ---
 
-## Fase 1b — La web en AWS Amplify · **siguiente paso** (decidido 2026-10-18)
+## Backend sin Supabase Cloud — instancia única con créditos · **borrador, nada creado** (2026-10-18)
+
+Henry descartó Supabase Cloud y pidió una opción gratuita y responsable; la más cercana es una sola EC2 con la pila abierta pagada con los 137,66 USD de créditos de la cuenta (≈34 USD/mes, ~4 meses). Plan completo y decisiones pendientes: `plan-instancia-unica.md`. Código: `infra/aws/3-instancia/` (`terraform validate` OK; `plan` = 23 a crear, 0 a destruir).
+
+- [x] **I.0** Probar el compose en local con Docker y correr `test:db` contra esa pila (sin AWS) — **hecho 2026-10-18**: 83/83 y humo 8/8; corregidos 4 fallos reales (contraseñas de roles, esquema `_realtime`, `METRICS_JWT_SECRET`, CORS); dump restaurable. Falta probar el frontend en navegador. Herramienta: `infra/aws/3-instancia/prueba-local/`
+- [ ] **I.1** Decisiones de Henry: correo/SES · tamaño · vencimiento de créditos · registro A en GoDaddy · aceptar sin alta disponibilidad
+- [ ] **I.2** Sí explícito de Henry con la cifra → `terraform apply`
+- [ ] **I.3** Paquete a S3 · certificado · variables en Vercel · **prueba de restauración**
+- [ ] **I.4** Reescribir los 3 stubs de funciones (hoy con cuerpo vacío) antes de operar con dinero
+
+---
+
+## Fase 1b — La web en AWS Amplify · **superada** por la decisión de descartar Supabase Cloud (la web seguiría en Vercel con el backend nuevo)
 
 Solo la web; Supabase Cloud intacto. Detalle en `plan-maestro.md`.
 
-- [ ] **1b.1** Región de la web decidida con latencia medida (Supabase está en `us-west-2`)
-- [ ] **1b.2** `NEXT_PUBLIC_VERSION` repuesta en el build de Amplify (`AWS_COMMIT_ID`)
-- [ ] **1b.3** App de Amplify creada desde `main` · variables cargadas (secretos solo servidor) · build verde
+- [~] **1b.1** Región: recomendada `us-west-2` (misma que Supabase). **Latencia NO medida**: el proyecto Supabase está `INACTIVE` (pausado) y su host da NXDOMAIN (2026-10-18). Reactivar y medir con `/api/salud`
+- [~] **1b.2** `next.config.ts` usa `VERCEL_GIT_COMMIT_SHA ?? AWS_COMMIT_ID` (typecheck OK, sin commit). Falta ver `/api/version` en Amplify
+- [~] **1b.3** `amplify.yml` y `docs/migracion-aws/amplify-1b.md` listos (sin commit). Falta: crear la app (decisión de Henry), variables, build
 - [ ] **1b.4** Verificación a mano en la URL `*.amplifyapp.com` (login, pedidos, recaudo, documento, pedido de prueba)
-- [ ] **1b.5** Presupuesto de 20 USD activo · sin NAT Gateways
+- [x] **1b.5** Presupuesto `yam-mensual` 20 USD con avisos 80/100/previsto 100, SNS confirmado, sin NAT Gateways (verificado 2026-10-18)
 - [ ] **1b.6** Corte: dominio a Amplify · NS a Route 53 · Supabase Auth URL Configuration
 - [ ] **1b.7** «No apagar Vercel antes de: ____» (fecha, +7 días del corte)
 

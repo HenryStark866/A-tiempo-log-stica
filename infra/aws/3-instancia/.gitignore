@@ -1,0 +1,11 @@
+.terraform/
+.terraform.lock.hcl
+.build/
+terraform.tfvars
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Carpeta de trabajo de la prueba local (llaves y copias): nunca al repo.
+prueba-local/.trabajo/

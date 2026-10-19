@@ -1,0 +1,91 @@
+# Reparte lo que antes repartía Kong. El cliente de Supabase pide
+# /rest/v1, /auth/v1, /storage/v1 y /realtime/v1; cada servicio espera la ruta
+# sin ese prefijo, por eso `handle_path` (que lo quita).
+#
+# CORS: en la pila oficial lo hace un plugin de Kong. Aquí lo hace Caddy, y
+# solo para los orígenes de la app (no "*"). Cada servicio añade además sus
+# propias cabeceras CORS; se borran en la respuesta (header_down) para que no
+# lleguen DUPLICADAS al navegador, que las rechaza. Esto lo encontró la prueba
+# local: GoTrue no respondía el preflight y Storage daba 404.
+#
+# NO HAY límite de peticiones por IP (en la pila grande lo daba el WAF). Lo que
+# frena abusos hoy es la regla de la base (migración 0063) y GoTrue. Si hace
+# falta, se añade un límite aquí o delante, con Cloudflare.
+{
+	email {$ACME_EMAIL}
+}
+
+# Quita el CORS que pone cada servicio; el único válido es el de este archivo.
+(sin_cors_del_servicio) {
+	header_down -Access-Control-Allow-Origin
+	header_down -Access-Control-Allow-Methods
+	header_down -Access-Control-Allow-Headers
+	header_down -Access-Control-Allow-Credentials
+	header_down -Access-Control-Expose-Headers
+	header_down -Access-Control-Max-Age
+}
+
+{$API_HOST} {
+	encode zstd gzip
+
+	# Orígenes autorizados: la web en producción y su dirección de Vercel.
+	# Para pruebas locales se puede añadir http://localhost:3000.
+	@origen_ok header_regexp Origin ^https://(www\.)?atiempologistica\.com$|^https://atiempo-logistica\.vercel\.app$
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+
+	header @origen_ok {
+		Access-Control-Allow-Origin "{http.request.header.Origin}"
+		Access-Control-Expose-Headers "Content-Range, Content-Location, Content-Type, Location, X-Supabase-Api-Version"
+		Vary Origin
+	}
+
+	# El preflight lo contesta Caddy, sin molestar a los servicios.
+	@preflight method OPTIONS
+	handle @preflight {
+		header @origen_ok {
+			Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+			Access-Control-Allow-Headers "authorization, apikey, content-type, x-client-info, x-supabase-api-version, accept, accept-language, accept-profile, content-profile, prefer, range, x-upsert, cache-control, x-client-ip"
+			Access-Control-Max-Age "86400"
+		}
+		respond 204
+	}
+
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000 {
+			import sin_cors_del_servicio
+		}
+	}
+
+	handle_path /auth/v1/* {
+		reverse_proxy auth:9999 {
+			import sin_cors_del_servicio
+		}
+	}
+
+	handle_path /storage/v1/* {
+		request_body {
+			max_size 55MB
+		}
+		reverse_proxy storage:5000 {
+			import sin_cors_del_servicio
+		}
+	}
+
+	# Realtime multi-inquilino: se le presenta el "tenant" autoalojado, como
+	# hacía Kong, y el socket vive bajo /socket.
+	handle_path /realtime/v1/* {
+		rewrite * /socket{uri}
+		reverse_proxy realtime:4000 {
+			header_up Host realtime-dev.supabase-realtime
+		}
+	}
+
+	handle {
+		respond `{"error":"ruta desconocida"}` 404
+	}
+}

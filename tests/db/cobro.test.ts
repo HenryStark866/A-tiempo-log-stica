@@ -159,12 +159,19 @@ describeDb("at_cobro_de_guia — la devolución cobra la tarifa del comercio", (
     expect(Number(r.monto)).toBe(7_500);
   });
 
-  it("un comercio sin return_rate cobra cero, no null", async () => {
-    if (!clientId) return;
-    await admin.from("at_clients").update({ return_rate: null }).eq("id", clientId);
-    const { data } = await admin.rpc("at_cobro_de_guia", {
-      g: guia({ status: "devuelta", client_id: clientId }),
+  it("una devolución de un comercio que no existe cobra cero, no null", async () => {
+    // `at_clients.return_rate` es `not null default 3000` desde la 0001: no hay
+    // forma de dejar un comercio "sin return_rate", y un `update ... = null`
+    // falla. El caso que sí es alcanzable —y el que protege el `coalesce` de
+    // `at_cobro_de_guia`— es que la guía apunte a un comercio que ya no está
+    // (o a ninguno): ahí el subselect no devuelve fila y el cobro debe ser 0.
+    const { data, error } = await admin.rpc("at_cobro_de_guia", {
+      g: guia({
+        status: "devuelta",
+        client_id: "00000000-0000-0000-0000-000000000000",
+      }),
     });
+    if (error) throw new Error(error.message);
     const r = (Array.isArray(data) ? data[0] : data) as { monto: number };
     expect(Number(r.monto)).toBe(0);
   });
@@ -280,22 +287,32 @@ describeDb("los dos caminos de facturación cobran lo mismo", () => {
   it("la misma guía vale lo mismo por el trigger que por el botón", async () => {
     if (!ops || !clientId) return;
 
+    // El domicilio NO es el que se pase en el insert: al crear la guía,
+    // `at_guides_asigna_zona` le resuelve la zona por la dirección y
+    // `at_set_guide_shipping_fee` (0051/0072) pisa `shipping_fee` con la tarifa
+    // de esa zona. Por eso aquí no se hardcodea ningún monto: se lee de la guía
+    // lo que quedó congelado y se exige que los DOS caminos cobren eso.
     const base = {
       client_id: clientId,
       recipient_name: "Comparativa",
       recipient_address: "Calle 1 #2-3",
-      shipping_fee: 14_500,
       cod_includes_shipping: false,
     };
+    const ahora = new Date().toISOString();
 
     // ── Camino automático: el trigger al pasar a entregada ──────────────
-    const { data: gA } = await admin.from("at_guides").insert(base).select("id").maybeSingle();
-    const idA = (gA as { id: string } | null)?.id;
-    if (!idA) return;
-    await admin
+    // `at_facturar_guia` es BEFORE UPDATE: la guía nace pendiente y se factura
+    // sola al cambiar de estado.
+    const { data: gA } = await admin
       .from("at_guides")
-      .update({ status: "entregada", delivered_at: new Date().toISOString() })
-      .eq("id", idA);
+      .insert({ ...base, shipping_fee: 14_500 })
+      .select("id, shipping_fee")
+      .maybeSingle();
+    const guiaA = gA as { id: string; shipping_fee: number } | null;
+    if (!guiaA) return;
+    const idA = guiaA.id;
+    const tarifa = Number(guiaA.shipping_fee);
+    await admin.from("at_guides").update({ status: "entregada", delivered_at: ahora }).eq("id", idA);
 
     const { data: itemA } = await admin
       .from("at_invoice_items")
@@ -304,18 +321,28 @@ describeDb("los dos caminos de facturación cobran lo mismo", () => {
       .maybeSingle();
 
     // ── Camino manual: el botón de Facturación ──────────────────────────
-    const { data: gB } = await admin.from("at_guides").insert(base).select("id").maybeSingle();
+    // El botón solo factura guías ya entregadas y sin `invoice_id`. Un insert
+    // directo con status 'entregada' NO dispara el trigger (es solo UPDATE) y
+    // `at_set_guide_shipping_fee` no toca guías ya entregadas, así que queda
+    // exactamente la misma tarifa congelada que tiene A.
+    const { data: gB } = await admin
+      .from("at_guides")
+      .insert({ ...base, shipping_fee: tarifa, status: "entregada", delivered_at: ahora })
+      .select("id")
+      .maybeSingle();
     const idB = (gB as { id: string } | null)?.id;
     if (!idB) return;
-    // Sin disparar el trigger: se marca entregada saltándose el cambio de
-    // estado que lo activa no es posible, así que se factura lo que quede sin
-    // `invoice_id` en el periodo.
-    const hoy = new Date().toISOString().slice(0, 10);
-    await ops.rpc("at_generate_invoice", {
+    // Ventana de un día a cada lado: `delivered_at::date` se evalúa en hora de
+    // Bogotá y la fecha de JS en UTC; de noche difieren. El comercio es de este
+    // test, así que no entra ninguna otra guía.
+    const dia = (delta: number) =>
+      new Date(Date.now() + delta * 86_400_000).toISOString().slice(0, 10);
+    const { error: errBoton } = await ops.rpc("at_generate_invoice", {
       p_client_id: clientId,
-      p_period_start: hoy,
-      p_period_end: hoy,
+      p_period_start: dia(-1),
+      p_period_end: dia(1),
     });
+    if (errBoton) throw new Error(`at_generate_invoice falló: ${errBoton.message}`);
 
     const { data: itemB } = await admin
       .from("at_invoice_items")
@@ -326,7 +353,8 @@ describeDb("los dos caminos de facturación cobran lo mismo", () => {
     const a = Number((itemA as { amount: number } | null)?.amount ?? -1);
     const b = Number((itemB as { amount: number } | null)?.amount ?? -2);
     expect(a).toBe(b);
-    expect(a).toBe(14_500);
+    expect(a).toBe(tarifa);
+    expect(tarifa).toBeGreaterThan(0);
 
     await admin.from("at_guides").delete().in("id", [idA, idB]);
   });

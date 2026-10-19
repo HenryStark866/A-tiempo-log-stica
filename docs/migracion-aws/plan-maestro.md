@@ -10,6 +10,15 @@
 > `20 Decisiones/ADR-0008` de la bóveda. Este archivo es **el cómo**; la bóveda
 > es **el porqué**; `docs/migracion-aws/estado.md` es **por dónde vamos**.
 
+> **Ajuste del 2026-10-18 (aporte de Isa, aceptado por Henry).** El siguiente
+> paso hacia AWS es **mover solo la web (Next.js) a AWS Amplify y dejar Supabase
+> Cloud intacto** — la **Fase 1b**, abajo. La pila completa (Aurora + ECS,
+> Fase 2) deja de ser el siguiente paso y pasa a **opcional**: solo se ejecuta si
+> aparece una razón concreta (volumen, control, requisito de un cliente). Con 9
+> comercios y 6 guías no se paga en dinero (250-400 USD/mes frente a Supabase
+> Pro + Vercel Pro). Las Fases 0 y 1 siguen valiendo igual: los tests de BD
+> protegen cualquier camino y la zona de Route 53 sirve a Amplify.
+
 ## Qué significa cada camino
 
 | | Camino A | Camino B | Camino C (descartado) |
@@ -103,7 +112,37 @@ bien un par de veces y el cron viejo está apagado · las alarmas llegan de verd
 
 ---
 
-### Fase 2 — La plataforma en camino A (`infra/aws/2-plataforma/`) · riesgo alto · ventana de mantenimiento de noche
+### Fase 1b — La web en AWS Amplify · riesgo bajo · sin ventana · **siguiente paso**
+
+Reemplaza a Vercel como hosting de Next.js. **Supabase no se toca**: base,
+auth, storage y RLS siguen en `uhbtivaepyhwfdvtpfjq`, así que `auth.uid()` y las
+81 RPC funcionan igual. Entrada: Puerta 1 → 2 cerrada (dominio por Route 53).
+
+| # | Trabajo | Guardián / prueba |
+| --- | --- | --- |
+| 1b.1 | **Decidir la región de la web.** El proyecto de Supabase está en `us-west-2`; una web en `us-east-1` paga ~60-70 ms por consulta del servidor a la base. Medir con `/api/salud` desde ambas y elegir. Si pesa, Amplify en `us-west-2` | cifra de latencia anotada en `estado.md` |
+| 1b.2 | **Reponer `NEXT_PUBLIC_VERSION`** en el build de Amplify (hoy sale de `VERCEL_GIT_COMMIT_SHA`; fuera de Vercel vale `"local"` y la detección de versión nueva deja de funcionar **en silencio**). Usar `AWS_COMMIT_ID` | `/api/version` devuelve el commit |
+| 1b.3 | **Crear la app en Amplify** conectada a `main` de `HenryStark866/A-tiempo-log-stica`. Variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. `SUPABASE_SERVICE_ROLE_KEY` y demás secretos **solo del lado servidor** (nunca `NEXT_PUBLIC_`), mejor en Secrets Manager/SSM que pegados en la consola | build verde en la URL `*.amplifyapp.com` |
+| 1b.4 | **Verificar en la URL de Amplify, sin dominio**: entrar con una cuenta de comercio con su contraseña de siempre, *Mis pedidos*, *Mi recaudo*, abrir un documento de mensajero, crear y borrar un pedido de prueba | los 5 pasos pasan |
+| 1b.5 | **Presupuesto**: el aviso de 20 USD de `1-hibrido` cubre Amplify. Sin NAT Gateways ni VPC propias | `terraform output` del presupuesto activo |
+| 1b.6 | **El corte**: añadir `atiempologistica.com` y `www` a Amplify; pasar los NS de GoDaddy a Route 53 (paso 1.4); Supabase → Auth → URL Configuration con el dominio y las URL de Amplify, **dejando** `.vercel.app` | `dig` resuelve a Amplify · login y correo de confirmación funcionan |
+| 1b.7 | **Vercel intacto ≥ 7 días.** Vuelta atrás = devolver los NS/registros a Vercel (minutos). No se reimprimen guías: el `.vercel.app` sigue vivo | recordatorio en `estado.md` con fecha |
+
+**Puerta 1b → fin:** 7 días sirviendo desde Amplify sin sorpresas · `/api/version`
+y `/api/salud` en verde · alarmas llegan.
+
+Se descarta EC2 manual (Nginx, Certbot, PM2, parches: carga de mantenimiento
+sin ganancia) y se deja App Runner/ECS como alternativa si algún día se quiere
+la web en contenedor.
+
+---
+
+### Fase 2 — La plataforma en camino A (`infra/aws/2-plataforma/`) · **opcional** · riesgo alto · ventana de mantenimiento de noche
+
+> **Opcional desde 2026-10-18.** `terraform validate` OK y `plan` = 101 a crear,
+> 0 a destruir (sin aplicar). Ojo: incluye NAT Gateway y ALB, que cobran por hora
+> estén o no en uso. No se aplica sin una razón concreta y sin comparar el coste
+> con Supabase Pro + Vercel Pro.
 
 Runbook detallado en `infra/aws/2-plataforma/README.md` y método de corte en
 `docs/reconstruir-en-el-proyecto-nuevo.md` (el riesgo es idéntico al de la

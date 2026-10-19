@@ -148,6 +148,10 @@ services:
       TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
       WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
       WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+      # SMS desde un celular Android propio (app SMS Gateway for Android).
+      SMSGATE_URL: ${SMSGATE_URL:-}
+      SMSGATE_USER: ${SMSGATE_USER:-}
+      SMSGATE_PASS: ${SMSGATE_PASS:-}
     volumes:
       - ./functions:/home/deno/functions:ro
 

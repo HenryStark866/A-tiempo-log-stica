@@ -73,6 +73,9 @@ TWILIO_SMS_FROM=$(opcional twilio_sms_from "")
 TWILIO_WHATSAPP_FROM=$(opcional twilio_whatsapp_from "")
 WHATSAPP_TOKEN=$(opcional whatsapp_token "")
 WHATSAPP_PHONE_ID=$(opcional whatsapp_phone_id "")
+SMSGATE_URL=$(opcional smsgate_url "")
+SMSGATE_USER=$(opcional smsgate_user "")
+SMSGATE_PASS=$(opcional smsgate_pass "")
 ENV
 mkdir -p /data/caddy
 

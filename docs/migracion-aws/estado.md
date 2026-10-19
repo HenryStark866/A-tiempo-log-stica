@@ -296,3 +296,10 @@ Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal 
 - Verificado: ruta pública desconocida 404; enviar-mensajes sin secreto 401, con x-at-cron 200 {"motivo":"sin credenciales"}; shopify-sync sin sesión 401, con secreto 200 {"tiendas":0}; desde la base con pg_net por la red interna 200; CORS ok para yam.cdhmaker.com; auth y rest sanos.
 - La Lambda yam-shopify-sync (Fase 1) queda redundante: el cron at-shopify de la base hace lo mismo. Se deja pausada (regla deshabilitada, alarmas sin acciones); candidata a borrarse.
 - Para que salgan los códigos: Henry debe abrir cuenta en un proveedor (WhatsApp Cloud API de Meta con plantilla `codigo_entrega` aprobada, o Twilio para SMS) y pasar las credenciales; se cargan en SSM y se recrea el contenedor functions.
+### 2026-10-19 — SMS desde un celular Android propio (sin cobro por mensaje)
+- Henry pidió canal gratis o propio. Decisión: SMS por celular Android con la app SMS Gateway for Android (sms-gate.app, Apache-2.0, servidor en la nube gratuito) + correo por SES más adelante.
+- HALLAZGO: ningún pedido guarda correo del destinatario (solo at_clients.email; 8/8 guías con teléfono, 0 con correo). El canal de correo para códigos requiere primero pedir el correo en el formulario de pedidos e importarlo de Shopify: NO implementado.
+- enviar-mensajes: nuevo enviarPorCelular (POST {SMSGATE_URL}/message, Basic auth, {textMessage:{text}, phoneNumbers:[e164]}); el canal sms prefiere el celular y Twilio queda de respaldo. Variables SMSGATE_URL/USER/PASS en compose y bootstrap (SSM /yam/instancia/smsgate_*).
+- Probado en producción contra httpbin (eco, sin SMS reales): fila sms → enviado, provider_id=celular, 1 intento; fila whatsapp → sigue pendiente sin gastar intentos. Filas de prueba borradas y .env restaurado (SMSGATE vacío).
+- Guía: docs/sms-desde-celular.md. Al encenderlo, el código pasa a ser OBLIGATORIO en la entrega (migración 0022).
+- Pendiente de Henry: celular Android con SIM y plan de SMS, instalar la app y pasar usuario/clave de Cloud server.

@@ -69,6 +69,42 @@ const WA_CLOUD_LANG = Deno.env.get("WHATSAPP_LANG") || "es";
 const WA_CLOUD_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v22.0";
 const hayCloud = !!(WA_CLOUD_TOKEN && WA_CLOUD_PHONE_ID);
 
+/**
+ * SMS por un celular Android propio, con la app de código abierto «SMS Gateway
+ * for Android» (sms-gate.app). El teléfono manda los SMS con su propia SIM: no
+ * hay cobro por mensaje, solo el plan del celular. Es la vía preferida para el
+ * canal `sms`; Twilio queda de respaldo si algún día se configura.
+ *
+ * Por omisión se habla con el servidor en la nube de la app (gratuito: el
+ * teléfono se conecta a él y recoge los envíos). Si se monta un servidor
+ * privado, basta con cambiar SMSGATE_URL. Usuario y clave salen de la sección
+ * «Cloud server» de la app.
+ */
+const SMSGATE_URL = (Deno.env.get("SMSGATE_URL") || "https://api.sms-gate.app/3rdparty/v1")
+  .replace(/\/+$/, "");
+const SMSGATE_USER = Deno.env.get("SMSGATE_USER");
+const SMSGATE_PASS = Deno.env.get("SMSGATE_PASS");
+const hayCelular = !!(SMSGATE_USER && SMSGATE_PASS);
+
+async function enviarPorCelular(to: string, body: string): Promise<string> {
+  const res = await fetch(`${SMSGATE_URL}/message`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${SMSGATE_USER}:${SMSGATE_PASS}`)}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ textMessage: { text: body }, phoneNumbers: [to] }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(`Celular SMS: ${json?.message ?? json?.error ?? `HTTP ${res.status}`}`);
+  }
+  // La app acepta el envío y lo pone en cola en el teléfono; el id sirve para
+  // rastrearlo en la propia app si un comprador dice que no le llegó.
+  return String(json?.id ?? "celular");
+}
+
 const MAX_INTENTOS = 3;
 const LOTE = 50;
 
@@ -274,10 +310,10 @@ Deno.serve(async (req) => {
 
   // Paso 2 — enviar. Si no hay canal, se termina aquí: la cola ya quedó sin
   // caducados, así que el reloj no vuelve a llamar en balde por lo de siempre.
-  if (!hayCloud && !hayPuente && !(SID && TOKEN)) {
+  if (!hayCloud && !hayPuente && !hayCelular && !(SID && TOKEN)) {
     if (frescos.length > 0) {
       console.warn(
-        `Sin canal configurado (ni Cloud API, ni puente, ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
+        `Sin canal configurado (ni Cloud API, ni puente, ni celular, ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
       );
     }
     return Response.json(
@@ -318,7 +354,9 @@ Deno.serve(async (req) => {
       | undefined;
     const porCloud = esWhatsApp && hayCloud && !!plantilla?.codigo;
     const porPuente = esWhatsApp && !porCloud && hayPuente;
-    if (!porCloud && !porPuente && !(SID && TOKEN)) continue;
+    // El SMS sale por el celular propio si está; si no, por Twilio.
+    const porCelular = !esWhatsApp && hayCelular;
+    if (!porCloud && !porPuente && !porCelular && !(SID && TOKEN)) continue;
 
     try {
       const sid = porCloud
@@ -328,6 +366,8 @@ Deno.serve(async (req) => {
           })
         : porPuente
         ? await enviarPorPuente(to, m.body)
+        : porCelular
+        ? await enviarPorCelular(to, m.body)
         : await enviarTwilio(to, m.body, m.channel);
       await supabase
         .from("at_message_outbox")

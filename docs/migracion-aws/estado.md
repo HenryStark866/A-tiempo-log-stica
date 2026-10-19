@@ -245,3 +245,8 @@ _(vacío)_
 
 ### 2026-10-19 — Prueba de restauración REALIZADA (pendiente cerrado)
 Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal de la instancia y comparado con la base viva: 33 tablas, 146 funciones, 17 zonas, 169 tarifas, 5 buckets y 49 políticas públicas, IDÉNTICOS. Único error de pg_restore: `pg_cron` ("can only create extension in database postgres"), esperado fuera de la base `postgres`; no afecta datos. Base temporal y archivos borrados. El respaldo es restaurable.
+### 2026-10-19 — yam.atiempologistica.com en producción (puente hacia yam.cdhmaker.com)
+- Cloudflare: la cuenta del navegador (Cdhmaker8) tiene cdhmaker.com solo como zona PENDIENTE (NS journey/terry). La zona viva (NS irena/norm) está en otra cuenta, con registros que la pendiente no tiene (p. ej. incubapp.cdhmaker.com con proxy, _domainconnect). NO se cambiaron los NS en GoDaddy para no romper subdominios. cdhmaker.com sí está en la cartera de GoDaddy de Henry.
+- GoDaddy: creado A yam.atiempologistica.com -> 76.76.21.21 (TTL 1/2 h). Vercel: dominio añadido al proyecto atiempo-logistica; https responde 200 con certificado válido.
+- Instancia: Caddyfile y compose actualizados (CORS y GOTRUE_URI_ALLOW_LIST incluyen yam.atiempologistica.com); verificado CORS permitido para ambos yam.* y rechazado para origen ajeno.
+- Pendiente: que Henry cree A yam 76.76.21.21 (sin proxy) en la cuenta de Cloudflare que sirve irena/norm; entonces yam.cdhmaker.com queda listo (ya registrado en Vercel y permitido en CORS).

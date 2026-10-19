@@ -31,7 +31,7 @@
 	# Orígenes autorizados: el dominio de YAM (yam.cdhmaker.com, desde 2026-10-19), el
 	# anterior de A Tiempo Logística (se mantiene: los QR ya impresos apuntan a él) y
 	# la dirección de Vercel. Para pruebas locales se puede añadir http://localhost:3000.
-	@origen_ok header_regexp Origin ^https://yam\.cdhmaker\.com$|^https://(www\.)?atiempologistica\.com$|^https://atiempo-logistica\.vercel\.app$
+	@origen_ok header_regexp Origin ^https://yam\.cdhmaker\.com$|^https://yam\.atiempologistica\.com$|^https://(www\.)?atiempologistica\.com$|^https://atiempo-logistica\.vercel\.app$
 
 	header {
 		Strict-Transport-Security "max-age=31536000"

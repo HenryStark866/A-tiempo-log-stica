@@ -301,6 +301,8 @@ export interface Recipient {
   external_id: string | null;
   full_name: string;
   phone: string | null;
+  /** Opcional (migración 0126): si está, el código de entrega también va por correo. */
+  email: string | null;
   address: string;
   city: string;
   zone_id: string | null;
@@ -441,6 +443,8 @@ export interface Guide {
   pickup_id: string | null;
   recipient_name: string;
   recipient_phone: string | null;
+  /** Opcional (migración 0126): el código de entrega también se le manda por correo. */
+  recipient_email: string | null;
   recipient_address: string;
   recipient_city: string;
   zone_id: string | null;

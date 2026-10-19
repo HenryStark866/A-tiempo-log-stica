@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   MapPin,
   Phone,
+  Mail,
   User,
   Store,
   Banknote,
@@ -56,6 +57,9 @@ function igual(a: string, b: string) {
   const limpio = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
   return limpio(a) === limpio(b) && limpio(a).length > 0;
 }
+
+/** La misma regla que el CHECK at_guides_recipient_email_valido (migración 0126). */
+const CORREO_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default function NewGuidePage() {
   const router = useRouter();
@@ -113,6 +117,9 @@ export default function NewGuidePage() {
     client_id: "",
     recipient_name: "",
     recipient_phone: "",
+    // Opcional. Si se escribe, el código de entrega también le llega por
+    // correo, que es el único canal que hoy sale solo (migración 0126).
+    recipient_email: "",
     recipient_address: "",
     recipient_city: "",
     zone_id: "",
@@ -305,6 +312,7 @@ export default function NewGuidePage() {
       ...f,
       recipient_name: r.full_name,
       recipient_phone: r.phone ?? "",
+      recipient_email: r.email ?? "",
       recipient_address: r.address,
       recipient_city: r.city,
       zone_id: r.zone_id ?? "",
@@ -372,6 +380,7 @@ export default function NewGuidePage() {
       ...f,
       recipient_name: "",
       recipient_phone: "",
+      recipient_email: "",
       recipient_address: "",
       recipient_city: "Medellín",
       zone_id: "",
@@ -407,12 +416,21 @@ export default function NewGuidePage() {
       return;
     }
 
+    // Misma regla que la base (CHECK at_guides_recipient_email_valido): mejor
+    // decirlo aquí que dejar que el pedido reviente al guardar.
+    const correo = form.recipient_email.trim().toLowerCase();
+    if (correo && !CORREO_VALIDO.test(correo)) {
+      setError("El correo del destinatario no parece válido. Revísalo o déjalo vacío.");
+      return;
+    }
+
     setSaving(true);
     const supabase = createClient();
     const fila = {
       client_id: form.client_id,
       recipient_name: form.recipient_name,
       recipient_phone: form.recipient_phone || null,
+      recipient_email: correo || null,
       recipient_address: form.recipient_address,
       recipient_city: form.recipient_city,
       zone_id: form.zone_id || null,
@@ -481,6 +499,9 @@ export default function NewGuidePage() {
           .update({
             times_used: (yaEnLaBase.times_used ?? 0) + 1,
             last_used_at: new Date().toISOString(),
+            // Un correo escrito hoy completa al comprador guardado sin él;
+            // nunca se borra uno que ya tenía.
+            ...(correo && !yaEnLaBase.email ? { email: correo } : {}),
           })
           .eq("id", yaEnLaBase.id);
       } else if (guardarComprador) {
@@ -488,6 +509,7 @@ export default function NewGuidePage() {
           client_id: clientId,
           full_name: form.recipient_name.trim(),
           phone: form.recipient_phone.trim() || null,
+          email: correo || null,
           address: form.recipient_address.trim(),
           city: form.recipient_city.trim(),
           zone_id: form.zone_id || null,
@@ -1008,6 +1030,19 @@ export default function NewGuidePage() {
                   value={form.recipient_phone}
                   onChange={set("recipient_phone")}
                   placeholder="Teléfono"
+                  className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors">
+                <Mail className="w-5 h-5 text-slate-400 dark:text-slate-500 mr-4 shrink-0" />
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="off"
+                  value={form.recipient_email}
+                  onChange={set("recipient_email")}
+                  placeholder="Correo (opcional: ahí le llega su código)"
                   className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
                 />
               </div>

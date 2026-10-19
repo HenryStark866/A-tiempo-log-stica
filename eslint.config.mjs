@@ -24,6 +24,7 @@ const eslintConfig = [
       "public/maplibre-gl-worker.mjs", // copiado de node_modules por scripts/copiar-worker-maplibre.mjs, no es código nuestro
       "public/maplibre-gl-shared.mjs", // idem
       "supabase/functions/**", // Deno, con su propio runtime y sus imports por URL
+      "infra/aws/3-instancia/instancia/functions/**", // idem: el enrutador del edge-runtime
       "scratch/**",
     ],
   },

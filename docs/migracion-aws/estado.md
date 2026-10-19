@@ -270,4 +270,4 @@ Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal 
 - Instancia: .env actualizado desde SSM (respaldo en /root/env.respaldo-*), auth reiniciado (sano, 0 reinicios). Prueba SMTP al simulador de SES: OK.
 - bootstrap.sh: remitente por omisión cambiado a noreply@atiempologistica.com (antes noreply@SITIO, no verificado en SES).
 - Sigue SES en sandbox (solo envía a direcciones verificadas): mailer_autoconfirm se mantiene en true. Falta, con permiso de Henry: pedir salida del sandbox a AWS; cuando la aprueben, poner mailer_autoconfirm=false en SSM y reiniciar auth.
-- Shopify: avisos de las 3 alarmas yam-shopify-* apagados (reactivar con aws cloudwatch enable-alarm-actions).
+- Shopify: avisos de las 3 alarmas yam-shopify-* apagados (reactivar con aws cloudwatch enable-alarm-actions).- 2026-10-19: enviada a AWS la solicitud de salida del sandbox de SES (TRANSACTIONAL, sitio yam.cdhmaker.com, contacto cdhmaker@gmail.com); estado PENDING (AWS responde en ~24 h por correo). Rebotes y quejas de atiempologistica.com van al SNS yam-alertas. Al aprobarse: poner /yam/instancia/mailer_autoconfirm=false y reiniciar auth (o repetir bootstrap).

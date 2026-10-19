@@ -155,7 +155,7 @@ Henry descartó Supabase Cloud y pidió una opción gratuita y responsable; la m
 - [x] **I.1** Decisiones de Henry (2026-10-18): correo en **dos fases** (autoconfirmar al salir, SES después) · **t4g.medium** + 2 GB de swap · créditos: **asumir 6 meses y re-verificar ~2027-01-18** · DNS con **registros puntuales en GoDaddy** (8, sin mover NS) · respaldo con **pg_dump cada 6 h**. Detalle en `plan-instancia-unica.md`. Hallazgo: SES sigue en sandbox y el dominio sin verificar (DKIM/MAIL FROM en FAILED) hasta que existan esos registros
 - [ ] **I.2** Sí explícito de Henry con la cifra → `terraform apply`
 - [ ] **I.3** Paquete a S3 · certificado · variables en Vercel · **prueba de restauración**
-- [ ] **I.4** Reescribir los 3 stubs de funciones (hoy con cuerpo vacío) antes de operar con dinero
+- [~] **I.4** Los 3 stubs de funciones **reconstruidos** (2026-10-18, sin commitear): `at_valida_hora_recogida`, `at_franja_de_recogida` y `at_evento_al_crear_pedido` + su trigger. `test:db` = **100/100** (83 + 17 nuevos en `tests/db/recogidas-y-eventos.test.ts`); verificado por mutación; triggers 22→23 = producción. Qué es dato y qué suposición: `staging-stubs/LEEME.md`. **Quedan 5 funciones que el frontend llama y la base no tiene**: las 3 de la encuesta y `at_admin_eliminar_comercio`/`at_admin_eliminar_usuario` (estas tocan datos: no reconstruir a ojo)
 
 ---
 

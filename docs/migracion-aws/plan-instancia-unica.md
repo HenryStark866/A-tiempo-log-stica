@@ -81,11 +81,7 @@ se restauró es una suposición.
 17 cuentas con sus contraseñas, 9 comercios, 6 guías, 12 facturas, 1 remesa,
 2.803 destinatarios y 70 archivos: **todo se rehace**. Además el esquema local
 está incompleto frente a producción (143 de 150 funciones, 22 de 23 triggers,
-falta el bucket `evidencias`) y los 3 **stubs** de staging
-(`at_evento_al_crear_pedido`, `at_franja_de_recogida`,
-`at_valida_hora_recogida`) tienen **cuerpo vacío**: la validación de la hora de
-recogida y el evento al crear un pedido **no hacen nada** hasta que se
-reescriban. No es aceptable salir a producción con eso sin revisarlo.
+falta el bucket `evidencias`) y 3 funciones (`at_evento_al_crear_pedido`, `at_franja_de_recogida`, `at_valida_hora_recogida`) que estaban como stubs vacíos y ahora están **reconstruidas** del repo (no son las originales; ver `staging-stubs/LEEME.md`). Además el frontend llama a 5 funciones que no existen en la base nueva: la encuesta de satisfacción (3) y eliminar comercio/usuario (2).
 
 ## Resultado de la prueba local (paso 0, hecho el 2026-10-18)
 
@@ -165,7 +161,8 @@ pedir además la salida a producción (revisión de AWS).
 
 ### Lo que sigue pendiente
 
-- Reescribir los 3 stubs de funciones (hoy con cuerpo vacío) antes de operar con dinero.
+- ~~Reescribir los 3 stubs de funciones~~ **Hecho (2026-10-18)**: reconstruidas a partir del repo, con 17 tests nuevos (`test:db` 100/100). Es una reconstrucción, no lo original: ver `staging-stubs/LEEME.md` para lo confirmado y lo supuesto.
+- **Faltan 5 funciones que el frontend sí llama**: la encuesta de satisfacción (3) y eliminar comercio/usuario desde administración (2). Sin ellas esas pantallas fallan en la pila nueva. Decidir si se reconstruyen (las de eliminar tocan datos) o se oculta la función.
 - Probar el frontend real en un navegador contra la pila local.
 - Verificar la versión fijada del plugin de compose (2.29.7).
 - **El sí explícito de Henry para el `apply`**, con la cifra (≈ 34 USD/mes) delante.

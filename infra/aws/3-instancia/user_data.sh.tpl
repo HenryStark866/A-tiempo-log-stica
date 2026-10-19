@@ -38,6 +38,17 @@ grep -q yamdata /etc/fstab || echo "LABEL=yamdata /data xfs defaults,nofail 0 2"
 mount -a
 mkdir -p /data/postgres /data/storage /opt/yam
 
+# 2 GB de swap como colchón (decidido 2026-10-18: se empieza en t4g.medium, 4 GB).
+# Evita que un pico de memoria mate a Postgres; no sustituye medir y, si aprieta,
+# subir a t4g.large. Vive en el disco raíz, no en el de datos.
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
+fi
+swapon -a || true
+
 # El paquete lo sube la persona que opera DESPUÉS del apply (el bucket no existe
 # antes). Se espera hasta 60 minutos; si no llega, queda el log y no pasa nada.
 for i in $(seq 1 120); do

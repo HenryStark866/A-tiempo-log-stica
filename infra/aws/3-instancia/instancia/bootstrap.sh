@@ -44,6 +44,12 @@ jwt() {
 ANON_KEY=$(jwt '{"role":"anon","iss":"supabase","iat":1700000000,"exp":2300000000}')
 SERVICE_ROLE_KEY=$(jwt '{"role":"service_role","iss":"supabase","iat":1700000000,"exp":2300000000}')
 
+# FASE 1 (decidido 2026-10-18): arrancar con autoconfirmar porque SES aún no puede
+# enviar (sandbox y dominio sin verificar). Las cuentas nacen con rol "pendiente"
+# y un admin las habilita. Cuando SES funcione: cargar en SSM los parámetros smtp_*
+# y poner mailer_autoconfirm en false, y repetir este script (es idempotente).
+AUTOCONFIRM=$(opcional mailer_autoconfirm true)
+
 umask 077
 cat > /opt/yam/.env <<ENV
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
@@ -54,7 +60,7 @@ SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
 API_HOST=$API_HOST
 SITIO=$SITIO
 ACME_EMAIL=$ACME_EMAIL
-MAILER_AUTOCONFIRM=$(opcional mailer_autoconfirm false)
+MAILER_AUTOCONFIRM=$AUTOCONFIRM
 SMTP_ADMIN_EMAIL=$(opcional smtp_admin_email noreply@$SITIO)
 SMTP_HOST=$(opcional smtp_host localhost)
 SMTP_PORT=$(opcional smtp_port 587)
@@ -106,8 +112,8 @@ fi
 # 3) El resto de servicios y la puerta de entrada (Caddy saca el certificado).
 docker compose up -d rest realtime caddy
 
-# 4) Respaldo nocturno: 03:00 en Medellín = 08:00 UTC, una hora después del
-#    snapshot de disco.
+# 4) Respaldo cada 6 horas (decidido 2026-10-18): 02, 08, 14 y 20 h UTC = 21:00,
+#    03:00, 09:00 y 15:00 en Medellín. El snapshot de disco (DLM) es a las 07 UTC.
 cat > /etc/systemd/system/yam-respaldo.service <<'UNIT'
 [Unit]
 Description=Respaldo de YAM (pg_dump y archivos a S3)
@@ -119,10 +125,10 @@ ExecStart=/opt/yam/respaldo.sh
 UNIT
 cat > /etc/systemd/system/yam-respaldo.timer <<'UNIT'
 [Unit]
-Description=Respaldo nocturno de YAM
+Description=Respaldo de YAM cada 6 horas
 
 [Timer]
-OnCalendar=*-*-* 08:00:00 UTC
+OnCalendar=*-*-* 02,08,14,20:00:00 UTC
 Persistent=true
 
 [Install]

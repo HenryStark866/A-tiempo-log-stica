@@ -53,13 +53,13 @@ Comparación con las otras opciones (cifras de la API, otra sesión): A completa
 | | |
 |---|---|
 | Snapshot diario del disco (DLM, 02:00 Medellín, 7 días) | Restaura toda la máquina de datos de un día |
-| `pg_dump` nocturno a S3 (03:00 Medellín) + archivos subidos | Restaura la base por separado, 35 días de dumps |
+| `pg_dump` **cada 6 horas** a S3 (21:00, 03:00, 09:00 y 15:00 Medellín) + archivos subidos | Restaura la base por separado; pérdida máxima de **6 h**; 35 días de dumps |
 | S3 con versionado, cifrado, sin acceso público; la instancia **no puede borrar** respaldos | Un compromiso de la máquina no destruye el respaldo |
-| Alarma `yam-respaldo-no-se-hizo` | Avisa si pasan 2 días sin un respaldo completo (el fallo silencioso clásico) |
+| Alarma `yam-respaldo-no-se-hizo` | Avisa si pasan 18 horas sin un respaldo completo (el fallo silencioso clásico) |
 | Alarma de sistema con recuperación automática | Si cae el hardware, EC2 la reinicia en otro host (~5 min) |
 
 **No hay:** alta disponibilidad (si la máquina cae, el servicio cae hasta que se
-recupere), recuperación al minuto (el punto de recuperación es de **hasta 24 h**),
+recupere), recuperación al minuto (el punto de recuperación es de **hasta 6 h**),
 ni protección ante la caída de toda la región. **Hay que probar la
 restauración** antes de producción y repetirla cada mes: un respaldo que nunca
 se restauró es una suposición.
@@ -120,7 +120,7 @@ en una t4g.medium. Tampoco hay prueba de carga.
 | # | Paso | Puerta (qué debe cumplirse para seguir) |
 |---|---|---|
 | 0 | ✅ **HECHO (2026-10-18)** — Probar el compose en local con Docker, sin AWS (ver arriba) | 83/83 y humo 8/8. Pendiente solo: probar el **frontend real** en un navegador contra esa URL |
-| 1 | **Decisiones de Henry** (abajo) | Las 5 respondidas |
+| 1 | ✅ **Decisiones de Henry (2026-10-18)** — ver «Decisiones tomadas» abajo | Las 5 respondidas |
 | 2 | `terraform plan` en `3-instancia/` con tus valores y revisarlo entero | Ya corrido en solo lectura (2026-10-18): **23 a crear, 0 a cambiar, 0 a destruir**; debe seguir igual con tus valores |
 | 3 | **Sí explícito de Henry con la cifra delante** → `terraform apply` | `terraform output` completo |
 | 4 | Subir el paquete: `bootstrap/instancia.tgz` al bucket (compose, Caddyfile, scripts, migraciones + stubs) | La instancia lo recoge sola (hasta 60 min) |
@@ -136,16 +136,36 @@ bucket (`prevent_destroy`): hay que quitar esa línea a mano. La web sigue en
 Vercel; para volver basta devolver las dos variables. Sin Supabase Cloud no hay
 a dónde volver para los datos, por eso el respaldo importa.
 
-## Decisiones que necesito de Henry
+## Decisiones tomadas por Henry (2026-10-18)
 
-1. **Correo de confirmación.** GoTrue necesita SMTP. SES sigue en sandbox
-   (solo envía a direcciones verificadas): o se pide la salida del sandbox y se
-   crea un usuario SMTP, o se arranca con `MAILER_AUTOCONFIRM=true` (cualquiera
-   se registra sin confirmar su correo). Recomiendo pedir la salida del sandbox
-   hoy y arrancar sin autoconfirmar.
-2. **Tamaño.** `t4g.medium` (≈34 USD) o `t4g.large` (8 GB, ≈59 USD, ~2,3 meses
-   de créditos). Recomiendo empezar en medium y vigilar la memoria.
-3. **Vencimiento de los créditos** (Billing → Credits): dato que solo ve Henry.
-4. **Registro A en GoDaddy** para `api` (o mover los NS a Route 53, paso 1.4).
-5. **Aceptar la ausencia de alta disponibilidad y el respaldo de hasta 24 h**
-   para una operación con dinero contraentrega.
+| # | Tema | Decisión | Qué implica en el código/operación |
+|---|---|---|---|
+| 1 | Correo de confirmación | **Dos fases.** Salir con autoconfirmar; arreglar SES en paralelo y luego pasar a confirmación real | `bootstrap.sh` arranca con `mailer_autoconfirm=true`. Las cuentas nacen con rol `pendiente` y un admin las habilita. Para la fase 2: cargar `smtp_*` en SSM, poner `mailer_autoconfirm=false` y repetir el bootstrap |
+| 2 | Tamaño | **`t4g.medium`** (4 GB) + 2 GB de swap; medir la memoria la primera semana y subir a `t4g.large` si aprieta | Swap creado en `user_data.sh.tpl`. Sigue sin haber alarma de memoria (haría falta el agente de CloudWatch) |
+| 3 | Créditos | **Asumir 6 meses** de vigencia y **re-verificar al tercer mes** (~2027-01-18) en Billing → Credits | Runway ≈ 4 meses al gasto previsto. Quedan 3 tareas de 20 USD (EC2, Bedrock, Aurora/RDS) que podrían sumar crédito; no se harán solo por eso |
+| 4 | DNS | **Registros puntuales en GoDaddy**; los NS no se mueven | Ver la lista de abajo. La zona de Route 53 queda como respaldo, no manda |
+| 5 | Riesgo de pérdida | **`pg_dump` cada 6 horas** | Pérdida máxima de 6 h. Sigue sin cubrir la caída de toda la región (el S3 está en la misma) ni la recuperación al minuto (WAL continuo queda como segunda etapa) |
+
+### Registros para crear en GoDaddy (son 8; el A se completa tras el apply)
+
+| Tipo | Nombre | Valor |
+|---|---|---|
+| A | `api` | *(la IP fija: sale de `terraform output ip_publica`)* |
+| CNAME | `7tucgu4rdjhy66oe4f4znqxe5v4vzbtg._domainkey` | `7tucgu4rdjhy66oe4f4znqxe5v4vzbtg.dkim.amazonses.com` |
+| CNAME | `abutx3m3z3ap3vh6g4sarat6ewnme4ae._domainkey` | `abutx3m3z3ap3vh6g4sarat6ewnme4ae.dkim.amazonses.com` |
+| CNAME | `h6c3ik3vfgd2kqy6r6incxoi4naknehn._domainkey` | `h6c3ik3vfgd2kqy6r6incxoi4naknehn.dkim.amazonses.com` |
+| MX | `correo` | `10 feedback-smtp.us-east-1.amazonses.com` |
+| TXT | `correo` | `v=spf1 include:amazonses.com ~all` |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:cdhmaker@gmail.com` |
+
+El `A` de `api` es lo único necesario para salir (sin él Let's Encrypt no emite
+el certificado). Los otros siete son la fase 2 del correo: sin ellos SES no
+verifica el dominio. En el momento de verificar, SES sigue en sandbox: hay que
+pedir además la salida a producción (revisión de AWS).
+
+### Lo que sigue pendiente
+
+- Reescribir los 3 stubs de funciones (hoy con cuerpo vacío) antes de operar con dinero.
+- Probar el frontend real en un navegador contra la pila local.
+- Verificar la versión fijada del plugin de compose (2.29.7).
+- **El sí explícito de Henry para el `apply`**, con la cifra (≈ 34 USD/mes) delante.

@@ -1,9 +1,9 @@
 #!/bin/bash
-# Respaldo nocturno. Publica la métrica RespaldoExitoso SOLO si todo salió bien;
-# la alarma `yam-respaldo-no-se-hizo` suena si pasan dos días sin ella.
+# Respaldo cada 6 horas. Publica la métrica RespaldoExitoso SOLO si todo salió
+# bien; la alarma `yam-respaldo-no-se-hizo` suena si pasan 18 horas sin ella.
 #
 # Qué NO es: recuperación al minuto. El punto de recuperación es el último
-# dump (hasta 24 h) o el último snapshot del disco.
+# dump (hasta 6 h) o el último snapshot del disco (hasta 24 h).
 set -euo pipefail
 # shellcheck disable=SC1091
 source /etc/yam.env

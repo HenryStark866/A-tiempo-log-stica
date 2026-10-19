@@ -9,8 +9,8 @@
 # máquina cae, el servicio cae hasta que se recupere (la alarma de sistema la
 # recupera sola, ~5 min) o se restaure. Los respaldos son:
 #   · snapshot diario del disco (DLM), 7 días
-#   · pg_dump nocturno + archivos a S3 (con versionado), 35 días
-# El punto de recuperación es de hasta 24 h; NO hay recuperación al minuto.
+#   · pg_dump cada 6 horas + archivos a S3 (con versionado), 35 días
+# El punto de recuperación es de hasta 6 h; NO hay recuperación al minuto.
 # ═══════════════════════════════════════════════════════════════════════════
 
 data "aws_caller_identity" "yo" {}
@@ -410,14 +410,16 @@ resource "aws_cloudwatch_metric_alarm" "creditos_cpu" {
 # métrica al terminar bien; si pasan ~2 días sin ella, suena la alarma.
 resource "aws_cloudwatch_metric_alarm" "respaldo" {
   alarm_name        = "yam-respaldo-no-se-hizo"
-  alarm_description = "Hace más de un día que no termina bien el pg_dump a S3."
+  alarm_description = "Hace 18 horas o más que no termina bien el pg_dump a S3 (debería hacerse cada 6)."
   namespace         = "YAM/Respaldo"
   metric_name       = "RespaldoExitoso"
 
+  # Tres ventanas de 6 h seguidas sin ningún respaldo bueno. Una sola ventana
+  # vacía puede ser solo el desfase entre el horario y la ventana.
   statistic           = "Sum"
-  period              = 86400
-  evaluation_periods  = 2
-  datapoints_to_alarm = 2
+  period              = 21600
+  evaluation_periods  = 3
+  datapoints_to_alarm = 3
   threshold           = 1
   comparison_operator = "LessThanThreshold"
   treat_missing_data  = "breaching"

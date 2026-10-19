@@ -111,11 +111,35 @@ SSM, systemd/timer del respaldo, subida a S3, DLM, montaje del disco EBS, el
 user-data, el plugin de compose (versión fijada sin verificar) y el rendimiento
 en una t4g.medium. Tampoco hay prueba de carga.
 
+## Resultado de la prueba del frontend real (2026-10-19)
+
+Se levantó la pila local con `prueba-local`, se lanzó la app Next.js en el puerto
+3100 apuntada a `http://localhost:8080` (con el gateway de WhatsApp, Sentry y Polar
+anulados para que nada saliera a servicios reales) y se recorrió **en el navegador**:
+
+| Recorrido | Resultado |
+|---|---|
+| Registro de un cliente e-commerce | ✅ Se crea la cuenta, el perfil (`cliente`, activo) y su comercio |
+| Login | ✅ Sesión emitida por GoTrue a través de Caddy; entra a Inicio como «Cliente e-commerce» |
+| Pedido nuevo | ✅ Guía ATL-100001, zona asignada sola, tarifa de zona (13.000), QR y **hito «Creada» con el nombre de quien la creó** (la reconstrucción del trigger se ve bien en la pantalla) |
+| Encuesta de satisfacción | ✅ Aparece (con la cuenta envejecida 10 días), se responde, se guarda con su comercio y se oculta 90 días |
+| Subir un archivo | ✅ El logo queda en la carpeta del comercio del bucket `at-brand-logos`, la URL se guarda en su ficha y se lee sin sesión |
+| CORS desde otro origen | ✅ El navegador (en `localhost:3100`) habla con la API sin bloqueo |
+
+**Hallazgos**
+- El cliente e-commerce queda **activo al registrarse**, sin aprobación (corrige lo dicho en la decisión 1).
+- Con `autoconfirm`, la pantalla dice «Revisa tu correo… y entra de inmediato» pero **no llega ningún correo**: es engañoso. La persona puede ingresar ya.
+- Tarifa del pedido de prueba: 13.000, de la zona asignada; coincide con el diseño (la tarifa de zona pisa el valor).
+
+**Lo que esta prueba NO cubrió:** los buckets privados y sus URLs firmadas (documentos de
+mensajeros, comprobantes de pago, evidencias de entrega; el bucket `evidencias` ni existe),
+Realtime dentro de la interfaz, los flujos de mensajero, CEDI, facturación y recaudo, el
+rastreo público, las funciones de eliminar (no existen), el rendimiento y todo lo propio de AWS.
 ## Pasos, con puerta entre cada uno
 
 | # | Paso | Puerta (qué debe cumplirse para seguir) |
 |---|---|---|
-| 0 | ✅ **HECHO (2026-10-18)** — Probar el compose en local con Docker, sin AWS (ver arriba) | 83/83 y humo 8/8. Pendiente solo: probar el **frontend real** en un navegador contra esa URL |
+| 0 | ✅ **HECHO (2026-10-18)** — Probar el compose en local con Docker, sin AWS (ver arriba) | 83/83 y humo 8/8. Frontend real probado en navegador el 2026-10-19 (ver abajo) |
 | 1 | ✅ **Decisiones de Henry (2026-10-18)** — ver «Decisiones tomadas» abajo | Las 5 respondidas |
 | 2 | `terraform plan` en `3-instancia/` con tus valores y revisarlo entero | Ya corrido en solo lectura (2026-10-18): **23 a crear, 0 a cambiar, 0 a destruir**; debe seguir igual con tus valores |
 | 3 | **Sí explícito de Henry con la cifra delante** → `terraform apply` | `terraform output` completo |
@@ -136,7 +160,7 @@ a dónde volver para los datos, por eso el respaldo importa.
 
 | # | Tema | Decisión | Qué implica en el código/operación |
 |---|---|---|---|
-| 1 | Correo de confirmación | **Dos fases.** Salir con autoconfirmar; arreglar SES en paralelo y luego pasar a confirmación real | `bootstrap.sh` arranca con `mailer_autoconfirm=true`. Las cuentas nacen con rol `pendiente` y un admin las habilita. Para la fase 2: cargar `smtp_*` en SSM, poner `mailer_autoconfirm=false` y repetir el bootstrap |
+| 1 | Correo de confirmación | **Dos fases.** Salir con autoconfirmar; arreglar SES en paralelo y luego pasar a confirmación real | `bootstrap.sh` arranca con `mailer_autoconfirm=true`. **Corrección tras probar el frontend (2026-10-19):** el cliente e-commerce **no** queda pendiente: nace activo, con rol `cliente` y su comercio creado, sin que nadie lo apruebe. Solo los demás roles (mensajero, personal ATL, asesor, CEDI) están pensados para pasar por aprobación (no probado). Además, la pantalla de registro dice «Revisa tu correo y entra» aunque la cuenta ya está confirmada. **Henry reconfirmó (2026-10-19) salir con autoconfirmar sabiendo esto:** acepta que el registro de cliente e-commerce quede abierto y activo hasta que SES funcione. Para la fase 2: cargar `smtp_*` en SSM, poner `mailer_autoconfirm=false` y repetir el bootstrap |
 | 2 | Tamaño | **`t4g.medium`** (4 GB) + 2 GB de swap; medir la memoria la primera semana y subir a `t4g.large` si aprieta | Swap creado en `user_data.sh.tpl`. Sigue sin haber alarma de memoria (haría falta el agente de CloudWatch) |
 | 3 | Créditos | **Asumir 6 meses** de vigencia y **re-verificar al tercer mes** (~2027-01-18) en Billing → Credits | Runway ≈ 4 meses al gasto previsto. Quedan 3 tareas de 20 USD (EC2, Bedrock, Aurora/RDS) que podrían sumar crédito; no se harán solo por eso |
 | 4 | DNS | **Registros puntuales en GoDaddy**; los NS no se mueven | Ver la lista de abajo. La zona de Route 53 queda como respaldo, no manda |
@@ -164,6 +188,5 @@ pedir además la salida a producción (revisión de AWS).
 - ~~Reescribir los 3 stubs de funciones~~ **Hecho (2026-10-18)**: reconstruidas a partir del repo, con 17 tests nuevos (`test:db` 100/100). Es una reconstrucción, no lo original: ver `staging-stubs/LEEME.md` para lo confirmado y lo supuesto.
 - La **encuesta de satisfacción** (3 funciones y 2 tablas) quedó reconstruida como **diseño nuevo** sobre pistas del repo (`01087_staging_encuesta.sql`, 17 tests): el umbral de 7 días y los plazos de 30 y 90 días son decisiones mías.
 - **Faltan 2 funciones que el frontend sí llama**: eliminar comercio y eliminar usuario desde administración. **No se reconstruyen a propósito** (la de comercio borraba pedidos, facturas y recaudo en cascada a mano); fallan cerrado, y el interruptor `active` del comercio desactiva sin borrar.
-- Probar el frontend real en un navegador contra la pila local.
 - Verificar la versión fijada del plugin de compose (2.29.7).
 - **El sí explícito de Henry para el `apply`**, con la cifra (≈ 34 USD/mes) delante.

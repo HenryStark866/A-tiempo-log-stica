@@ -45,8 +45,9 @@ ANON_KEY=$(jwt '{"role":"anon","iss":"supabase","iat":1700000000,"exp":230000000
 SERVICE_ROLE_KEY=$(jwt '{"role":"service_role","iss":"supabase","iat":1700000000,"exp":2300000000}')
 
 # FASE 1 (decidido 2026-10-18): arrancar con autoconfirmar porque SES aún no puede
-# enviar (sandbox y dominio sin verificar). Las cuentas nacen con rol "pendiente"
-# y un admin las habilita. Cuando SES funcione: cargar en SSM los parámetros smtp_*
+# enviar (sandbox y dominio sin verificar). OJO: un cliente e-commerce queda
+# activo y con comercio al registrarse, sin aprobación (verificado en la prueba del
+# frontend); la aprobación solo aplica a los otros roles. Cuando SES funcione: cargar en SSM los parámetros smtp_*
 # y poner mailer_autoconfirm en false, y repetir este script (es idempotente).
 AUTOCONFIRM=$(opcional mailer_autoconfirm true)
 

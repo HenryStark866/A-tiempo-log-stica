@@ -271,3 +271,9 @@ Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal 
 - bootstrap.sh: remitente por omisión cambiado a noreply@atiempologistica.com (antes noreply@SITIO, no verificado en SES).
 - Sigue SES en sandbox (solo envía a direcciones verificadas): mailer_autoconfirm se mantiene en true. Falta, con permiso de Henry: pedir salida del sandbox a AWS; cuando la aprueben, poner mailer_autoconfirm=false en SSM y reiniciar auth.
 - Shopify: avisos de las 3 alarmas yam-shopify-* apagados (reactivar con aws cloudwatch enable-alarm-actions).- 2026-10-19: enviada a AWS la solicitud de salida del sandbox de SES (TRANSACTIONAL, sitio yam.cdhmaker.com, contacto cdhmaker@gmail.com); estado PENDING (AWS responde en ~24 h por correo). Rebotes y quejas de atiempologistica.com van al SNS yam-alertas. Al aprobarse: poner /yam/instancia/mailer_autoconfirm=false y reiniciar auth (o repetir bootstrap).
+### 2026-10-19 — "No deja ingresar ni recuperar": diagnóstico
+- Logs de GoTrue: todos los /token dan 400 "Invalid login credentials" (desde www.atiempologistica.com y yam.cdhmaker.com, 2 IPs distintas) y /recover responde 200 en 10 ms sin enviar correo. Causa: esas cuentas NO existen; la base nueva solo tiene cdhmaker@gmail.com (admin). GoTrue responde 200 en /recover para correos desconocidos a propósito.
+- Login del admin con la clave temporal: 200 con token (verificado).
+- Mientras SES siga en sandbox, solo llegan correos a direcciones verificadas: se pidió verificar cdhmaker@gmail.com en SES (AWS manda un enlace a ese buzón; hay que abrirlo).
+- Añadido GOTRUE_MAILER_EXTERNAL_HOSTS=${API_HOST} al compose (quita el aviso de host externo en cada petición); auth reiniciado y sano.
+- Solución de fondo pendiente de Henry: descargar el respaldo del proyecto Supabase uhbtivaepyhwfdvtpfjq (Database → Backups, como se hizo con IncubApp) para importar las cuentas y datos de YAM (tablas at_ y sus usuarios de auth, sin TaxiYa).

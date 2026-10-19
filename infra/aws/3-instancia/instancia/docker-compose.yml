@@ -40,6 +40,8 @@ services:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: "9999"
       API_EXTERNAL_URL: https://${API_HOST}
+      # Sin esto GoTrue ignora el host que reenvía Caddy y lo avisa en cada petición.
+      GOTRUE_MAILER_EXTERNAL_HOSTS: ${API_HOST}
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
       GOTRUE_SITE_URL: https://${SITIO}

@@ -303,3 +303,14 @@ Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal 
 - Probado en producción contra httpbin (eco, sin SMS reales): fila sms → enviado, provider_id=celular, 1 intento; fila whatsapp → sigue pendiente sin gastar intentos. Filas de prueba borradas y .env restaurado (SMSGATE vacío).
 - Guía: docs/sms-desde-celular.md. Al encenderlo, el código pasa a ser OBLIGATORIO en la entrega (migración 0022).
 - Pendiente de Henry: celular Android con SIM y plan de SMS, instalar la app y pasar usuario/clave de Cloud server.
+### 2026-10-19 — Código de entrega por CORREO + correo del destinatario en los pedidos (EN PRODUCCIÓN)
+- Migración 0125: enum at_msg_channel gana 'email' (archivo aparte: el valor nuevo no se puede usar en la misma transacción).
+- Migración 0126: at_guides.recipient_email y at_recipients.email (opcionales, CHECK de formato mínimo), at_message_outbox.to_email; at_issue_delivery_code encola además una fila 'email' cuando la guía tiene correo; at_shopify_upsert_order con p_email (firma vieja borrada; correo inválido se descarta sin tumbar la guía).
+- Frontend (pedidos/nueva): campo «Correo (opcional: ahí le llega su código)», validación igual a la base, se copia de/a la libreta de compradores (completa un comprador guardado sin correo, nunca borra). Shopify manda o.email / contact_email / customer.email.
+- enviar-mensajes: canal email por SMTP de SES (npm:nodemailer@6.9.16 dentro del edge-runtime, con las mismas credenciales SMTP_* de GoTrue pasadas al contenedor functions). HTML con el código grande.
+- Ensayo de 0126 en producción dentro de BEGIN/ROLLBACK: guía con correo → filas sms, whatsapp y email; correo inválido rechazado por el CHECK; Shopify: válido se guarda en minúsculas, inválido y ausente → sin correo.
+- HALLAZGO Y ARREGLO: la importación del respaldo NO restauró la secuencia at_guide_number_seq (iba en 100005; producción en 100186). La comparten guías (ATL-), facturas (FAC-) y remesas (REM-): habría chocado con números existentes. setval a 100186 → próximo ATL-100187. El ensayo consumió 100001–100005 antes del arreglo (sin efecto).
+- Prueba real: fila email al simulador de SES → enviado, 1 intento, messageId de SES. Fila borrada.
+- Vercel: deploy de producción dpl_B6x3igth4zvRCHXE8qzkiRLEGM5m desde 9fd4187 (next.config.ts sin commitear se apartó con stash durante el deploy y se restauró). yam.cdhmaker.com, www.atiempologistica.com y yam.atiempologistica.com responden /api/version 9fd41875.
+- No probado: crear un pedido desde el navegador con sesión real (no tengo claves de usuarios). La edición de pedidos (pedidos/[id]/editar) todavía NO tiene el campo de correo.
+- git push a GitHub falló por red (github.com:443 sin conexión); la rama local va 21+ commits por delante de origin/main.

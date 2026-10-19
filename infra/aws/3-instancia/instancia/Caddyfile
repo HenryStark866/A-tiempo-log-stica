@@ -77,6 +77,12 @@
 		}
 	}
 
+	handle_path /functions/v1/* {
+		reverse_proxy functions:9000 {
+			import sin_cors_del_servicio
+		}
+	}
+
 	# Realtime multi-inquilino: se le presenta el "tenant" autoalojado, como
 	# hacía Kong, y el socket vive bajo /socket.
 	handle_path /realtime/v1/* {

@@ -67,6 +67,12 @@ SMTP_HOST=$(opcional smtp_host localhost)
 SMTP_PORT=$(opcional smtp_port 587)
 SMTP_USER=$(opcional smtp_user usuario)
 SMTP_PASS=$(opcional smtp_pass clave)
+TWILIO_ACCOUNT_SID=$(opcional twilio_account_sid "")
+TWILIO_AUTH_TOKEN=$(opcional twilio_auth_token "")
+TWILIO_SMS_FROM=$(opcional twilio_sms_from "")
+TWILIO_WHATSAPP_FROM=$(opcional twilio_whatsapp_from "")
+WHATSAPP_TOKEN=$(opcional whatsapp_token "")
+WHATSAPP_PHONE_ID=$(opcional whatsapp_phone_id "")
 ENV
 mkdir -p /data/caddy
 

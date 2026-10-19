@@ -80,6 +80,9 @@ begin
 end $$;
 
 -- Tablas de encuestas: existen en producción, ninguna migración local las crea.
+-- Aquí solo el esqueleto mínimo (las migraciones 0105 a 0107 las alteran por nombre).
+-- Las columnas de la respuesta, las claves foráneas y las 3 funciones de la
+-- encuesta están en 01087_staging_encuesta.sql: necesitan que at_profiles exista.
 create table if not exists public.at_survey_responses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid,

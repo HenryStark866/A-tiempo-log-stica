@@ -15,6 +15,7 @@ la instancia única los recibe en `instancia.tgz`.
 | `0000_staging_stubs.sql` | 3 funciones **reconstruidas** + 2 tablas de encuestas **vacías** (stubs). Va antes de la 0100, que les hace REVOKE/GRANT |
 | `01085_staging_realtime.sql` | `at_notifications` en la publicación `supabase_realtime` (la 0110 la quita) |
 | `01086_staging_trigger_evento_pedido.sql` | El trigger que llama a `at_evento_al_crear_pedido()` |
+| `01087_staging_encuesta.sql` | **Diseño nuevo** de la encuesta de satisfacción: columnas, claves foráneas y 3 funciones |
 
 ## Las 3 funciones: qué es dato y qué es suposición
 
@@ -64,23 +65,47 @@ Los tests que fijan esto están en `tests/db/recogidas-y-eventos.test.ts`; marca
 cada expectativa como dato o suposición. Verificado por mutación: con las funciones
 vacías y sin el trigger fallan 10 de sus 17 tests.
 
-## Lo que sigue faltando (ya no son 3 sino al menos 5 más)
+## La encuesta de satisfacción (3 funciones y 2 tablas) — diseño nuevo, no recuperación
 
-Buscando qué llama el frontend que la base local no tiene, salen **5 funciones**:
+Aquí hay **mucho más diseño que en las otras tres**: el repo da la forma de las
+llamadas y unas reglas de negocio sueltas, pero no las columnas ni los plazos.
+Todo está en `01087_staging_encuesta.sql`, con cada decisión marcada DATO o DISEÑO.
 
-| Función | La llama | Qué rompe en la pila nueva |
+| Dato (confirmado en el repo) | Dónde |
+| --- | --- |
+| `at_encuesta_pendiente()` sin argumentos, devuelve un objeto con la clave `mostrar` | `EncuestaSatisfaccion.tsx` |
+| `at_responder_encuesta(p_recomienda, p_facilidad, p_comentario, p_version)`; recomendación 0–10 obligatoria, facilidad 1–5 y comentario opcionales | el mismo componente |
+| `at_posponer_encuesta(p_dias)`, llamada con 30 | el mismo componente |
+| No aparece los primeros días; quien la cierra no la ve en un mes; quien responde, en tres | comentario del componente |
+| La tabla de respuestas tiene `user_id` y `client_id`; la política «cada quien ve lo suyo, ops ve todo» compara `user_id` con `auth.uid()` | `0105`, `0107` |
+| La tabla de aplazamientos guarda a quién y hasta cuándo, y **no tiene políticas** (se escribe desde la función) | `0106` |
+
+| Diseño mío (producción pudo hacerlo distinto) | |
+| --- | --- |
+| «Los primeros días» = **7 días** desde que se creó la cuenta | el repo no dice cuántos |
+| «Un mes» = 30 días (el componente lo manda) y «tres meses» = **90 días** | |
+| Los **nombres y tipos** de las columnas: `recomienda`, `facilidad`, `comentario`, `version` (salen de los nombres de los parámetros) y `snoozed_until` | el repo solo confirma `user_id` y `client_id` |
+| Claves foráneas con `SET NULL` (la respuesta queda anónima si se borra la persona o el comercio) y `CASCADE` en el aplazamiento | |
+| No se muestra ni se acepta respuesta de cuentas `pendiente` o inactivas | |
+| El comentario se recorta, vale `NULL` si queda vacío y tiene un tope de 2.000 caracteres; la versión se recorta a 64 | |
+| `posponer` acota los días entre 1 y 365 | |
+| Los textos de error y el código `check_violation` | |
+| Permiso solo para `authenticated` | igual que los auxiliares de la `0100` |
+
+Los tests están en `tests/db/encuesta.test.ts` (17), con cada expectativa marcada.
+Verificado por mutación: con las funciones rotas fallan 9.
+
+## Lo que sigue faltando: las 2 funciones de eliminar (NO se reconstruyen)
+
+| Función | La llama | Por qué no |
 | --- | --- | --- |
-| `at_encuesta_pendiente` | `EncuestaSatisfaccion.tsx` | La encuesta de satisfacción no carga |
-| `at_posponer_encuesta` | `EncuestaSatisfaccion.tsx` | Idem |
-| `at_responder_encuesta` | `EncuestaSatisfaccion.tsx` | Idem. Usan las tablas `at_survey_responses` y `at_survey_snooze`, hoy vacías (stubs) |
-| `at_admin_eliminar_comercio` | pantalla de administración | El admin no puede eliminar un comercio |
-| `at_admin_eliminar_usuario` | pantalla de administración | El admin no puede eliminar un usuario |
+| `at_admin_eliminar_comercio(p_id, p_confirmacion, p_motivo)` | `clientes/page.tsx` | **Riesgo alto.** Pedidos, facturas y remesas tienen una clave foránea que *impide* borrar el comercio, así que la original los borraba a mano en un orden y con un alcance que el repo no muestra (cierres, pagos, archivos de los buckets, dónde dejaba el motivo). Un error borra de más y no hay deshacer. Además toca facturas: conviene confirmar con contabilidad qué se puede borrar |
+| `at_admin_eliminar_usuario(p_id, p_motivo)` | `usuarios/page.tsx` | **Riesgo medio.** Borra la cuenta de acceso (`auth.users`); hay tres claves foráneas `NO ACTION` (`verified_by`, `reviewed_by`, `connected_by`) que la original debía resolver; y un error de permisos dejaría borrar usuarios a quien no debe o dejar el sistema sin admin |
 
-Son 5 de las ~7 funciones que faltaban (150 contra 143). Las otras ~2 no tienen
-rastro en el código. **Las dos de eliminar tocan datos y permisos: no se deben
-reconstruir a ojo**, sino diseñarlas con el dueño del negocio.
-
+**Mientras no existan, fallan cerrado:** el botón muestra el error de «función no
+encontrada» y no se borra nada. Alternativa que ya existe: el interruptor `active`
+del formulario del comercio, que desactiva sin borrar.
 ## Retrato del staging con esto aplicado
 
 tablas 33 = 33 · índices 100 = 100 · enums 12 = 12 · cron 5 = 5 · **triggers 23 = 23**;
-funciones 143 contra 150, políticas 63 contra 62, bucket `evidencias` ausente.
+funciones 146 contra 150, políticas 63 contra 62, bucket `evidencias` ausente.

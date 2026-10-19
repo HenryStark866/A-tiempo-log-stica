@@ -268,7 +268,7 @@ resource "aws_instance" "yam" {
     volume_id       = aws_ebs_volume.datos.id
     compose_version = var.version_compose
     api_host        = local.api_host
-    sitio           = var.dominio
+    sitio           = var.sitio
     correo_acme     = var.correo_acme
   })
 
@@ -347,6 +347,45 @@ resource "aws_dlm_lifecycle_policy" "diario" {
       }
       copy_tags = true
     }
+  }
+}
+
+# ── «Solo se gastan los créditos» ───────────────────────────────────────────
+# AWS no permite poner un tope duro de gasto: lo que no cubren los créditos se
+# cobra en la tarjeta. Esto es el aviso temprano. El presupuesto mide el costo YA
+# DESCONTADOS los créditos (include_credit = true), así que mientras los créditos
+# alcancen marca ~0 y suena en cuanto aparezca dinero real: al pasar de 1 USD
+# (actual) o cuando se PREVEA pasar de 3 USD en el mes.
+#
+# El presupuesto yam-mensual de la pila 1 avisa recién a los 16 USD (80% de 20):
+# demasiado tarde para esto. Los datos de Budgets tardan hasta un día en
+# actualizarse; a ~1 USD diario de consumo, el aviso llega con ~1-2 USD de cobro.
+resource "aws_budgets_budget" "solo_creditos" {
+  name         = "yam-solo-creditos"
+  budget_type  = "COST"
+  limit_amount = "5"
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  cost_types {
+    include_credit = true
+    include_refund = true
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 1
+    threshold_type             = "ABSOLUTE_VALUE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.correo_alertas]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 3
+    threshold_type             = "ABSOLUTE_VALUE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.correo_alertas]
   }
 }
 

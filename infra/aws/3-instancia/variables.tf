@@ -48,6 +48,22 @@ variable "version_compose" {
   default     = "2.29.7"
 }
 
+variable "sitio" {
+  description = <<-DESC
+    Dominio donde vive la web de YAM (el sitio principal que usa GoTrue como Site URL).
+    Desde 2026-10-19 es yam.cdhmaker.com. NO es el dominio de la API (api. más la variable dominio):
+    son dos cosas distintas y el cambio de uno no obliga a cambiar el otro.
+  DESC
+  type        = string
+  default     = "yam.cdhmaker.com"
+}
+
+variable "correo_alertas" {
+  description = "A dónde avisa la alarma de «ya se está cobrando dinero real». Es el mismo correo que ya usa el presupuesto yam-mensual."
+  type        = string
+  default     = "cdhmaker@gmail.com"
+}
+
 variable "correo_acme" {
   description = "Correo para el aviso de vencimiento del certificado de Let's Encrypt."
   type        = string

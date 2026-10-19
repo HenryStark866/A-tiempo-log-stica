@@ -253,3 +253,10 @@ Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal 
 ### 2026-10-19 — Primer administrador y clientes existentes
 - Creado el primer admin (cdhmaker@gmail.com, rol admin, activo) con la API admin de GoTrue; la base tenía 0 usuarios. Clave temporal guardada en el Escritorio de Henry (yam-admin-clave.txt), fuera del repo; debe cambiarla y borrar el archivo. Zonas (17) y tarifas (169) ya existían.
 - Clientes de atiempologistica.com: atiempologistica.com (308 a www), www y yam.atiempologistica.com sirven el MISMO despliegue de Vercel y la misma API. El SW es red-primero y /api/version fuerza la actualización, así que las apps instaladas se actualizan solas. PERO la base nueva nació sin datos: las cuentas anteriores (Supabase Cloud) no existen aquí; cada cliente debe volver a registrarse. Sin datos de producción migrados por decisión de Henry.
+### 2026-10-19 — yam.cdhmaker.com EN PRODUCCIÓN (DNS migrado a la cuenta Cloudflare Cdhmaker8)
+- Henry cambió en GoDaddy los NS de cdhmaker.com de irena/norm (zona en cuenta desconocida) a journey/terry (cuenta oficial Cdhmaker8@gmail.com, zona 08813534cd9527fc9c65f40f93d4c133). RDAP confirma el cambio a las 15:49Z.
+- Zona nueva, todo sin proxy: A @ 199.36.158.100 (Firebase), A yam 76.76.21.21, CNAME www cdh-maker-portafolio.web.app, CNAME link track.smtp2go.net, CNAME incubapp cname.vercel-dns.com, TXT _acme-challenge, TXT _dmarc.
+- incubapp.cdhmaker.com antes iba por proxy de Cloudflare a Vercel sin estar asignado a un proyecto; tras el cambio dio error TLS. Se asignó al proyecto Vercel incubant-app (mismo build index-NIgcTgCt.js) y responde 200.
+- yam: Vercel tardó por caché negativa (SOA 1800 s); se forzó con `vercel certs issue yam.cdhmaker.com`. Verificado: 200 con certificado válido, título de YAM, CORS de la API ok, resuelve en 1.1.1.1/8.8.8.8/9.9.9.9.
+- refricom.cdhmaker.com está en Vercel (proyecto refricom) pero NO tenía registro ni en la zona vieja ni en la nueva: nunca funcionó; no se tocó.
+- Rollback (si hiciera falta): poner de nuevo irena/norm en GoDaddy.

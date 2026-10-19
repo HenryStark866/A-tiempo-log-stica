@@ -277,3 +277,13 @@ Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal 
 - Mientras SES siga en sandbox, solo llegan correos a direcciones verificadas: se pidió verificar cdhmaker@gmail.com en SES (AWS manda un enlace a ese buzón; hay que abrirlo).
 - Añadido GOTRUE_MAILER_EXTERNAL_HOSTS=${API_HOST} al compose (quita el aviso de host externo en cada petición); auth reiniciado y sano.
 - Solución de fondo pendiente de Henry: descargar el respaldo del proyecto Supabase uhbtivaepyhwfdvtpfjq (Database → Backups, como se hizo con IncubApp) para importar las cuentas y datos de YAM (tablas at_ y sus usuarios de auth, sin TaxiYa).
+### 2026-10-19 — Cuentas y datos de producción RESTAURADOS desde el respaldo de Supabase
+- Henry inició sesión en Supabase y descargué del proyecto pausado uhbtivaepyhwfdvtpfjq: db_cluster-23-09-2026@09-32-18.backup.gz (último respaldo, del día en que se pausó) y uhbtivaepyhwfdvtpfjq.storage.zip (70 archivos, 104 MB). Copias en s3://atl-yam-respaldos-126356678380/supabase-viejo/.
+- El proyecto solo tenía datos de YAM (sin tablas de TaxiYa): 17 cuentas, 17 perfiles (1 admin, 3 asesor, 11 cliente, 2 mensajero), 10 comercios, 8 guías, 12 facturas, 9 recogidas, 2.803 destinatarios, 160 eventos de seguridad, etc.
+- Antes de importar: pg_dump de producción a S3 (yam-20261019T173740Z.dump). Migración nueva 01088_columnas_de_produccion.sql (at_facilities.lat/lng y at_survey_responses.rol, que producción tenía y el repo no).
+- Importación en UNA transacción (session_replication_role=replica): vaciado de tablas at_ y de auth.users, COPY de auth.users/identities y de todas las tablas at_; at_survey_snooze.hasta mapeado a snoozed_until; las CHECK NOT VALID (at_pickups_hora_en_franja, at_payment_methods_dato_coherente) se quitaron y se volvieron a poner NOT VALID. Conteos idénticos al respaldo.
+- Archivos: 70 subidos por la API de Storage (0 fallos) a sus buckets; dueño y fechas restaurados desde storage.objects viejo. El bucket viejo 'evidencias' estaba vacío y no se recreó.
+- Verificado: GoTrue lee las 17 cuentas (API admin), hashes bcrypt intactos, login con clave errada a una cuenta vieja da 400 (no 500). 16 de 17 cuentas confirmadas (igual que en producción).
+- El admin cdhmaker@gmail.com volvió a su clave ORIGINAL (la temporal ya no vale; archivo borrado). Las sesiones abiertas antes no sirven (otro secreto JWT): todos deben volver a iniciar sesión.
+- at_message_outbox trae 6 mensajes viejos en estado fallido (no se reenvían).
+- PENDIENTE: regenerar el paquete s3://…/bootstrap/instancia.tgz incluyendo 01088 (si se reconstruye la instancia desde cero, hoy no la aplicaría). Recuperar contraseña para clientes depende de que AWS saque SES del sandbox.

@@ -115,8 +115,12 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      # `seed.sql` es la demo vieja (0001-0003) y ya no cuadra con el esquema
+      # (at_zones.facility_id es NOT NULL). Los tests crean sus propios datos,
+      # así que en el runner se quita: es lo mismo que `db reset --no-seed`.
       - name: Añadir los stubs a las migraciones del runner
         run: |
+          rm -f supabase/seed.sql
           for f in 0000_staging_stubs 01085_staging_realtime 01086_staging_trigger_evento_pedido 01087_staging_encuesta; do
             cp "docs/migracion-aws/staging-stubs/$f.sql" supabase/migrations/
           done

@@ -42,6 +42,14 @@ Principales capacidades entregadas:
   * **Limpieza de la Vitrina Principal:** Se retiró el bloque pesado de 3 tarjetas del fondo de `page.tsx` para dejar que el catálogo comercial respire.
   * **Despliegue Completo en el Portal de Comercios (`/portal-comercios`):** Página dedicada de onboarding y propuesta de valor financiero integral para marcas locales, integrando el componente modular `BloquePropuestaContable.tsx` con las 3 tarjetas detalladas (Ledger inmutable con SolV, liquidación en <24h garantizada y sincronización con Shopify/catálogo directo).
   * **Integración en Formulario de Registro (`/registro`):** Callout de respaldo financiero al seleccionar "Cliente e-commerce" con enlace explicativo directo al portal.
+- **Auditoría y Mapeo Definitivo de Rutas del Navbar/Header (`NavbarStorefront.tsx` y `Navbar.tsx`):**
+  * **Logo YAM:** Envuelto en `<Link href="/">` para volver siempre a la vitrina comercial.
+  * **Botón "Portal Comercios" (naranja):** Vinculado a `<Link href="/portal-comercios">` (landing B2B y onboarding).
+  * **Botón "Iniciar sesión":** Vinculado a `<Link href="/login">` (autenticación operativa de Supabase en `/login`).
+  * **Buscador interactivo:** Doble soporte: filtrado reactivo en tiempo real (nombre, marca y descripción) + inicialización por parámetro de URL (`?q=...`) encapsulado con `<Suspense>`.
+  * **Botón "Rastrear guía":** 100% oculto en la experiencia de vitrina pública para no mezclar logística de mensajería con compras.
+  * **Selector de tema (`ThemeToggle`):** Operativo con rotación de temas (`light`, `dark`, `tema-multicolor`) sin errores de renderizado en cliente/SSR.
+  * **Proxy de compatibilidad (`src/components/Navbar.tsx`):** Creado como export proxy de `NavbarStorefront` para prevenir errores de importación heredada.
 
 ---
 

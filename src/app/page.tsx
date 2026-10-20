@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Store,
   ShoppingBag,
@@ -21,8 +22,16 @@ import { createClient } from "@/lib/supabase/client";
 import { MOCK_PRODUCTS, type MockProduct } from "@/data/mockProducts";
 import { MARCA } from "@/lib/marca";
 
-export default function StorefrontPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+function StorefrontContent() {
+  const searchParams = useSearchParams();
+  const qParam = searchParams?.get("q") ?? "";
+  const [searchQuery, setSearchQuery] = useState(qParam);
+
+  useEffect(() => {
+    if (qParam) {
+      setSearchQuery(qParam);
+    }
+  }, [qParam]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("Todos");
   const [dbProducts, setDbProducts] = useState<MockProduct[]>([]);
   const [loadingDb, setLoadingDb] = useState(true);
@@ -369,5 +378,13 @@ export default function StorefrontPage() {
         <PieMarca />
       </footer>
     </div>
+  );
+}
+
+export default function StorefrontPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 dark:bg-[#121214]" />}>
+      <StorefrontContent />
+    </Suspense>
   );
 }

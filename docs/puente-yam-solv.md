@@ -68,3 +68,28 @@ La lógica de envío vive en `supabase/functions/enviar-mensajes/smsgate.ts`.
 - Asientos por evento: a validar con el contador (contrato, sección 5 del PDF).
 - `0142` redefine `at_issue_delivery_code` (copia de la 0126 con SMS en ASCII): si otra
   migración vuelve a tocar esa función, debe partir de la 0142.
+
+## Operar el celular de SMS en producción
+
+Resumen para quien administre la instancia. **Ninguna clave va en este repo**: ni en
+archivos, ni en commits, ni en chats.
+
+- **Modo:** *Cloud server* de SMS Gateway for Android. El celular se conecta al servidor de
+  sms-gate.app y recoge los envíos; `SMSGATE_URL` queda vacía y `enviar-mensajes` usa el
+  servidor en la nube de la app. Para el servidor privado se pone aquí su dirección.
+- **Dónde viven las credenciales:** AWS SSM Parameter Store, como `SecureString`:
+  `/yam/instancia/smsgate_user` y `/yam/instancia/smsgate_pass`. Los valores salen de la
+  sección *Cloud server* de la app, nunca de este repo.
+- **Cómo llegan a la función:** la instancia las lee de SSM (`bootstrap.sh`) y las deja en
+  `/opt/yam/.env` como `SMSGATE_USER` y `SMSGATE_PASS`. Tras cambiarlas hay que recrear el
+  contenedor: `cd /opt/yam && docker compose up -d --force-recreate functions`.
+- **El celular:** Android 5.0 o superior, con SIM y plan de SMS, **encendido, cargando, con
+  señal y con la app en *Sin restricciones* de batería**. Si se apaga, los SMS esperan en
+  `at_message_outbox` y caducan a las 12 h.
+- **Rotar la clave:** cambiar usuario/clave en la app, actualizar los dos parámetros de SSM
+  con `--overwrite`, repetir el `.env` y recrear `functions`.
+- **Probar sin riesgo:** `SMSGATE_SOLO_A` (números E.164 separados por coma) limita los
+  destinos; pruebas reales solo al número que Henry indique y con su confirmación.
+- **Si algo falla:** mirar `at_message_outbox` (`status`, `error`, `attempts`); un SMS pasa a
+  `fallido` tras 3 intentos o a las 12 h. El texto y el teléfono del destinatario pasan por
+  el servidor de sms-gate.app en modo Cloud (ver «Privacidad» en `docs/sms-desde-celular.md`).

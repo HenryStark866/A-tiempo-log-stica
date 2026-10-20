@@ -693,3 +693,27 @@ body::before {
 .atl-mapa .maplibregl-ctrl-attrib a {
   color: rgba(255, 255, 255, 0.9);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CARRUSEL CONTINUO (PRODUCT MARQUEE / TICKER)
+   Desplazamiento horizontal continuo de derecha a izquierda con pausa en hover.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse, Headset, Search } from "lucide-react";
+import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse, Headset, Search, ArrowRight, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
@@ -10,6 +10,7 @@ import { CIUDADES_OPERADAS } from "@/lib/zones";
 import { marcaDeAceptacion } from "@/lib/legal";
 
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
+import { FEATURES } from "@/lib/features";
 type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi" | "asesor";
 
 /** Un comercio devuelto por at_comercios_para_registro. */
@@ -213,7 +214,9 @@ export default function RegisterPage() {
                   {(
                     [
                       { value: "cliente", label: "Cliente e-commerce", icon: Store },
-                      { value: "mensajero", label: "Mensajero", icon: Bike },
+                      ...(FEATURES.MOSTRAR_MENSAJERIA_PUBLICO
+                        ? [{ value: "mensajero" as RequestedRole, label: "Mensajero", icon: Bike }]
+                        : []),
                       { value: "operario", label: "Personal ATL", icon: IdCard },
                       { value: "asesor", label: "Asesor comercial", icon: Headset },
                       { value: "admin_cedi", label: "CEDI afiliado", icon: Warehouse },
@@ -298,7 +301,29 @@ export default function RegisterPage() {
 
               {/* Datos del negocio (solo cliente e-commerce) */}
               {isClient && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                  {/* Respaldo contable y financiero */}
+                  <div className="rounded-2xl p-4 bg-emerald-500/10 border border-emerald-500/20 text-xs sm:text-sm text-emerald-900 dark:text-emerald-300 flex items-start gap-3">
+                    <span className="text-xl shrink-0">💼</span>
+                    <div className="space-y-1">
+                      <p className="font-bold text-slate-900 dark:text-white">
+                        Vende sin estrés contable ni cuadres manuales
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+                        Conciliación contable automática de cada venta, conexión con Shopify y transferencias de tus recaudos a tu cuenta bancaria en menos de 24 horas garantizadas.
+                      </p>
+                      <div className="pt-1">
+                        <Link
+                          href="/portal-comercios"
+                          className="font-bold text-[#ff812c] hover:underline inline-flex items-center gap-1 text-xs"
+                        >
+                          <span>Conocer a fondo los beneficios en el Portal Comercios</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+
                   <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                     Datos de tu negocio
                   </p>

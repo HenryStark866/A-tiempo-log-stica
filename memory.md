@@ -54,6 +54,17 @@ Principales capacidades entregadas:
     - Se reemplazó la etiqueta genérica "Tipo" por `"Categoría *"` y el placeholder por `"Selecciona una categoría…"`.
     - Catálogo depurado y estandarizado alineado con la vitrina pública: *'Moda y Accesorios'*, *'Alimentos y Bebidas'*, *'Belleza y Cuidado Personal'*, *'Hogar y Decoración'*, *'Mascotas'*, *'Deportes y Bienestar'*, *'Tecnología y Gadgets'*, *'Arte, Regalos y Papelería'* y *'Otro'*.
     - Integrado en el estado del formulario como `categoria` con validación requerida y persistencia a base de datos (`business_type`, `categoria` y `category` en metadatos de usuario).
+- **Desacoplamiento de Vista de Detalle vs. Compra Directa (`ProductCard` y `ProductDetailModal`):**
+  * **Separación de Acciones en Tarjetas de Producto:** Se reemplazó el botón único genérico por dos acciones diferenciadas y ergonómicas:
+    a) *Botón principal "Ver detalle"*: Con diseño neutral y de alto contraste para explorar el producto a profundidad en modal flotante.
+    b) *Botón iconográfico de Carrito / Compra Rápida (🛒)*: Botón destacado en naranja vibrante (`#ff812c`) ubicado en la barra de acciones inferior (y con botón flotante directo en la esquina superior de la foto) que activa inmediatamente el modal de compra express.
+  * **Modal de Detalle de Producto (`ProductDetailModal`):**
+    - Vista inmersiva responsiva (1 col en móvil, 2 cols en escritorio) con fotografía ampliada en alta resolución, insignias de verificación de comercio, categoría, SKU y municipio de origen.
+    - Descripción extendida, notas claras de entrega/retiro directo con la tienda y selector interactivo de cantidad (`-` y `+`) con actualización reactiva del subtotal en COP.
+    - Botón CTA *"Comprar ahora"* (enlaza fluidamente a `ModalCheckout` transfiriendo producto y cantidad) y acceso directo a WhatsApp para resolver inquietudes previas con el vendedor.
+  * **Integración y Continuidad con `ModalCheckout`:**
+    - `ModalCheckout` adaptado para recibir `initialQuantity` desde la vista detallada o default `1` en compra rápida desde el carrito.
+    - Desglose contable transparente (`cantidad × precio_unitario = total`) reflejado tanto en la cabecera del checkout como en el mensaje pre-armado de WhatsApp y el payload de orden.
 - **Auditoría y Mapeo Definitivo de Rutas del Navbar/Header (`NavbarStorefront.tsx` y `Navbar.tsx`):**
   * **Logo YAM:** Envuelto en `<Link href="/">` para volver siempre a la vitrina comercial.
   * **Botón "Portal Comercios" (naranja):** Vinculado a `<Link href="/portal-comercios">` (landing B2B y onboarding).
@@ -73,6 +84,8 @@ Principales capacidades entregadas:
    - Se añadió `https://images.unsplash.com` a la directiva `img-src` de la Content Security Policy (CSP).
 2. **`src/app/page.tsx`**:
    - Reemplazo de la landing previa por la Vitrina Comercial completa.
+   - Desacoplamiento de la interacción de tarjetas: integración modular de `ProductCard` con acciones duales ("Ver detalle" vs. carrito 🛒).
+   - Inclusión de `ProductDetailModal` conectado al selector de cantidad y al checkout directo.
    - Inclusión de la franja superior de micro-gancho para marcas locales con enlace interactivo y accesible (`#banner-gancho-comercios`) hacia `/portal-comercios`.
    - Limpieza del fondo de la vitrina (remoción de las 3 tarjetas pesadas de contabilidad).
    - Banner de captación de comercios regional con enlaces actualizados.
@@ -90,6 +103,9 @@ Principales capacidades entregadas:
    - Feature flags para gobernar visibilidad de mensajería pública (`MOSTRAR_MENSAJERIA_PUBLICO`) y roles logísticos avanzados en registro (`MOSTRAR_ROLES_LOGISTICOS_REGISTRO`).
 7. **`src/lib/constants.ts`**:
    - Adición de `CATEGORIAS_COMERCIO` con el catálogo depurado de 9 categorías comerciales y alias de retrocompatibilidad `BUSINESS_TYPES`.
+8. **`src/components/storefront/ModalCheckout.tsx`**:
+   - Soporte para `initialQuantity` proveniente del selector de cantidad en el modal de detalle o compra express por unidad.
+   - Cálculo automático del precio total (`cantidad × precio_unitario`), reflejado en cabecera, payload y mensaje de WhatsApp.
 
 ### Archivos Creados:
 1. **`src/app/portal-comercios/page.tsx`**:
@@ -98,20 +114,20 @@ Principales capacidades entregadas:
    - Ruta alias que redirige automáticamente a `/portal-comercios` para prevenir cualquier enlace roto.
 3. **`src/components/storefront/BloquePropuestaContable.tsx`**:
    - Módulo reutilizable de 3 pilares contables: Conciliación en tiempo real (SolV), Recaudos liquidados en <24h y Control sincronizado con Shopify.
-
-### Archivos Creados:
-1. **`src/data/mockProducts.ts`**:
+4. **`src/components/storefront/ProductCard.tsx`** (y proxy en **`src/components/ProductCard.tsx`**):
+   - Tarjeta responsiva y accesible con dos acciones separadas: botón "Ver detalle" (abre `ProductDetailModal`) y botón iconográfico de carrito/compra rápida 🛒 (abre `ModalCheckout` directo).
+5. **`src/components/storefront/ProductDetailModal.tsx`**:
+   - Modal de detalle inmersivo en 2 columnas: imagen en alta resolución, badges, ubicación de despacho, descripción completa, nota de entrega directa, selector de cantidad (`-` y `+` con cálculo de subtotal) y botón "Comprar ahora".
+6. **`src/data/mockProducts.ts`**:
    - Base de datos en memoria con 9 productos representativos de 3 marcas locales:
      * *Café Origen Antioquia* (Jericó / Fredonia).
      * *Marroquinería San Pedro* (El Poblado, Medellín).
      * *Botánica & Esencias del Valle* (Santa Elena / Envigado).
-2. **`src/components/storefront/NavbarStorefront.tsx`**:
+7. **`src/components/storefront/NavbarStorefront.tsx`**:
    - Navbar adaptativo comercial con búsqueda en vivo, alternador de tema claro/oscuro/multicolor, botón secundario "Iniciar sesión" y botón destacado "Portal Comercios".
-3. **`src/components/storefront/ProductMarquee.tsx`**:
+8. **`src/components/storefront/ProductMarquee.tsx`**:
    - Cinta continua animada de productos destacados con desplazamiento infinito de derecha a izquierda, pausa en hover y clic directo al modal de compra.
-4. **`src/components/storefront/ModalCheckout.tsx`**:
-   - Componente de compra rápida como invitado con selección de municipios de Antioquia, métodos de pago (Interledger / Puntored / Acordado), casilla de registro opcional conectada a Supabase Auth, y disparador de WhatsApp con el resumen de la orden.
-5. **`supabase/migrations/0143_vitrina_publica_productos.sql`**:
+9. **`supabase/migrations/0143_vitrina_publica_productos.sql`**:
    - Migración SQL para habilitar permisos de lectura pública sobre productos y comercios activos.
 
 ---

@@ -23,6 +23,7 @@ import type { MockProduct } from "@/data/mockProducts";
 export interface ModalCheckoutProps {
   product: MockProduct | null;
   onClose: () => void;
+  initialQuantity?: number;
 }
 
 const MUNICIPIOS = [
@@ -41,8 +42,8 @@ const MUNICIPIOS = [
 
 type MetodoPago = "interledger" | "puntored" | "acordado_tienda";
 
-export function ModalCheckout({ product, onClose }: ModalCheckoutProps) {
-  // Datos del formulario
+export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCheckoutProps) {
+  const cantidad = initialQuantity > 0 ? initialQuantity : 1;
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [municipio, setMunicipio] = useState(MUNICIPIOS[0]);
@@ -138,7 +139,9 @@ export function ModalCheckout({ product, onClose }: ModalCheckoutProps) {
         codigo: codigoOrden,
         producto_id: product.id,
         producto_nombre: product.name,
-        precio: product.price,
+        cantidad,
+        precio_unitario: product.price,
+        precio: product.price * cantidad,
         comercio: product.store_name,
         comprador: {
           nombre: nombre.trim(),
@@ -177,11 +180,12 @@ export function ModalCheckout({ product, onClose }: ModalCheckoutProps) {
   }
 
   // Enlace para WhatsApp con mensaje pre-armado
+  const totalCOP = product ? product.price * cantidad : 0;
   const mensajeWa = product
     ? encodeURIComponent(
         `¡Hola ${product.store_name}! 👋 Acabo de generar la orden *${ordenCompletada?.codigo || ""}* en la vitrina YAM.\n\n` +
-          `📦 *Producto:* ${product.name}\n` +
-          `💰 *Total:* ${formatCOP(product.price)}\n` +
+          `📦 *Producto:* ${product.name}${cantidad > 1 ? ` (x${cantidad})` : ""}\n` +
+          `💰 *Total:* ${formatCOP(totalCOP)}\n` +
           `💳 *Método de pago:* ${
             metodoPago === "interledger"
               ? "Pago digital (En línea e inmediato)"
@@ -244,9 +248,11 @@ export function ModalCheckout({ product, onClose }: ModalCheckoutProps) {
             </p>
           </div>
           <div className="text-right shrink-0">
-            <span className="text-xs text-slate-500 dark:text-slate-400 block">Total</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 block">
+              {cantidad > 1 ? `${cantidad} un. × ${formatCOP(product.price)}` : "Total"}
+            </span>
             <span className="text-base font-black text-slate-900 dark:text-white">
-              {formatCOP(product.price)}
+              {formatCOP(totalCOP)}
             </span>
           </div>
         </div>

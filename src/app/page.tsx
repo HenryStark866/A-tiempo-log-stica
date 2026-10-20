@@ -14,6 +14,8 @@ import {
 import { NavbarStorefront } from "@/components/storefront/NavbarStorefront";
 import { ProductMarquee } from "@/components/storefront/ProductMarquee";
 import { ModalCheckout } from "@/components/storefront/ModalCheckout";
+import { ProductCard } from "@/components/storefront/ProductCard";
+import { ProductDetailModal } from "@/components/storefront/ProductDetailModal";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
 import { PieMarca } from "@/components/PieMarca";
 import { InstalarApp } from "@/components/InstalarApp";
@@ -35,7 +37,8 @@ function StorefrontContent() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("Todos");
   const [dbProducts, setDbProducts] = useState<MockProduct[]>([]);
   const [loadingDb, setLoadingDb] = useState(true);
-  const [productoSeleccionado, setProductoSeleccionado] = useState<MockProduct | null>(null);
+  const [productoDetalle, setProductoDetalle] = useState<MockProduct | null>(null);
+  const [checkoutData, setCheckoutData] = useState<{ product: MockProduct; quantity: number } | null>(null);
 
   // Carga de productos desde Supabase con fallback automático a mockProducts
   useEffect(() => {
@@ -171,7 +174,7 @@ function StorefrontContent() {
       <div className="atl-encima">
         <ProductMarquee
           products={dbProducts}
-          onSelectProduct={(p) => setProductoSeleccionado(p)}
+          onSelectProduct={(p) => setProductoDetalle(p)}
         />
       </div>
 
@@ -255,77 +258,12 @@ function StorefrontContent() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {productosFiltrados.map((prod) => (
-              <article
+              <ProductCard
                 key={prod.id}
-                className="group flex flex-col justify-between rounded-3xl bg-white/80 dark:bg-[#1C1C1E]/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 overflow-hidden shadow-sm hover:shadow-xl hover:border-[#ff812c]/40 transition-all duration-300"
-              >
-                {/* Imagen del Producto */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-black/30">
-                  <img
-                    src={prod.image_url}
-                    alt={prod.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {prod.store_badge && (
-                    <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#1C1C1E]/80 text-[#ff812c] backdrop-blur-md border border-white/10 shadow-sm">
-                      {prod.store_badge}
-                    </span>
-                  )}
-                  <span className="absolute bottom-3 right-3 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-white/90 dark:bg-[#1C1C1E]/90 text-slate-700 dark:text-slate-300 backdrop-blur-md shadow-sm">
-                    {prod.category}
-                  </span>
-                </div>
-
-                {/* Detalles y Metadatos */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                  <div className="space-y-1.5">
-                    {/* Nombre del comercio */}
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#ff812c]">
-                      <Store className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{prod.store_name}</span>
-                    </div>
-
-                    {/* Título del producto */}
-                    <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug group-hover:text-[#ff812c] transition-colors">
-                      {prod.name}
-                    </h2>
-
-                    {/* Descripción breve */}
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                      {prod.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-100 dark:border-white/10 space-y-3">
-                    {/* Precio en COP */}
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-slate-400">Precio</span>
-                      <span className="text-xl font-black text-slate-900 dark:text-white">
-                        {formatCOP(prod.price)}
-                      </span>
-                    </div>
-
-                    {/* Leyenda obligatoria de coordinación directa */}
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-white/[0.03] p-2 rounded-xl text-center font-medium border border-slate-100 dark:border-white/5">
-                      Entrega o retiro coordinado directamente con{" "}
-                      <span className="font-bold text-slate-800 dark:text-white">
-                        {prod.store_name}
-                      </span>
-                    </p>
-
-                    {/* Botón Comprar / Ver Producto */}
-                    <button
-                      type="button"
-                      onClick={() => setProductoSeleccionado(prod)}
-                      className="w-full min-h-[46px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#ff812c] text-[#1C1C1E] text-xs sm:text-sm font-bold shadow-sm hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform duration-150"
-                    >
-                      <ShoppingBag className="w-4 h-4 text-[#1C1C1E]" />
-                      <span>Comprar / Ver producto</span>
-                    </button>
-                  </div>
-                </div>
-              </article>
+                product={prod}
+                onViewDetail={(p) => setProductoDetalle(p)}
+                onQuickBuy={(p) => setCheckoutData({ product: p, quantity: 1 })}
+              />
             ))}
           </div>
         )}
@@ -365,11 +303,24 @@ function StorefrontContent() {
         </section>
       </main>
 
+      {/* Modal de Detalle de Producto */}
+      {productoDetalle && (
+        <ProductDetailModal
+          product={productoDetalle}
+          onClose={() => setProductoDetalle(null)}
+          onBuyNow={(prod, qty) => {
+            setProductoDetalle(null);
+            setCheckoutData({ product: prod, quantity: qty });
+          }}
+        />
+      )}
+
       {/* Modal de Checkout / Compra Rápida como Invitado */}
-      {productoSeleccionado && (
+      {checkoutData && (
         <ModalCheckout
-          product={productoSeleccionado}
-          onClose={() => setProductoSeleccionado(null)}
+          product={checkoutData.product}
+          initialQuantity={checkoutData.quantity}
+          onClose={() => setCheckoutData(null)}
         />
       )}
 

@@ -13,7 +13,6 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -86,3 +85,74 @@ jobs:
       # abierto) y avisa si el JavaScript de arranque engordó de golpe.
       - name: El paquete no lleva el código fuente dentro
         run: node scripts/verificar-paquete.mjs
+
+  # ── Tests contra la base (paso 0.c de la migración a AWS) ──────────────────
+  #
+  # Levanta el Supabase LOCAL del runner (contenedores de Docker: Postgres +
+  # GoTrue + PostgREST + Storage) y corre `npm run test:db` contra él. No usa
+  # secretos de producción ni toca Supabase Cloud: las tres llaves salen de
+  # `supabase status` y mueren con el runner. Corre en paralelo con `verificar`.
+  #
+  # Por qué hay que copiar los stubs: producción tiene objetos creados desde el
+  # panel que ninguna migración crea, y la 0100 les hace REVOKE/GRANT, así que
+  # sin ellos `supabase start` revienta ahí. Se copian a la carpeta de
+  # migraciones DEL RUNNER (no se commitean). Las migraciones 0127-0131 los
+  # reemplazan por las versiones reales de producción. Ver
+  # docs/migracion-aws/staging-stubs/LEEME.md.
+  tests-base:
+    name: Tests contra la base (Supabase local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # `seed.sql` es la demo vieja (0001-0003) y ya no cuadra con el esquema
+      # (at_zones.facility_id es NOT NULL). Los tests crean sus propios datos,
+      # así que en el runner se quita: es lo mismo que `db reset --no-seed`.
+      - name: Añadir los stubs a las migraciones del runner
+        run: |
+          rm -f supabase/seed.sql
+          for f in 0000_staging_stubs 01085_staging_realtime 01086_staging_trigger_evento_pedido 01087_staging_encuesta; do
+            cp "docs/migracion-aws/staging-stubs/$f.sql" supabase/migrations/
+          done
+
+      # La CLI sale de package.json (versión fijada por package-lock), no de
+      # `@latest`: así el CI no cambia solo cuando sale una versión nueva.
+      # `start` aplica las migraciones desde cero; si alguna no aplica en orden
+      # limpio, falla aquí y es justo lo que queremos saber antes de migrar.
+      - name: Levantar Supabase local
+        run: npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,postgres-meta,mailpit,supavisor
+
+      - name: Exportar credenciales de la base local
+        run: |
+          eval "$(npx supabase status -o env)"
+          {
+            echo "SUPABASE_TEST_URL=$API_URL"
+            echo "SUPABASE_TEST_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_TEST_SERVICE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Tests de base
+        run: npm run test:db
+
+      # Retrato del esquema local para compararlo con el de producción
+      # (62 políticas): queda en el resumen de la ejecución.
+      - name: Conteo de políticas
+        if: always()
+        run: |
+          docker exec supabase_db_a-tiempo-logistica psql -U postgres -At -c \
+            "select schemaname, count(*) from pg_policies where schemaname in ('public','storage') group by 1; select 'total', count(*) from pg_policies where schemaname in ('public','storage');" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Apagar Supabase
+        if: always()
+        run: npx supabase stop --no-backup

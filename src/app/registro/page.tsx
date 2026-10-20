@@ -2,78 +2,65 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, LoaderCircle, UserPlus, Store, Bike, IdCard, Warehouse, Headset, Search, ArrowRight, Zap } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  UserPlus,
+  Store,
+  Bike,
+  IdCard,
+  ShoppingBag,
+  ArrowRight,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { BUSINESS_TYPES } from "@/lib/constants";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
 import { marcaDeAceptacion } from "@/lib/legal";
-
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
 import { FEATURES } from "@/lib/features";
-type RequestedRole = "cliente" | "mensajero" | "operario" | "admin_cedi" | "asesor";
 
-/** Un comercio devuelto por at_comercios_para_registro. */
-interface ComercioOpcion {
-  id: string;
-  business_name: string;
-}
+type RegistrationRole = "comprador" | "comercio" | "operario" | "mensajero";
 
 export default function RegisterPage() {
-  const [requestedRole, setRequestedRole] = useState<RequestedRole>("cliente");
+  const [selectedRole, setSelectedRole] = useState<RegistrationRole>("comprador");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [verPassword, setVerPassword] = useState(false);
-  // Datos del negocio (solo cliente e-commerce)
+
+  // Datos del negocio (exclusivos para rol Comercio / Tienda)
   const [businessType, setBusinessType] = useState<string>("");
   const [businessName, setBusinessName] = useState("");
   const [businessNit, setBusinessNit] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [businessCity, setBusinessCity] = useState("");
-  // Datos del local (solo CEDI afiliado): reutiliza businessName/businessAddress
-  // con otro rótulo — es el mismo dato, "nombre y dirección de la operación".
-  const [proposedCity, setProposedCity] = useState("");
-  // Asesor comercial: a qué comercio dice pertenecer. Se busca por nombre en
-  // vez de listar todos, porque la lista completa de comercios es información
-  // comercial de A Tiempo y no tiene por qué estar al alcance de cualquiera
-  // que abra el registro.
-  const [buscaComercio, setBuscaComercio] = useState("");
-  const [comercios, setComercios] = useState<ComercioOpcion[]>([]);
-  const [comercioElegido, setComercioElegido] = useState<ComercioOpcion | null>(null);
-  const [buscando, setBuscando] = useState(false);
 
-  // La casilla nace vacía a propósito: la Ley 1581 pide autorización expresa,
-  // y una casilla premarcada no es un acto de nadie.
+  // Consentimiento de datos personales y términos
   const [aceptaPoliticas, setAceptaPoliticas] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const isClient = requestedRole === "cliente";
-  const isCedi = requestedRole === "admin_cedi";
-  const isAsesor = requestedRole === "asesor";
+  const isComprador = selectedRole === "comprador";
+  const isComercio = selectedRole === "comercio";
+  const isOperario = selectedRole === "operario";
+  const isMensajero = selectedRole === "mensajero";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (isClient && !businessType) {
+    // Validación de campos comerciales únicamente para rol comercio
+    if (isComercio && !businessType) {
       setError("Selecciona el tipo de negocio.");
       return;
     }
-    if (isClient && !businessCity) {
-      setError("Dinos desde qué municipio despachas: de ahí sale el precio de tus domicilios.");
-      return;
-    }
-    if (isCedi && (!businessName.trim() || !proposedCity.trim() || !businessAddress.trim())) {
-      setError("El nombre del CEDI, la ciudad y la dirección del local son obligatorios.");
-      return;
-    }
-    if (isAsesor && !comercioElegido) {
-      setError("Busca y elige el comercio para el que trabajas.");
+    if (isComercio && !businessCity) {
+      setError("Dinos desde qué municipio despachas: de ahí sale la tarifa de tus envíos.");
       return;
     }
     if (!aceptaPoliticas) {
@@ -83,49 +70,34 @@ export default function RegisterPage() {
 
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        // Al confirmar, Supabase manda aquí; la ruta canjea el token —queda
-        // con sesión si abrió el enlace en el mismo navegador— y lleva a la
-        // portada. Ahí puede entrar con esa sesión o instalar la app; no se
-        // le da por hecho que el navegador donde revisó el correo es el que
-        // va a usar para trabajar, que en el teléfono es un dueño de comercio
-        // de cada tres.
         emailRedirectTo: `${window.location.origin}/auth/confirmar?next=/inicio`,
         data: {
           full_name: fullName,
           phone: phone || null,
-          requested_role: requestedRole,
-          // Cuándo aceptó y qué versión: sin esto no hay forma de demostrar
-          // qué texto tenía delante el día que dijo que sí.
+          requested_role: isOperario ? "operario" : isMensajero ? "mensajero" : "cliente",
+          account_type: isComprador ? "comprador" : isComercio ? "comercio" : selectedRole,
+          tipo_registro: selectedRole,
           ...marcaDeAceptacion(),
-          ...(isClient
+          ...(isComercio
             ? {
                 business_type: businessType,
-                business_name: businessName,
+                business_name: businessName || fullName,
                 business_nit: businessNit || null,
                 business_address: businessAddress || null,
                 business_city: businessCity,
               }
             : {}),
-          ...(isCedi
-            ? {
-                business_name: businessName,
-                business_address: businessAddress,
-                proposed_city: proposedCity,
-              }
-            : {}),
-          ...(isAsesor && comercioElegido
-            ? { requested_client_id: comercioElegido.id }
-            : {}),
         },
       },
     });
+
     setLoading(false);
-    if (error) {
-      setError(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
       return;
     }
     setDone(true);
@@ -141,9 +113,13 @@ export default function RegisterPage() {
     <div className="min-h-screen flex flex-col items-center justify-center font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 p-4 py-10 transition-colors duration-300">
       <FondoRegistro />
       <div className="w-full max-w-md">
+        
+        {/* Cabecera / Logo */}
         <div className="flex flex-col items-center text-center">
           <div className="mb-6">
-            <Logo />
+            <Link href="/" className="hover:opacity-90 transition-opacity">
+              <Logo />
+            </Link>
           </div>
           {done ? (
             <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
@@ -154,12 +130,12 @@ export default function RegisterPage() {
               <h1 className="text-[28px] font-bold tracking-tight text-slate-900 dark:text-white">
                 Crear cuenta
               </h1>
-              <p className="mt-2 text-[16px] text-slate-500 dark:text-slate-400">
-                {requestedRole === "operario"
-                  ? "Administración verificará tus datos y aprobará tu acceso"
-                  : isCedi
-                    ? "Sube los documentos de tu solicitud y espera la aprobación"
-                    : "Confirma tu correo y entras de una vez"}
+              <p className="mt-2 text-[15px] sm:text-[16px] text-slate-500 dark:text-slate-400 leading-snug">
+                {isOperario
+                  ? "Administración verificará tus datos y activará tu acceso operativo"
+                  : isComercio
+                  ? "Registra tu tienda para vender en la vitrina regional"
+                  : "Crea tu cuenta para comprar y consultar tus pedidos"}
               </p>
             </>
           )}
@@ -172,71 +148,90 @@ export default function RegisterPage() {
                 Te enviamos un correo a{" "}
                 <strong className="text-slate-700 dark:text-slate-300">{email}</strong>.
                 Abre el enlace para confirmar tu cuenta
-                {requestedRole === "operario" ? (
+                {isOperario ? (
                   <>
                     . Como te registraste como personal de A Tiempo, un
                     administrador revisará tus datos y activará tu acceso.
                   </>
-                ) : isCedi ? (
+                ) : isComercio ? (
                   <>
-                    . Ahí mismo entras a subir los documentos de tu solicitud —cédula y
-                    los del local—, y un administrador nacional la revisa y la aprueba.
+                    {" "}y empieza a publicar tus productos y administrar despachos en YAM.
                   </>
                 ) : (
                   <>
-                    {" "}
-                    y entra de inmediato como{" "}
-                    <strong className="text-slate-700 dark:text-slate-300">
-                      {isClient ? "Cliente e-commerce" : "Mensajero"}
-                    </strong>
-                    .
+                    {" "}para consultar tus compras y hacer seguimiento a tus envíos.
                   </>
                 )}
               </p>
               <p className="text-[14px] text-slate-400 dark:text-slate-500">
-                ¿No te llegó? Revisa la carpeta de spam.
+                ¿No te llegó? Revisa la carpeta de spam o correo no deseado.
               </p>
               <Link
                 href="/login"
                 className="w-full flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px]"
               >
-                <span>Ir a ingresar</span>
+                <span>Ir a iniciar sesión</span>
               </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              
               {/* Selector de rol solicitado */}
               <div>
                 <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
                   ¿Cómo te vas a registrar?
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {(
                     [
-                      { value: "cliente", label: "Cliente e-commerce", icon: Store },
+                      {
+                        value: "comprador" as RegistrationRole,
+                        label: "Comprador",
+                        hint: "Comprar y pedidos",
+                        icon: ShoppingBag,
+                      },
+                      {
+                        value: "comercio" as RegistrationRole,
+                        label: "Comercio / Tienda",
+                        hint: "Vender productos",
+                        icon: Store,
+                      },
+                      {
+                        value: "operario" as RegistrationRole,
+                        label: "Personal ATL",
+                        hint: "Equipo y CEDI",
+                        icon: IdCard,
+                      },
                       ...(FEATURES.MOSTRAR_MENSAJERIA_PUBLICO
-                        ? [{ value: "mensajero" as RequestedRole, label: "Mensajero", icon: Bike }]
+                        ? [
+                            {
+                              value: "mensajero" as RegistrationRole,
+                              label: "Mensajero",
+                              hint: "Domicilios",
+                              icon: Bike,
+                            },
+                          ]
                         : []),
-                      { value: "operario", label: "Personal ATL", icon: IdCard },
-                      { value: "asesor", label: "Asesor comercial", icon: Headset },
-                      { value: "admin_cedi", label: "CEDI afiliado", icon: Warehouse },
-                    ] as { value: RequestedRole; label: string; icon: typeof Store }[]
+                    ]
                   ).map((opt) => {
-                    const selected = requestedRole === opt.value;
+                    const selected = selectedRole === opt.value;
                     return (
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setRequestedRole(opt.value)}
-                        className={`flex flex-col items-center justify-center gap-2 rounded-2xl px-3 py-4 border transition-all active:scale-[0.98] ${
+                        onClick={() => setSelectedRole(opt.value)}
+                        className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl p-3 sm:p-4 border transition-all active:scale-[0.98] ${
                           selected
-                            ? "border-[#ff812c] bg-[#ff812c]/10 text-[#ff812c]"
-                            : "border-transparent atl-superficie text-slate-600 dark:text-slate-300 shadow-sm"
+                            ? "border-[#ff812c] bg-[#ff812c]/10 text-[#ff812c] shadow-sm ring-1 ring-[#ff812c]"
+                            : "border-slate-200/80 dark:border-white/10 atl-superficie text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-white/20 shadow-sm"
                         }`}
                       >
-                        <opt.icon className="w-6 h-6" />
-                        <span className="text-[14px] font-semibold leading-tight text-center">
+                        <opt.icon className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                        <span className="text-[13px] sm:text-[14px] font-bold leading-tight text-center">
                           {opt.label}
+                        </span>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 text-center leading-none hidden sm:block">
+                          {opt.hint}
                         </span>
                       </button>
                     );
@@ -244,7 +239,7 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* Datos de la persona */}
+              {/* Datos de la persona (Siempre visibles para todos los roles) */}
               <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
                 <div className={fieldRow}>
                   <label className={fieldLabel}>Nombre</label>
@@ -257,12 +252,14 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className={fieldRow}>
-                  <label className={fieldLabel}>Teléfono</label>
+                  <label className={fieldLabel}>WhatsApp</label>
                   <input
+                    type="tel"
+                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className={fieldInput}
-                    placeholder="3001234567"
+                    placeholder="300 123 4567"
                   />
                 </div>
                 <div className={fieldRow}>
@@ -273,7 +270,7 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className={fieldInput}
-                    placeholder="tu@empresa.co"
+                    placeholder="tu@correo.com"
                   />
                 </div>
                 <div className={`${fieldRow} border-b-0`}>
@@ -281,29 +278,27 @@ export default function RegisterPage() {
                   <input
                     type={verPassword ? "text" : "password"}
                     required
-                    minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={fieldInput}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setVerPassword((v) => !v)}
                     aria-label={verPassword ? "Ocultar contraseña" : "Ver contraseña"}
-                    aria-pressed={verPassword}
-                    className="shrink-0 -mr-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-gray-700 active:opacity-70 transition-colors"
+                    className="shrink-0 -mr-1 w-10 h-10 inline-flex items-center justify-center rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 active:opacity-70 transition-colors"
                   >
                     {verPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
-              {/* Datos del negocio (solo cliente e-commerce) */}
-              {isClient && (
+              {/* Sección exclusiva: Datos del Negocio (Solo visible para Comercio / Tienda) */}
+              {isComercio && (
                 <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                  {/* Respaldo contable y financiero */}
-                  <div className="rounded-2xl p-4 bg-emerald-500/10 border border-emerald-500/20 text-xs sm:text-sm text-emerald-900 dark:text-emerald-300 flex items-start gap-3">
+                  {/* Tarjeta de Respaldo Contable y Financiero SolV */}
+                  <div className="rounded-2xl p-4 bg-emerald-500/10 border border-emerald-500/20 text-xs sm:text-sm text-emerald-900 dark:text-emerald-300 flex items-start gap-3 shadow-sm">
                     <span className="text-xl shrink-0">💼</span>
                     <div className="space-y-1">
                       <p className="font-bold text-slate-900 dark:text-white">
@@ -324,219 +319,75 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
-                    Datos de tu negocio
-                  </p>
-                  <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
-                    <div className={fieldRow}>
-                      <label className={fieldLabel}>Tipo</label>
-                      <select
-                        required
-                        value={businessType}
-                        onChange={(e) => setBusinessType(e.target.value)}
-                        className={`${fieldInput} appearance-none cursor-pointer ${
-                          businessType ? "" : "text-slate-400 dark:text-slate-500"
-                        }`}
-                      >
-                        {/* Corto a propósito: al lado ya está la etiqueta
-                            «Tipo», y el texto largo no cabía en el desplegable
-                            de un teléfono angosto. */}
-                        <option value="">Selecciona…</option>
-                        {BUSINESS_TYPES.map((t) => (
-                          <option key={t} value={t} className="text-slate-900">
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className={fieldRow}>
-                      <label className={fieldLabel}>Comercio</label>
-                      <input
-                        required
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        className={fieldInput}
-                        placeholder="Razón social o marca"
-                      />
-                    </div>
-                    <div className={fieldRow}>
-                      <label className={fieldLabel}>NIT</label>
-                      <input
-                        value={businessNit}
-                        onChange={(e) => setBusinessNit(e.target.value)}
-                        className={fieldInput}
-                        placeholder="123456789-0 (opcional)"
-                      />
-                    </div>
-                    <div className={fieldRow}>
-                      <label className={fieldLabel}>Dirección</label>
-                      <input
-                        value={businessAddress}
-                        onChange={(e) => setBusinessAddress(e.target.value)}
-                        className={fieldInput}
-                        placeholder="Dirección del comercio (opcional)"
-                      />
-                    </div>
-                    {/* Obligatorio aunque la dirección no lo sea: de aquí sale la
-                        zona del comercio, y de la zona el precio de sus domicilios.
-                        Preguntarlo ahora evita tener que perseguirlo después, con
-                        guías ya cobradas a la tarifa que no era. */}
-                    <div className={`${fieldRow} border-b-0`}>
-                      <label className={fieldLabel}>Municipio</label>
-                      <select
-                        required
-                        value={businessCity}
-                        onChange={(e) => setBusinessCity(e.target.value)}
-                        className={`${fieldInput} appearance-none cursor-pointer`}
-                      >
-                        <option value="">¿Desde dónde despachas?</option>
-                        {CIUDADES_OPERADAS.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Asesor comercial: para quién trabaja.
-                  Se busca por nombre y no se listan todos: la lista completa de
-                  comercios es información comercial de A Tiempo, y un desplegable
-                  la regalaría a cualquiera que abra el registro. La búsqueda pide
-                  tres letras y va con freno de solicitudes del lado del servidor. */}
-              {isAsesor && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
-                    ¿Para qué comercio trabajas?
-                  </p>
-                  <div className="atl-superficie rounded-2xl overflow-hidden shadow-sm transition-colors duration-300">
-                    {comercioElegido ? (
-                      <div className="flex items-center gap-3 px-4 py-4">
-                        <Store className="w-5 h-5 shrink-0 text-[#ff812c]" />
-                        <p className="flex-1 text-[16px] font-semibold text-slate-900 dark:text-white">
-                          {comercioElegido.business_name}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setComercioElegido(null);
-                            setBuscaComercio("");
-                            setComercios([]);
-                          }}
-                          className="text-[14px] font-semibold text-[#ff812c] active:opacity-70"
+                  <div>
+                    <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
+                      Datos de tu negocio
+                    </p>
+                    <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
+                      <div className={fieldRow}>
+                        <label className={fieldLabel}>Tipo</label>
+                        <select
+                          required
+                          value={businessType}
+                          onChange={(e) => setBusinessType(e.target.value)}
+                          className={`${fieldInput} appearance-none cursor-pointer ${
+                            businessType ? "" : "text-slate-400 dark:text-slate-500"
+                          }`}
                         >
-                          Cambiar
-                        </button>
+                          <option value="">Selecciona tipo de negocio…</option>
+                          {BUSINESS_TYPES.map((t) => (
+                            <option key={t} value={t} className="text-slate-900">
+                              {t}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08]">
-                          <Search className="w-5 h-5 shrink-0 text-slate-400 mr-2" />
-                          <input
-                            value={buscaComercio}
-                            onChange={async (e) => {
-                              const q = e.target.value;
-                              setBuscaComercio(q);
-                              if (q.trim().length < 3) {
-                                setComercios([]);
-                                return;
-                              }
-                              setBuscando(true);
-                              const supabase = createClient();
-                              const { data } = await supabase.rpc("at_comercios_para_registro", {
-                                p_busca: q,
-                              });
-                              setBuscando(false);
-                              setComercios((data as ComercioOpcion[]) ?? []);
-                            }}
-                            placeholder="Escribe el nombre del comercio"
-                            className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white"
-                          />
-                          {buscando && (
-                            <LoaderCircle className="w-4 h-4 shrink-0 animate-spin text-slate-400" />
-                          )}
-                        </div>
-
-                        {buscaComercio.trim().length > 0 && buscaComercio.trim().length < 3 && (
-                          <p className="px-4 py-3 text-[14px] text-slate-400">
-                            Escribe al menos tres letras.
-                          </p>
-                        )}
-
-                        {comercios.length > 0 && (
-                          <ul className="max-h-56 overflow-y-auto divide-y divide-slate-900/[0.06] dark:divide-white/[0.08]">
-                            {comercios.map((c) => (
-                              <li key={c.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => setComercioElegido(c)}
-                                  className="w-full px-4 py-3 text-left text-[16px] text-slate-900 dark:text-white active:bg-[#F2F2F7] dark:active:bg-[#1C1C1E]"
-                                >
-                                  {c.business_name}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-
-                        {buscaComercio.trim().length >= 3 && !buscando && comercios.length === 0 && (
-                          <p className="px-4 py-3 text-[14px] leading-snug text-slate-400">
-                            No encontramos ningún comercio con ese nombre. Pregúntale a tu
-                            jefe con qué nombre está registrado.
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  <p className="mt-2 ml-1 text-[13px] leading-snug text-slate-500 dark:text-slate-400">
-                    Tu jefe recibirá tu solicitud y tendrá que confirmar que trabajas allí
-                    antes de que puedas entrar.
-                  </p>
-                </div>
-              )}
-
-              {/* Datos del CEDI que se quiere afiliar */}
-              {isCedi && (
-                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                  <p className="text-[13px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide ml-1 mb-2">
-                    Datos del CEDI
-                  </p>
-                  <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
-                    <div className={fieldRow}>
-                      <label className={fieldLabel}>Nombre</label>
-                      <input
-                        required
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        className={fieldInput}
-                        placeholder="CEDI Cali Norte"
-                      />
-                    </div>
-                    <div className={fieldRow}>
-                      <label className={fieldLabel}>Ciudad</label>
-                      <input
-                        required
-                        value={proposedCity}
-                        onChange={(e) => setProposedCity(e.target.value)}
-                        className={fieldInput}
-                        placeholder="Cali"
-                      />
-                    </div>
-                    <div className={`${fieldRow} border-b-0`}>
-                      <label className={fieldLabel}>Local</label>
-                      <input
-                        required
-                        value={businessAddress}
-                        onChange={(e) => setBusinessAddress(e.target.value)}
-                        className={fieldInput}
-                        placeholder="Dirección de la bodega o local"
-                      />
+                      <div className={fieldRow}>
+                        <label className={fieldLabel}>Marca</label>
+                        <input
+                          required
+                          value={businessName}
+                          onChange={(e) => setBusinessName(e.target.value)}
+                          className={fieldInput}
+                          placeholder="Nombre comercial de la tienda"
+                        />
+                      </div>
+                      <div className={fieldRow}>
+                        <label className={fieldLabel}>NIT / CC</label>
+                        <input
+                          value={businessNit}
+                          onChange={(e) => setBusinessNit(e.target.value)}
+                          className={fieldInput}
+                          placeholder="Opcional"
+                        />
+                      </div>
+                      <div className={fieldRow}>
+                        <label className={fieldLabel}>Dirección</label>
+                        <input
+                          value={businessAddress}
+                          onChange={(e) => setBusinessAddress(e.target.value)}
+                          className={fieldInput}
+                          placeholder="Dirección de bodega o despacho (opcional)"
+                        />
+                      </div>
+                      <div className={`${fieldRow} border-b-0`}>
+                        <label className={fieldLabel}>Municipio</label>
+                        <select
+                          required
+                          value={businessCity}
+                          onChange={(e) => setBusinessCity(e.target.value)}
+                          className={`${fieldInput} appearance-none cursor-pointer`}
+                        >
+                          <option value="">¿Desde dónde despachas?</option>
+                          {CIUDADES_OPERADAS.map((c) => (
+                            <option key={c} value={c} className="text-slate-900">
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
-                  <p className="mt-2 ml-1 text-[13px] text-slate-500 dark:text-slate-400">
-                    Al confirmar el correo entras a subir tu cédula y los papeles del local.
-                    Nada de esto opera hasta que A Tiempo lo apruebe.
-                  </p>
                 </div>
               )}
 
@@ -548,11 +399,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* La autorización de datos.
-                  Va pegada al botón y no escondida en el pie: la ley pide que
-                  sea informada y expresa, así que tiene que estar donde se
-                  decide. Los enlaces abren en otra pestaña para que nadie
-                  pierda el formulario a medio llenar por ir a leerlos. */}
+              {/* Autorización de datos personales y términos legales */}
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-white/60 p-4 dark:bg-white/[0.04]">
                 <input
                   type="checkbox"
@@ -581,22 +428,32 @@ export default function RegisterPage() {
                 </span>
               </label>
 
+              {/* Botón de envío dinámico */}
               <button
                 type="submit"
                 disabled={loading || !aceptaPoliticas}
-                className="w-full flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px] disabled:opacity-60"
+                className="w-full flex items-center justify-center space-x-2 bg-[#ff812c] hover:bg-[#ff812c]/90 active:scale-[0.98] transition-transform text-[#1C1C1E] font-bold rounded-xl min-h-[52px] disabled:opacity-60 shadow-sm"
               >
                 {loading ? (
                   <LoaderCircle className="w-5 h-5 animate-spin text-[#1C1C1E]" />
                 ) : (
                   <UserPlus className="w-5 h-5 text-[#1C1C1E]" />
                 )}
-                <span>Enviar solicitud</span>
+                <span>
+                  {isComprador
+                    ? "Crear cuenta de comprador"
+                    : isComercio
+                    ? "Registrar comercio"
+                    : "Enviar solicitud"}
+                </span>
               </button>
 
               <p className="text-center text-[15px] text-slate-500 dark:text-slate-400">
                 ¿Ya tienes cuenta?{" "}
-                <Link href="/login" className="font-semibold text-[#ff812c] hover:underline active:opacity-70 transition-opacity">
+                <Link
+                  href="/login"
+                  className="font-semibold text-[#ff812c] hover:underline active:opacity-70 transition-opacity"
+                >
                   Ingresa
                 </Link>
               </p>

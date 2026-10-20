@@ -1,0 +1,176 @@
+# BORRADOR SIN PROBAR DE EXTREMO A EXTREMO.
+# Las versiones son las que `supabase start` levantó en el staging local y
+# contra las que pasan los 83 tests de BD, para que migraciones y servicios
+# hayan convivido ya. Lo que cambia respecto al staging: aquí no hay Kong; las
+# rutas las reparte Caddy (ver Caddyfile). Probar en local con Docker ANTES de
+# crear nada en AWS.
+#
+# Las variables vienen de /opt/yam/.env, que genera bootstrap.sh.
+name: yam
+
+x-registro: &registro
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" } # que los logs no llenen el disco
+
+services:
+  db:
+    <<: *registro
+    image: public.ecr.aws/supabase/postgres:17.11.0.004
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: "3600"
+    volumes:
+      - /data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Sin puertos publicados: solo los demás contenedores y `docker exec` llegan.
+
+  auth:
+    <<: *registro
+    image: public.ecr.aws/supabase/gotrue:v2.197.0
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: https://${API_HOST}
+      # Sin esto GoTrue ignora el host que reenvía Caddy y lo avisa en cada petición.
+      GOTRUE_MAILER_EXTERNAL_HOSTS: ${API_HOST}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: https://${SITIO}
+      GOTRUE_URI_ALLOW_LIST: https://${SITIO}/**,https://yam.atiempologistica.com/**,https://atiempologistica.com/**,https://www.atiempologistica.com/**,https://atiempo-logistica.vercel.app/**
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      # DECISIÓN ABIERTA: con "false" hace falta SMTP que funcione (SES sigue en
+      # sandbox: solo envía a correos verificados). Con "true" cualquiera se
+      # registra sin confirmar su correo.
+      GOTRUE_MAILER_AUTOCONFIRM: ${MAILER_AUTOCONFIRM}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_SENDER_NAME: A Tiempo Logística
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9999/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  storage:
+    <<: *registro
+    image: public.ecr.aws/supabase/storage-api:v1.82.1
+    depends_on:
+      db: { condition: service_healthy }
+      auth: { condition: service_healthy }
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: "52428800"
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: yam
+      REGION: us-east-1
+      GLOBAL_S3_BUCKET: yam
+    volumes:
+      - /data/storage:/var/lib/storage
+
+  rest:
+    <<: *registro
+    image: public.ecr.aws/supabase/postgrest:v16.4
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: "3600"
+    command: ["postgrest"]
+
+  realtime:
+    <<: *registro
+    image: public.ecr.aws/supabase/realtime:v2.143.4
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      PORT: "4000"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: SET search_path TO _realtime
+      DB_ENC_KEY: supabaserealtime
+      API_JWT_SECRET: ${JWT_SECRET}
+      # Obligatoria desde las versiones recientes: sin ella el contenedor muere
+      # al arrancar (lo encontró la prueba local con la v2.143.4).
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+
+  # Las edge functions (enviar-mensajes, shopify-sync). En la nube las corría
+  # la plataforma; aquí, el mismo runtime que usa Supabase, con un enrutador
+  # propio (functions/main). Las credenciales de Twilio / WhatsApp Cloud API
+  # son opcionales: sin ellas enviar-mensajes responde y no manda nada.
+  functions:
+    <<: *registro
+    image: public.ecr.aws/supabase/edge-runtime:v1.77.4
+    depends_on: { db: { condition: service_healthy } }
+    command: ["start", "--main-service", "/home/deno/functions/main"]
+    environment:
+      SUPABASE_URL: https://${API_HOST}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_SMS_FROM: ${TWILIO_SMS_FROM:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+      # SMS desde un celular Android propio (app SMS Gateway for Android).
+      SMSGATE_URL: ${SMSGATE_URL:-}
+      SMSGATE_USER: ${SMSGATE_USER:-}
+      SMSGATE_PASS: ${SMSGATE_PASS:-}
+      # Correo del código de entrega: el mismo SMTP de SES que usa GoTrue.
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+    volumes:
+      - ./functions:/home/deno/functions:ro
+
+  caddy:
+    <<: *registro
+    image: public.ecr.aws/docker/library/caddy:2
+    depends_on: [rest, auth, storage, realtime, functions]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_HOST: ${API_HOST}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /data/caddy:/data

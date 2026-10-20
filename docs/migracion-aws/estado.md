@@ -8,7 +8,12 @@
 > añadir la línea del día a la bitácora de la bóveda (`40 Bitácora/`).
 
 **Fase actual: 0 — Red de seguridad**
-**Última actualización: 2026-09-08 — 0.2 y 0.6 avanzados; 0.1 bloqueado en Docker**
+**Última actualización: 2026-10-18 — Docker instalado; 0.1 ya no está bloqueado: el staging arranca pero falla en la migración 0100 (falta baseline de producción); Fase 1 ya estaba aplicada**
+
+> **2026-10-18 (verificado contra AWS, solo lectura).** Cuenta `126356678380`, usuario `henry-terraform`, `us-east-1`.
+> - Fase 1 está **aplicada desde 2026-08-17**: estado `s3://atl-terraform-estado/yam/1-hibrido.tfstate`, zona Route 53 `atiempologistica.com`, SES (identidad del dominio), CloudFront `E1U307A1V4FDED`, bucket `atl-yam-logos-marca`, Lambda `yam-shopify-sync`, regla `yam-shopify-cada-15-min` ENABLED, secreto `yam/shopify-reloj`.
+> - Fase 2 **no** aplicada: no hay ECS ni Aurora. `terraform validate` OK y `plan` = **101 a crear, 0 a destruir** (sin aplicar, a petición de Henry).
+> - El dominio **sigue en GoDaddy** (`ns29/ns30.domaincontrol.com`) y resuelve a Vercel (`216.198.79.1`): el paso 1.4 está pendiente.
 
 ---
 
@@ -49,10 +54,17 @@ Reglas de comparación después de un corte:
 
 ## Fase 0 — Red de seguridad · bloqueante
 
-- [~] **0.1** Staging local: `supabase start` + `db reset` reconstruye las 106 migraciones sin error
-      → **BLOQUEADO**: Docker Desktop no arranca el daemon. Henry tiene que abrirlo y confirmar que está corriendo. `[db] major_version = 17` ya añadido a `supabase/config.toml`.
+- [~] **0.1** Staging local: `supabase start` + `db reset` reconstruye las migraciones sin error
+      → **FALLA en 0100** (2026-10-18, Docker ya instalado, `supabase start` aplica 0001-0100 bien): `0100_nadie_sin_sesion_llama_lo_que_no_es_suyo.sql:45` hace `revoke execute on function public.at_evento_al_crear_pedido()` y esa función **no la crea ninguna migración local** (solo existe en producción). Veredicto de la rama (3) de «Notas»: **la carpeta local no es fiel → hay que regenerar un baseline desde producción** (`supabase db dump`, necesita la contraseña de la BD) y usarlo como `0000` del staging. **Actualización:** con 3 funciones + 2 tablas + 1 membresía de publicación como stubs (`docs/migracion-aws/staging-stubs/`), las 119 migraciones aplican completas. Retrato local vs control: tablas 33=33, índices 100=100, enums 12=12, cron 5=5; **funciones 143 vs 150, triggers 22 vs 23, políticas 63 vs 62, falta bucket `evidencias`**. Sigue pendiente el baseline real (producción pausada por facturas impagas de la org).
+      → _(superado: con red nueva las imágenes bajaron y `supabase start` llegó hasta la migración 0100; lo de abajo describe el bloqueo previo)_ Docker Desktop 4.95 ya está instalado y el daemon responde (29.8.2; hizo falta `wsl --shutdown` para destrabar WSL2). `supabase start` falló al bajar las imágenes: (1) errores TLS intermitentes contra public.ecr.aws / ghcr.io / docker.io (la red, no Supabase; no se desactivó la verificación) y (2) **disco C: sin espacio** (~1 GB libres de 237; las imágenes necesitan ~4 GB). Hecho: postgrest y kong bajados. Falta: gotrue, realtime, storage-api, postgres. Para retomar: liberar ≥ 8 GB en C: (caches de npm/.cache/Temp) y reintentar `npx supabase@latest start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,supavisor,postgres-meta` con `C:\Program Files\Docker\Docker\resources\bin` en el PATH. `[db] major_version = 17` ya añadido a `supabase/config.toml`.
 - [x] **0.2** Huecos de numeración explicados — **veredicto abajo**. Pero apareció algo más gordo: la carpeta local **no corresponde** al historial de la nube. Ver «Notas».
-- [ ] **0.3** Los 75 tests de BD despiertos y en verde contra staging (`npm run test:db`) — depende de 0.1
+- [x] **0.3** Tests de BD contra staging parchado (`npm run test:db`) — 2026-10-18: **83 de 83 en verde** (eran 81/83; ver «RESUELTO» abajo). Con la salvedad de que el staging lleva stubs y no es el baseline real de producción.
+      Los 3 fallos de `catalogo.test.ts` NO eran un objeto faltante: eran un defecto del arnés. (1) `crearUsuario` pasa `{role}` en `user_metadata` pero `at_handle_new_user` nunca lo lee: todo perfil nace `pendiente`, así que `at_ensure_my_client` lanzaba «Solo una cuenta de cliente…» y muchos tests pasaban en vacío por sus `if (!clientId) return`. (2) Sin nombre, `at_ensure_my_client`/`at_autocreate_client` enlazan por nombre normalizado y todos caen en «Comercio sin nombre» = el MISMO comercio (A veía el catálogo de B). Arreglo en `tests/db/harness.ts` (sin commitear): asigna el rol con la llave de servicio y un `business_name` único.
+      Quedan 2 en `cobro.test.ts`, sin diagnosticar del todo: (a) «sin return_rate cobra cero» hace `update return_rate = null` pero la columna es `not null default 3000` (0001) → el update falla en silencio y cobra 7.500; a menos que producción la haya vuelto nullable fuera de migraciones. (b) «trigger = botón»: el trigger cobra 16.000 con `shipping_fee` 14.500 y el botón no factura la guía (-2). Probable prueba vieja frente a migraciones 0114-0124, sin confirmar.
+      **Reproducido de forma independiente el 2026-10-18 (segunda pasada):** `db reset --local --no-seed` desde una carpeta de trabajo con los dos stubs → las 121 migraciones (hasta 0124) aplican; `retrato.sql` local = 33 tablas · 100 índices · 12 enums · 5 cron · 143 funciones · 22 triggers · 63 políticas · 5 buckets (sin `evidencias`); `npm run test:db` = **81/83**, los mismos 2 fallos de `cobro.test.ts`. Lectura de los 2: (b) `a`=16.000 (el trigger) y `b`=−2 significa que `itemB` es **null**: la guía B nace sin pasar a `entregada`, así que el botón no la factura. Es defecto del test, no del cobro. Y 16.000 no es el `shipping_fee` (14.500): coincide con una tarifa por zona de la 0114 (`MED-NP` 15.500→16.000), o sea que desde 0057/0062 el cobro sale de la tarifa de zona y no de `shipping_fee` — **hipótesis, no verificada**. (a) sigue siendo columna `NOT NULL` en el `update`. Ambos son tests desactualizados; falta decidir si se reescriben o se retiran.
+      **RESUELTO 2026-10-18 — `test:db` = 83/83.** Hipótesis verificada con matiz: el cobro sí lee `g.shipping_fee` (0062), pero al crear la guía `at_guides_asigna_zona` le resuelve la zona por la dirección y el trigger `at_set_guide_shipping_fee` (BEFORE INSERT/UPDATE OF zone_id, 0051/0072) **pisa** `shipping_fee` con `at_precio_domicilio` (tarifa de zona, 16.000 en el staging). El 14.500 que pasaba el test se descartaba. Reescritos en `tests/db/cobro.test.ts` (sin commitear): (b) ya no hardcodea 14.500, lee la tarifa congelada de la guía A, crea B directamente como `entregada` (el trigger de facturar es solo UPDATE y el de tarifa no toca guías entregadas) con esa misma tarifa, factura por el botón con ventana de ±1 día (UTC vs Bogotá) y exige a = b = tarifa; (a) pasa a «devolución de un comercio que no existe cobra cero» porque `return_rate` es `NOT NULL default 3000` y el caso null era inalcanzable. Verificado por mutación que (b) llega a sus `expect` (con `toBe(-1)` falla viendo a=b=16000). **Ojo, producción:** si el tarifario por zona mueve el domicilio, `shipping_fee` de una guía **no entregada** cambia al editar su zona; solo queda congelado desde `entregada`/`devuelta`/`cancelada`.
+      **`supabase/seed.sql` está roto** frente a las migraciones: inserta en `at_zones` sin `facility_id` (hoy `NOT NULL`) → `db reset` con seed falla al final (`MigrationSeedError`). El staging se levanta con `--no-seed`; los tests crean sus propios datos.
+      **Aviso de colisión:** `supabase start` expone los puertos 54321/54322 del proyecto `a-tiempo-logistica`; dos sesiones que hagan `db reset` a la vez se pisan la misma base. Mi primer `db reset` (sin stubs, desde el repo) la dejó a medias en la 0100 y hubo que rehacerla.
 - [~] **0.4** `test:db` en CI — **borrador listo** en `docs/migracion-aws/ci-tests-base.draft.yml`, se arma cuando 0.3 esté verde
 - [ ] **0.5** Mudanza de Supabase por transferencia ejecutada · proyecto bajo org propia · subido a Pro · MCP reconectado · `retrato.sql` idéntico — **acción de Henry en el panel**
 - [x] **0.6** Retrato-control completo pegado arriba + pie de `retrato.sql` actualizado
@@ -119,13 +131,13 @@ resultado decide si vamos por (2) o por (3).
 
 ## Fase 1 — Piezas de borde (`infra/aws/1-hibrido/`) · puede ir en paralelo
 
-- [ ] **1.1** Bucket `atl-terraform-estado` (us-east-1) con versionado y bloqueo público
-- [ ] **1.2** `terraform plan` de `1-hibrido/` revisado — ~25 recursos, cero `destroy`
-- [ ] **1.3** `terraform apply` — Route 53, SES, S3+CloudFront, Lambda Shopify, presupuesto
-- [ ] **1.4** Dominio: NS al registrador · Vercel Domains · Supabase Auth URL Configuration
-- [ ] **1.5** Reloj de Shopify en Lambda verde (`invoke` sin 401) · cron viejo apagado (`cron.unschedule('at-shopify')`)
+- [x] **1.1** Bucket `atl-terraform-estado` (us-east-1) con versionado (`Enabled`, verificado 2026-10-18)
+- [~] **1.2** `terraform plan` de `1-hibrido/` revisado — no hay constancia; el estado ya existe. Falta correr un `plan` para confirmar que no hay deriva
+- [~] **1.3** `terraform apply` — **aplicado el 2026-08-17** (zona Route 53, identidad SES, CloudFront, Lambda, regla EventBridge, secreto existen). Falta confirmar presupuesto/SNS y deriva con un `plan`
+- [ ] **1.4** Dominio: NS al registrador · Vercel Domains · Supabase Auth URL Configuration — **pendiente: los NS siguen en GoDaddy** (2026-10-18)
+- [~] **1.5** Reloj de Shopify: Lambda y regla (cada 15 min) ENABLED. Sin verificar: `invoke` sin 401 y `cron.unschedule('at-shopify')` en Supabase
 - [ ] **1.6** Salida del sandbox de SES solicitada
-- [ ] **1.7** Suscripción SNS confirmada (clic en el correo de AWS)
+- [x] **1.7** Suscripción SNS `yam-alertas` confirmada (Confirmed=1, Pending=0, 2026-10-18)
 
 **Puerta 1 → 2:** dominio resuelve por Route 53 · Lambda de Shopify estable · alarmas llegan de verdad.
 Estado de la puerta: **cerrada**
@@ -135,7 +147,36 @@ _(vacío)_
 
 ---
 
-## Fase 2 — Camino A (`infra/aws/2-plataforma/`) · ventana de mantenimiento
+## Backend sin Supabase Cloud — instancia única con créditos · **borrador, nada creado** (2026-10-18)
+
+Henry descartó Supabase Cloud y pidió una opción gratuita y responsable; la más cercana es una sola EC2 con la pila abierta pagada con los 137,66 USD de créditos de la cuenta (≈34 USD/mes, ~4 meses). Plan completo y decisiones pendientes: `plan-instancia-unica.md`. Código: `infra/aws/3-instancia/` (`terraform validate` OK; `plan` = 23 a crear, 0 a destruir).
+
+- [x] **I.0** Probar el compose en local con Docker y correr `test:db` contra esa pila (sin AWS) — **hecho 2026-10-18**: 83/83 y humo 8/8; corregidos 4 fallos reales (contraseñas de roles, esquema `_realtime`, `METRICS_JWT_SECRET`, CORS); dump restaurable. Frontend probado en navegador el 2026-10-19 (registro, login, pedido, encuesta, logo): todo bien; ver `plan-instancia-unica.md`. **Corrección:** el cliente e-commerce nace activo, no pendiente. Herramienta: `infra/aws/3-instancia/prueba-local/`
+- [x] **I.1** Decisiones de Henry (2026-10-18): correo en **dos fases** (autoconfirmar al salir, SES después) · **t4g.medium** + 2 GB de swap · créditos: **asumir 6 meses y re-verificar ~2027-01-18** · DNS con **registros puntuales en GoDaddy** (sin mover NS; el A de api ya creado, quedan 5 del correo) · respaldo con **pg_dump cada 6 h**. Detalle en `plan-instancia-unica.md`. Hallazgo: SES sigue en sandbox y el dominio sin verificar (DKIM/MAIL FROM en FAILED) hasta que existan esos registros
+- [x] **I.2** Sí explícito de Henry (2026-10-19, «solo gastar lo del crédito») → `terraform apply`: **24 recursos creados**, instancia `i-0ad88ff03708de9ba`, IP `34.199.160.189`; añadido el presupuesto `yam-solo-creditos`
+- [~] **I.3** Paquete a S3 ✅ (arranque verificado: 6 contenedores, 146 funciones, respaldo a S3 con métrica) · **registro A en GoDaddy y certificado hechos el 2026-10-19** (HTTPS 200, prueba 10/10) · **pendiente:** variables en Vercel · **prueba de restauración** (el respaldo se probó, la restauración no)
+- [~] **I.4** Los 3 stubs de funciones **reconstruidos** (2026-10-18, sin commitear): `at_valida_hora_recogida`, `at_franja_de_recogida` y `at_evento_al_crear_pedido` + su trigger. `test:db` = **100/100** (83 + 17 nuevos en `tests/db/recogidas-y-eventos.test.ts`); verificado por mutación; triggers 22→23 = producción. Qué es dato y qué suposición: `staging-stubs/LEEME.md`. **La encuesta (3 funciones, 2 tablas) también está reconstruida** (2026-10-18, sin commitear): es diseño nuevo sobre pistas del repo (`staging-stubs/01087_staging_encuesta.sql`; 17 tests en `tests/db/encuesta.test.ts`; `test:db` = **117/117**; mutación: fallan 9). **Quedan 2 funciones sin reconstruir a propósito**: `at_admin_eliminar_comercio` (riesgo alto: borraba pedidos, facturas y recaudo en cascada a mano) y `at_admin_eliminar_usuario` (riesgo medio); fallan cerrado y existe el interruptor `active` como alternativa
+
+---
+
+## Fase 1b — La web en AWS Amplify · **superada** por la decisión de descartar Supabase Cloud (la web seguiría en Vercel con el backend nuevo)
+
+Solo la web; Supabase Cloud intacto. Detalle en `plan-maestro.md`.
+
+- [~] **1b.1** Región: recomendada `us-west-2` (misma que Supabase). **Latencia NO medida**: el proyecto Supabase está `INACTIVE` (pausado) y su host da NXDOMAIN (2026-10-18). Reactivar y medir con `/api/salud`
+- [~] **1b.2** `next.config.ts` usa `VERCEL_GIT_COMMIT_SHA ?? AWS_COMMIT_ID` (typecheck OK, sin commit). Falta ver `/api/version` en Amplify
+- [~] **1b.3** `amplify.yml` y `docs/migracion-aws/amplify-1b.md` listos (sin commit). Falta: crear la app (decisión de Henry), variables, build
+- [ ] **1b.4** Verificación a mano en la URL `*.amplifyapp.com` (login, pedidos, recaudo, documento, pedido de prueba)
+- [x] **1b.5** Presupuesto `yam-mensual` 20 USD con avisos 80/100/previsto 100, SNS confirmado, sin NAT Gateways (verificado 2026-10-18)
+- [ ] **1b.6** Corte: dominio a Amplify · NS a Route 53 · Supabase Auth URL Configuration
+- [ ] **1b.7** «No apagar Vercel antes de: ____» (fecha, +7 días del corte)
+
+**Puerta 1b → fin:** 7 días sirviendo desde Amplify sin sorpresas.
+Estado de la puerta: **cerrada**
+
+---
+
+## Fase 2 — Camino A (`infra/aws/2-plataforma/`) · **opcional** · ventana de mantenimiento
 
 - [ ] **2.0** AWS Pricing Calculator con la carga real — cifra pegada aquí
 - [ ] **2.1** `terraform apply` de `2-plataforma/` — Aurora + RDS Proxy + ECS + ALB + WAF, sirviendo a nadie
@@ -201,3 +242,75 @@ _(vacío)_
 - ¿4.5 Cognito se ejecuta o GoTrue se queda indefinidamente?
 - ¿El frontend sigue en Vercel o pasa a Amplify Hosting?
 - ¿Región definitiva? El Terraform asume `us-east-1` (más barato, mejor latencia contra Medellín que `us-west-2`).
+
+### 2026-10-19 — Prueba de restauración REALIZADA (pendiente cerrado)
+Dump `yam-20261019T140022Z.dump` (906 KB) de S3 restaurado en una base temporal de la instancia y comparado con la base viva: 33 tablas, 146 funciones, 17 zonas, 169 tarifas, 5 buckets y 49 políticas públicas, IDÉNTICOS. Único error de pg_restore: `pg_cron` ("can only create extension in database postgres"), esperado fuera de la base `postgres`; no afecta datos. Base temporal y archivos borrados. El respaldo es restaurable.
+### 2026-10-19 — yam.atiempologistica.com en producción (puente hacia yam.cdhmaker.com)
+- Cloudflare: la cuenta del navegador (Cdhmaker8) tiene cdhmaker.com solo como zona PENDIENTE (NS journey/terry). La zona viva (NS irena/norm) está en otra cuenta, con registros que la pendiente no tiene (p. ej. incubapp.cdhmaker.com con proxy, _domainconnect). NO se cambiaron los NS en GoDaddy para no romper subdominios. cdhmaker.com sí está en la cartera de GoDaddy de Henry.
+- GoDaddy: creado A yam.atiempologistica.com -> 76.76.21.21 (TTL 1/2 h). Vercel: dominio añadido al proyecto atiempo-logistica; https responde 200 con certificado válido.
+- Instancia: Caddyfile y compose actualizados (CORS y GOTRUE_URI_ALLOW_LIST incluyen yam.atiempologistica.com); verificado CORS permitido para ambos yam.* y rechazado para origen ajeno.
+- Pendiente: que Henry cree A yam 76.76.21.21 (sin proxy) en la cuenta de Cloudflare que sirve irena/norm; entonces yam.cdhmaker.com queda listo (ya registrado en Vercel y permitido en CORS).
+### 2026-10-19 — Primer administrador y clientes existentes
+- Creado el primer admin (cdhmaker@gmail.com, rol admin, activo) con la API admin de GoTrue; la base tenía 0 usuarios. Clave temporal guardada en el Escritorio de Henry (yam-admin-clave.txt), fuera del repo; debe cambiarla y borrar el archivo. Zonas (17) y tarifas (169) ya existían.
+- Clientes de atiempologistica.com: atiempologistica.com (308 a www), www y yam.atiempologistica.com sirven el MISMO despliegue de Vercel y la misma API. El SW es red-primero y /api/version fuerza la actualización, así que las apps instaladas se actualizan solas. PERO la base nueva nació sin datos: las cuentas anteriores (Supabase Cloud) no existen aquí; cada cliente debe volver a registrarse. Sin datos de producción migrados por decisión de Henry.
+### 2026-10-19 — yam.cdhmaker.com EN PRODUCCIÓN (DNS migrado a la cuenta Cloudflare Cdhmaker8)
+- Henry cambió en GoDaddy los NS de cdhmaker.com de irena/norm (zona en cuenta desconocida) a journey/terry (cuenta oficial Cdhmaker8@gmail.com, zona 08813534cd9527fc9c65f40f93d4c133). RDAP confirma el cambio a las 15:49Z.
+- Zona nueva, todo sin proxy: A @ 199.36.158.100 (Firebase), A yam 76.76.21.21, CNAME www cdh-maker-portafolio.web.app, CNAME link track.smtp2go.net, CNAME incubapp cname.vercel-dns.com, TXT _acme-challenge, TXT _dmarc.
+- incubapp.cdhmaker.com antes iba por proxy de Cloudflare a Vercel sin estar asignado a un proyecto; tras el cambio dio error TLS. Se asignó al proyecto Vercel incubant-app (mismo build index-NIgcTgCt.js) y responde 200.
+- yam: Vercel tardó por caché negativa (SOA 1800 s); se forzó con `vercel certs issue yam.cdhmaker.com`. Verificado: 200 con certificado válido, título de YAM, CORS de la API ok, resuelve en 1.1.1.1/8.8.8.8/9.9.9.9.
+- refricom.cdhmaker.com está en Vercel (proyecto refricom) pero NO tenía registro ni en la zona vieja ni en la nueva: nunca funcionó; no se tocó.
+- Rollback (si hiciera falta): poner de nuevo irena/norm en GoDaddy.
+### 2026-10-19 — Verificación completa en yam.cdhmaker.com y pendientes
+- Prueba de punta a punta con Origin https://yam.cdhmaker.com: registro 200, login con token, perfil propio por REST (cliente, activo), zonas 200, storage 200, Realtime join `phx_reply ok` (WebSocket real desde Node). Usuario de prueba borrado; queda solo el admin.
+- Shopify: la Lambda yam-shopify-sync llama a una Edge Function de Supabase Cloud (uhbtivaepyhwfdvtpfjq) que ya no existe; la pila autoalojada NO tiene Edge Functions. Alarma yam-shopify-sync-falla en ALARM. Intenté pausar la regla yam-shopify-cada-15-min y silenciar sus alarmas: BLOQUEADO por el control de permisos (alteración de alertas). Queda pendiente decisión de Henry; la solución real es portar la función de sincronización a la instancia.
+- SES: cuenta en sandbox (200/día), identidad atiempologistica.com con DKIM y MAIL FROM en FAILED. Faltan en GoDaddy: 3 CNAME DKIM (<token>._domainkey -> <token>.dkim.amazonses.com; tokens h6c3ik3vfgd2kqy6r6incxoi4naknehn, abutx3m3z3ap3vh6g4sarat6ewnme4ae, 7tucgu4rdjhy66oe4f4znqxe5v4vzbtg), MX correo -> 10 feedback-smtp.us-east-1.amazonses.com, TXT correo -> v=spf1 include:amazonses.com ~all. Luego: solicitar salida del sandbox, crear usuario SMTP y poner mailer_autoconfirm=false.- 2026-10-19: Henry autorizó pausar Shopify. Regla yam-shopify-cada-15-min = DISABLED (reactivar con aws events enable-rule). Silenciar las alarmas sigue BLOQUEADO por el control de permisos: yam-shopify-sync-falla vuelve sola a OK (notBreaching); yam-shopify-sync-no-corre (breaching, 1 h) pasará a ALARM y avisará por correo hasta que se apaguen sus acciones o vuelva la sync.
+### 2026-10-19 — Correo (SES) fase 2: identidad verificada y SMTP conectado
+- GoDaddy (atiempologistica.com): creados 3 CNAME DKIM, TXT correo (v=spf1 include:amazonses.com ~all) y MX correo (10 feedback-smtp.us-east-1.amazonses.com). Reiniciada la verificación (mismos tokens); a las 16:32Z DKIM=SUCCESS, MAIL FROM=SUCCESS, identidad verificada para enviar.
+- Usuario IAM yam-smtp con política mínima (solo ses:SendRawEmail sobre identity/atiempologistica.com). Clave SMTP derivada y guardada en SSM /yam/instancia/smtp_user y smtp_pass (SecureString); smtp_host email-smtp.us-east-1.amazonaws.com, smtp_port 587, smtp_admin_email noreply@atiempologistica.com. Primera clave descartada (derivación con BOM por stdin de PowerShell); se rotó y ahora la derivación va por argumento.
+- Instancia: .env actualizado desde SSM (respaldo en /root/env.respaldo-*), auth reiniciado (sano, 0 reinicios). Prueba SMTP al simulador de SES: OK.
+- bootstrap.sh: remitente por omisión cambiado a noreply@atiempologistica.com (antes noreply@SITIO, no verificado en SES).
+- Sigue SES en sandbox (solo envía a direcciones verificadas): mailer_autoconfirm se mantiene en true. Falta, con permiso de Henry: pedir salida del sandbox a AWS; cuando la aprueben, poner mailer_autoconfirm=false en SSM y reiniciar auth.
+- Shopify: avisos de las 3 alarmas yam-shopify-* apagados (reactivar con aws cloudwatch enable-alarm-actions).- 2026-10-19: enviada a AWS la solicitud de salida del sandbox de SES (TRANSACTIONAL, sitio yam.cdhmaker.com, contacto cdhmaker@gmail.com); estado PENDING (AWS responde en ~24 h por correo). Rebotes y quejas de atiempologistica.com van al SNS yam-alertas. Al aprobarse: poner /yam/instancia/mailer_autoconfirm=false y reiniciar auth (o repetir bootstrap).
+### 2026-10-19 — "No deja ingresar ni recuperar": diagnóstico
+- Logs de GoTrue: todos los /token dan 400 "Invalid login credentials" (desde www.atiempologistica.com y yam.cdhmaker.com, 2 IPs distintas) y /recover responde 200 en 10 ms sin enviar correo. Causa: esas cuentas NO existen; la base nueva solo tiene cdhmaker@gmail.com (admin). GoTrue responde 200 en /recover para correos desconocidos a propósito.
+- Login del admin con la clave temporal: 200 con token (verificado).
+- Mientras SES siga en sandbox, solo llegan correos a direcciones verificadas: se pidió verificar cdhmaker@gmail.com en SES (AWS manda un enlace a ese buzón; hay que abrirlo).
+- Añadido GOTRUE_MAILER_EXTERNAL_HOSTS=${API_HOST} al compose (quita el aviso de host externo en cada petición); auth reiniciado y sano.
+- Solución de fondo pendiente de Henry: descargar el respaldo del proyecto Supabase uhbtivaepyhwfdvtpfjq (Database → Backups, como se hizo con IncubApp) para importar las cuentas y datos de YAM (tablas at_ y sus usuarios de auth, sin TaxiYa).
+### 2026-10-19 — Cuentas y datos de producción RESTAURADOS desde el respaldo de Supabase
+- Henry inició sesión en Supabase y descargué del proyecto pausado uhbtivaepyhwfdvtpfjq: db_cluster-23-09-2026@09-32-18.backup.gz (último respaldo, del día en que se pausó) y uhbtivaepyhwfdvtpfjq.storage.zip (70 archivos, 104 MB). Copias en s3://atl-yam-respaldos-126356678380/supabase-viejo/.
+- El proyecto solo tenía datos de YAM (sin tablas de TaxiYa): 17 cuentas, 17 perfiles (1 admin, 3 asesor, 11 cliente, 2 mensajero), 10 comercios, 8 guías, 12 facturas, 9 recogidas, 2.803 destinatarios, 160 eventos de seguridad, etc.
+- Antes de importar: pg_dump de producción a S3 (yam-20261019T173740Z.dump). Migración nueva 01088_columnas_de_produccion.sql (at_facilities.lat/lng y at_survey_responses.rol, que producción tenía y el repo no).
+- Importación en UNA transacción (session_replication_role=replica): vaciado de tablas at_ y de auth.users, COPY de auth.users/identities y de todas las tablas at_; at_survey_snooze.hasta mapeado a snoozed_until; las CHECK NOT VALID (at_pickups_hora_en_franja, at_payment_methods_dato_coherente) se quitaron y se volvieron a poner NOT VALID. Conteos idénticos al respaldo.
+- Archivos: 70 subidos por la API de Storage (0 fallos) a sus buckets; dueño y fechas restaurados desde storage.objects viejo. El bucket viejo 'evidencias' estaba vacío y no se recreó.
+- Verificado: GoTrue lee las 17 cuentas (API admin), hashes bcrypt intactos, login con clave errada a una cuenta vieja da 400 (no 500). 16 de 17 cuentas confirmadas (igual que en producción).
+- El admin cdhmaker@gmail.com volvió a su clave ORIGINAL (la temporal ya no vale; archivo borrado). Las sesiones abiertas antes no sirven (otro secreto JWT): todos deben volver a iniciar sesión.
+- at_message_outbox trae 6 mensajes viejos en estado fallido (no se reenvían).
+- PENDIENTE: regenerar el paquete s3://…/bootstrap/instancia.tgz incluyendo 01088 (si se reconstruye la instancia desde cero, hoy no la aplicaría). Recuperar contraseña para clientes depende de que AWS saque SES del sandbox.- 2026-10-19: AWS APROBÓ la salida del sandbox de SES (ProductionAccessEnabled=true, GRANTED). mailer_autoconfirm=false en SSM y en /opt/yam/.env; auth reiniciado. Probado con el simulador de SES: el registro devuelve confirmation_sent_at (pide confirmar), /recover 200, 0 errores de correo. cdhmaker@gmail.com también quedó verificado como identidad.
+### 2026-10-19 — Edge functions corriendo en la instancia (códigos SMS/WhatsApp y Shopify)
+- HALLAZGO: los códigos de entrega por SMS/WhatsApp NUNCA se enviaron, tampoco en Supabase Cloud: los 6 mensajes del buzón viejo dicen "Sin canal de envío configurado" (no hubo Twilio ni WhatsApp Cloud API). Tiendas Shopify conectadas: 0.
+- Nuevo servicio `functions` en docker-compose: public.ecr.aws/supabase/edge-runtime:v1.77.4 con enrutador propio infra/aws/3-instancia/instancia/functions/main/index.ts (lista blanca: enviar-mensajes, shopify-sync; sin verificación JWT, cada función se autentica sola como en la nube). Caddy enruta /functions/v1/*. Credenciales de proveedor opcionales por SSM (/yam/instancia/twilio_*, whatsapp_token, whatsapp_phone_id) → .env → contenedor.
+- Migración 01089_funciones_en_la_instancia.sql: at_despachar_buzon y at_sincronizar_shopify ya no llaman a uhbtivaepyhwfdvtpfjq.supabase.co sino a public.at_url_funciones() (vault at_funciones_url o, por omisión, http://functions:9000), sin la llave anónima vieja.
+- Paquete s3://…/bootstrap/instancia.tgz regenerado: pila + functions (main, enviar-mensajes, shopify-sync) + 125 migraciones (incluye 01088 y 01089).
+- OJO operativo: al extraer el paquete sobre /opt/yam, el Caddyfile cambia de inodo y el montaje :ro del contenedor sigue viendo el viejo; hay que `docker compose up -d --force-recreate caddy` (`caddy reload` no basta).
+- Verificado: ruta pública desconocida 404; enviar-mensajes sin secreto 401, con x-at-cron 200 {"motivo":"sin credenciales"}; shopify-sync sin sesión 401, con secreto 200 {"tiendas":0}; desde la base con pg_net por la red interna 200; CORS ok para yam.cdhmaker.com; auth y rest sanos.
+- La Lambda yam-shopify-sync (Fase 1) queda redundante: el cron at-shopify de la base hace lo mismo. Se deja pausada (regla deshabilitada, alarmas sin acciones); candidata a borrarse.
+- Para que salgan los códigos: Henry debe abrir cuenta en un proveedor (WhatsApp Cloud API de Meta con plantilla `codigo_entrega` aprobada, o Twilio para SMS) y pasar las credenciales; se cargan en SSM y se recrea el contenedor functions.
+### 2026-10-19 — SMS desde un celular Android propio (sin cobro por mensaje)
+- Henry pidió canal gratis o propio. Decisión: SMS por celular Android con la app SMS Gateway for Android (sms-gate.app, Apache-2.0, servidor en la nube gratuito) + correo por SES más adelante.
+- HALLAZGO: ningún pedido guarda correo del destinatario (solo at_clients.email; 8/8 guías con teléfono, 0 con correo). El canal de correo para códigos requiere primero pedir el correo en el formulario de pedidos e importarlo de Shopify: NO implementado.
+- enviar-mensajes: nuevo enviarPorCelular (POST {SMSGATE_URL}/message, Basic auth, {textMessage:{text}, phoneNumbers:[e164]}); el canal sms prefiere el celular y Twilio queda de respaldo. Variables SMSGATE_URL/USER/PASS en compose y bootstrap (SSM /yam/instancia/smsgate_*).
+- Probado en producción contra httpbin (eco, sin SMS reales): fila sms → enviado, provider_id=celular, 1 intento; fila whatsapp → sigue pendiente sin gastar intentos. Filas de prueba borradas y .env restaurado (SMSGATE vacío).
+- Guía: docs/sms-desde-celular.md. Al encenderlo, el código pasa a ser OBLIGATORIO en la entrega (migración 0022).
+- Pendiente de Henry: celular Android con SIM y plan de SMS, instalar la app y pasar usuario/clave de Cloud server.
+### 2026-10-19 — Código de entrega por CORREO + correo del destinatario en los pedidos (EN PRODUCCIÓN)
+- Migración 0125: enum at_msg_channel gana 'email' (archivo aparte: el valor nuevo no se puede usar en la misma transacción).
+- Migración 0126: at_guides.recipient_email y at_recipients.email (opcionales, CHECK de formato mínimo), at_message_outbox.to_email; at_issue_delivery_code encola además una fila 'email' cuando la guía tiene correo; at_shopify_upsert_order con p_email (firma vieja borrada; correo inválido se descarta sin tumbar la guía).
+- Frontend (pedidos/nueva): campo «Correo (opcional: ahí le llega su código)», validación igual a la base, se copia de/a la libreta de compradores (completa un comprador guardado sin correo, nunca borra). Shopify manda o.email / contact_email / customer.email.
+- enviar-mensajes: canal email por SMTP de SES (npm:nodemailer@6.9.16 dentro del edge-runtime, con las mismas credenciales SMTP_* de GoTrue pasadas al contenedor functions). HTML con el código grande.
+- Ensayo de 0126 en producción dentro de BEGIN/ROLLBACK: guía con correo → filas sms, whatsapp y email; correo inválido rechazado por el CHECK; Shopify: válido se guarda en minúsculas, inválido y ausente → sin correo.
+- HALLAZGO Y ARREGLO: la importación del respaldo NO restauró la secuencia at_guide_number_seq (iba en 100005; producción en 100186). La comparten guías (ATL-), facturas (FAC-) y remesas (REM-): habría chocado con números existentes. setval a 100186 → próximo ATL-100187. El ensayo consumió 100001–100005 antes del arreglo (sin efecto).
+- Prueba real: fila email al simulador de SES → enviado, 1 intento, messageId de SES. Fila borrada.
+- Vercel: deploy de producción dpl_B6x3igth4zvRCHXE8qzkiRLEGM5m desde 9fd4187 (next.config.ts sin commitear se apartó con stash durante el deploy y se restauró). yam.cdhmaker.com, www.atiempologistica.com y yam.atiempologistica.com responden /api/version 9fd41875.
+- No probado: crear un pedido desde el navegador con sesión real (no tengo claves de usuarios). La edición de pedidos (pedidos/[id]/editar) todavía NO tiene el campo de correo.
+- git push a GitHub falló por red (github.com:443 sin conexión); la rama local va 21+ commits por delante de origin/main.

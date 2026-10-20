@@ -33,6 +33,7 @@
 // (migración 0113), no del texto de `body`.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { enviarPorCelular as enviarPorCelularSmsGate } from "./smsgate.ts";
 
 const SID = Deno.env.get("TWILIO_ACCOUNT_SID");
 const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
@@ -68,6 +69,83 @@ const WA_CLOUD_TEMPLATE = Deno.env.get("WHATSAPP_TEMPLATE") || "codigo_entrega";
 const WA_CLOUD_LANG = Deno.env.get("WHATSAPP_LANG") || "es";
 const WA_CLOUD_VERSION = Deno.env.get("WHATSAPP_API_VERSION") || "v22.0";
 const hayCloud = !!(WA_CLOUD_TOKEN && WA_CLOUD_PHONE_ID);
+
+/**
+ * SMS por un celular Android propio, con la app de código abierto «SMS Gateway
+ * for Android» (sms-gate.app). El teléfono manda los SMS con su propia SIM: no
+ * hay cobro por mensaje, solo el plan del celular. Es la vía preferida para el
+ * canal `sms`; Twilio queda de respaldo si algún día se configura.
+ *
+ * Por omisión se habla con el servidor en la nube de la app (gratuito: el
+ * teléfono se conecta a él y recoge los envíos). Si se monta un servidor
+ * privado, basta con cambiar SMSGATE_URL. Usuario y clave salen de la sección
+ * «Cloud server» de la app.
+ */
+const SMSGATE_URL = (Deno.env.get("SMSGATE_URL") || "https://api.sms-gate.app/3rdparty/v1")
+  .replace(/\/+$/, "");
+const SMSGATE_USER = Deno.env.get("SMSGATE_USER");
+const SMSGATE_PASS = Deno.env.get("SMSGATE_PASS");
+const hayCelular = !!(SMSGATE_USER && SMSGATE_PASS);
+
+// SMSGATE_SOLO_A (opcional): lista de números E.164 a los que se permite
+// escribir; con ella puesta, cualquier otro destino se rechaza. Es el seguro
+// para pruebas reales (solo el celular de Henry). La lógica vive en smsgate.ts.
+const SMSGATE_SOLO_A = Deno.env.get("SMSGATE_SOLO_A");
+
+function enviarPorCelular(to: string, body: string): Promise<string> {
+  return enviarPorCelularSmsGate(
+    { url: SMSGATE_URL, usuario: SMSGATE_USER!, clave: SMSGATE_PASS!, soloA: SMSGATE_SOLO_A },
+    to,
+    body,
+  );
+}
+
+/**
+ * Correo por Amazon SES, con las MISMAS credenciales SMTP que usa GoTrue para
+ * confirmar cuentas (migración 0126). Es el canal que sale solo y casi gratis:
+ * US$0,10 por cada mil, pagados con los créditos de AWS.
+ */
+const SMTP_HOST = Deno.env.get("SMTP_HOST");
+const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") || "587");
+const SMTP_USER = Deno.env.get("SMTP_USER");
+const SMTP_PASS = Deno.env.get("SMTP_PASS");
+const SMTP_FROM = Deno.env.get("SMTP_ADMIN_EMAIL") || "noreply@atiempologistica.com";
+const hayCorreo = !!(SMTP_HOST && SMTP_USER && SMTP_PASS && SMTP_HOST !== "localhost");
+
+let transporte: { sendMail: (m: Record<string, unknown>) => Promise<{ messageId?: string }> } | null = null;
+
+async function enviarPorCorreo(
+  to: string,
+  body: string,
+  plantilla: { pedido?: string; codigo?: string } | null | undefined,
+): Promise<string> {
+  if (!transporte) {
+    const nodemailer = (await import("npm:nodemailer@6.9.16")).default;
+    transporte = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  }
+  const pedido = plantilla?.pedido ?? "";
+  const codigo = plantilla?.codigo ?? "";
+  const info = await transporte!.sendMail({
+    from: `A Tiempo Logística <${SMTP_FROM}>`,
+    to,
+    subject: pedido ? `Tu código de entrega · Pedido ${pedido}` : "Tu código de entrega",
+    text: body,
+    html: codigo
+      ? `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:auto;padding:24px;color:#1c1c1e">
+           <p style="margin:0 0 8px">Este es el código de tu paquete${pedido ? ` (pedido <b>${pedido}</b>)` : ""}:</p>
+           <p style="font-size:34px;font-weight:700;letter-spacing:6px;margin:16px 0">${codigo}</p>
+           <p style="margin:0 0 8px">Dáselo al mensajero <b>solo cuando tengas tu pedido en las manos</b>.</p>
+           <p style="color:#8e8e93;font-size:13px;margin-top:24px">A Tiempo Logística</p>
+         </div>`
+      : undefined,
+  });
+  return String(info?.messageId ?? "correo");
+}
 
 const MAX_INTENTOS = 3;
 const LOTE = 50;
@@ -274,10 +352,10 @@ Deno.serve(async (req) => {
 
   // Paso 2 — enviar. Si no hay canal, se termina aquí: la cola ya quedó sin
   // caducados, así que el reloj no vuelve a llamar en balde por lo de siempre.
-  if (!hayCloud && !hayPuente && !(SID && TOKEN)) {
+  if (!hayCloud && !hayPuente && !hayCelular && !hayCorreo && !(SID && TOKEN)) {
     if (frescos.length > 0) {
       console.warn(
-        `Sin canal configurado (ni Cloud API, ni puente, ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
+        `Sin canal configurado (ni Cloud API, ni puente, ni celular, ni correo, ni Twilio): ${frescos.length} mensaje(s) fresco(s) esperando.`,
       );
     }
     return Response.json(
@@ -287,6 +365,37 @@ Deno.serve(async (req) => {
   }
 
   for (const m of frescos) {
+    // El correo va por su lado: no tiene teléfono que normalizar.
+    if (m.channel === "email") {
+      if (!hayCorreo) continue; // falta configuración: no se gasta intento
+      try {
+        const id = await enviarPorCorreo(m.to_email, m.body, m.template_params);
+        await supabase
+          .from("at_message_outbox")
+          .update({
+            status: "enviado",
+            provider_id: id,
+            sent_at: new Date().toISOString(),
+            attempts: m.attempts + 1,
+            error: null,
+          })
+          .eq("id", m.id);
+        ok++;
+      } catch (e) {
+        const intentos = m.attempts + 1;
+        await supabase
+          .from("at_message_outbox")
+          .update({
+            status: intentos >= MAX_INTENTOS ? "fallido" : "pendiente",
+            error: e instanceof Error ? e.message : String(e),
+            attempts: intentos,
+          })
+          .eq("id", m.id);
+        fallidos++;
+      }
+      continue;
+    }
+
     const to = m.to_phone ? aE164(m.to_phone) : null;
 
     if (!to) {
@@ -318,7 +427,9 @@ Deno.serve(async (req) => {
       | undefined;
     const porCloud = esWhatsApp && hayCloud && !!plantilla?.codigo;
     const porPuente = esWhatsApp && !porCloud && hayPuente;
-    if (!porCloud && !porPuente && !(SID && TOKEN)) continue;
+    // El SMS sale por el celular propio si está; si no, por Twilio.
+    const porCelular = !esWhatsApp && hayCelular;
+    if (!porCloud && !porPuente && !porCelular && !(SID && TOKEN)) continue;
 
     try {
       const sid = porCloud
@@ -328,6 +439,8 @@ Deno.serve(async (req) => {
           })
         : porPuente
         ? await enviarPorPuente(to, m.body)
+        : porCelular
+        ? await enviarPorCelular(to, m.body)
         : await enviarTwilio(to, m.body, m.channel);
       await supabase
         .from("at_message_outbox")

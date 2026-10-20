@@ -135,6 +135,17 @@ export async function crearUsuario(
     user_metadata: metadata,
   });
   if (error) throw new Error(`No se pudo crear ${etiqueta}: ${error.message}`);
+  // El rol de prueba va en user_metadata, pero ninguna migración lo lee: el
+  // trigger at_handle_new_user siempre crea el perfil como 'pendiente'. Se
+  // asigna aquí, con la llave de servicio, que es lo que haría un admin. Cada
+  // usuario lleva un business_name único: at_ensure_my_client / at_autocreate_client
+  // enlazan por nombre normalizado, y sin nombre todos caen en «Comercio sin nombre»,
+  // o sea en el MISMO comercio.
+  const rol = typeof metadata.role === "string" ? metadata.role : null;
+  if (rol) {
+    const { error: e2 } = await admin.from("at_profiles").update({ role: rol, full_name: etiqueta, business_name: email }).eq("id", data.user!.id);
+    if (e2) throw new Error(`No se pudo asignar el rol a ${etiqueta}: ${e2.message}`);
+  }
   return { id: data.user!.id, email, password: CLAVE_DE_PRUEBA };
 }
 

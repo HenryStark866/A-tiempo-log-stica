@@ -57,7 +57,9 @@ interface ShopifyOrder {
   total_price?: string | null;
   shipping_address?: ShopifyAddress | null;
   billing_address?: ShopifyAddress | null;
-  customer?: { phone?: string | null } | null;
+  email?: string | null;
+  contact_email?: string | null;
+  customer?: { phone?: string | null; email?: string | null } | null;
 }
 
 interface Conexion {
@@ -156,6 +158,9 @@ async function sincronizarComercio(
       p_is_cod: cod,
       p_amount: monto,
       p_notes: [o.name, o.note].filter(Boolean).join(" · "),
+      // Con el correo, el código de entrega también le llega al comprador por
+      // ese lado (migración 0126). Si no viene o no es válido, la base lo ignora.
+      p_email: o.email ?? o.contact_email ?? o.customer?.email ?? null,
     });
 
     if (resultado === "creado") creadas++;

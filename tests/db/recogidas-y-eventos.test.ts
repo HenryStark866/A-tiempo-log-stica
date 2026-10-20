@@ -10,17 +10,13 @@ import {
 } from "./harness";
 
 /**
- * Tres funciones que producción tiene y las migraciones locales no: se
- * reconstruyeron a partir de la evidencia del repo (ver
- * docs/migracion-aws/staging-stubs/0000_staging_stubs.sql y LEEME.md).
+ * Tres funciones que producción tenía y las migraciones no (0127 y 0128 las
+ * recuperan). Su código es el del respaldo de producción del 2026-09-23: estos
+ * tests fijan lo ORIGINAL, no una reconstrucción.
  *
- * Estos tests fijan lo RECONSTRUIDO, no lo original. Lo que es dato (la franja
- * 08:00–17:00 en turnos de 15 min, que NULL vale, que el pedido nace con un hito)
- * está respaldado por la migración 0088, docs/hora-de-recogida.md y la pantalla
- * de pedidos. Lo que es suposición (el texto del mensaje, la nota y el actor del
- * hito, la forma del resultado de at_franja_de_recogida) está marcado abajo: si
- * algún día se recupera la definición real de producción, ahí es donde pueden
- * discrepar y hay que decidir cuál gana.
+ * Ojo con lo que NO hace la validación: solo comprueba el rango 08:00–17:00.
+ * La rejilla de 15 minutos la exige el CHECK at_pickups_hora_en_franja (0088)
+ * sobre la tabla, no esta función.
  */
 
 describeDb("la hora de recogida — at_valida_hora_recogida", () => {
@@ -30,51 +26,35 @@ describeDb("la hora de recogida — at_valida_hora_recogida", () => {
     admin = clienteAdmin();
   });
 
-  const validar = (hora: string | null) => admin.rpc("at_valida_hora_recogida", { p: hora });
+  const validar = (hora: string | null) => admin.rpc("at_valida_hora_recogida", { p_hora: hora });
 
-  // DATO (CHECK at_pickups_hora_en_franja, 0088): desde 08:00 hasta 17:00 inclusive.
-  it.each(["08:00", "08:15", "12:30", "16:45", "17:00"])("%s es un turno válido", async (hora) => {
+  it.each(["08:00", "08:15", "08:07", "12:30", "16:45", "17:00"])("%s está dentro de la franja", async (hora) => {
     const { error } = await validar(hora);
     expect(error).toBeNull();
   });
 
-  // DATO (docs/hora-de-recogida.md): la hora es opcional, «Sin preferencia».
+  // docs/hora-de-recogida.md: la hora es opcional, «Sin preferencia».
   it("sin hora (NULL) se acepta: es «sin preferencia»", async () => {
     const { error } = await validar(null);
     expect(error).toBeNull();
   });
 
-  // DATO: fuera de la franja, fuera de rejilla de 15 min o con segundos, se rechaza.
-  it.each(["07:45", "07:59", "08:07", "16:50", "17:15", "23:00", "08:00:30"])(
-    "%s se rechaza",
-    async (hora) => {
-      const { error } = await validar(hora);
-      expect(error).not.toBeNull();
-      // SUPOSICIÓN: el código check_violation, igual que los mensajes de la 0088.
-      expect(error?.code).toBe("23514");
-    },
-  );
-
-  // SUPOSICIÓN: el texto exacto. Solo se exige que diga cuál es la franja.
-  it("el mensaje dice la franja y el turno", async () => {
-    const { error } = await validar("07:45");
-    expect(error?.message).toContain("8:00 a. m.");
-    expect(error?.message).toContain("5:00 p. m.");
-    expect(error?.message).toContain("15 minutos");
+  it.each(["00:00", "07:45", "07:59", "17:01", "17:15", "23:00"])("%s está fuera de la franja y se rechaza", async (hora) => {
+    const { error } = await validar(hora);
+    expect(error).not.toBeNull();
+    expect(error?.code).toBe("P0001");
   });
 
-  // SUPOSICIÓN: la forma (tres columnas). El valor sí es dato.
+  it("el mensaje dice cuál es la franja", async () => {
+    const { error } = await validar("07:45");
+    expect(error?.message).toContain("08:00");
+    expect(error?.message).toContain("17:00");
+  });
+
   it("at_franja_de_recogida da la franja que usa la validación", async () => {
     const { data, error } = await admin.rpc("at_franja_de_recogida");
     expect(error).toBeNull();
-    const f = (Array.isArray(data) ? data[0] : data) as {
-      hora_inicio: string;
-      hora_fin: string;
-      paso_minutos: number;
-    };
-    expect(f.hora_inicio).toMatch(/^08:00/);
-    expect(f.hora_fin).toMatch(/^17:00/);
-    expect(Number(f.paso_minutos)).toBe(15);
+    expect(data).toEqual({ desde: "08:00:00", hasta: "17:00:00" });
   });
 });
 
@@ -128,6 +108,7 @@ describeDb("el primer hito del pedido — at_evento_al_crear_pedido", () => {
     expect(eventos).toHaveLength(1);
     expect(eventos![0].status).toBe("creada");
     expect(eventos![0].status).toBe(guia.status);
+    expect(eventos![0].note).toBe("Pedido registrado por el comercio");
   });
 
   // DATO: ninguna RPC inserta ese hito (ni en las migraciones locales), así que

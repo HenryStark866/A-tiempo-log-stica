@@ -33,6 +33,7 @@
 // (migración 0113), no del texto de `body`.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { enviarPorCelular as enviarPorCelularSmsGate } from "./smsgate.ts";
 
 const SID = Deno.env.get("TWILIO_ACCOUNT_SID");
 const TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
@@ -86,23 +87,17 @@ const SMSGATE_USER = Deno.env.get("SMSGATE_USER");
 const SMSGATE_PASS = Deno.env.get("SMSGATE_PASS");
 const hayCelular = !!(SMSGATE_USER && SMSGATE_PASS);
 
-async function enviarPorCelular(to: string, body: string): Promise<string> {
-  const res = await fetch(`${SMSGATE_URL}/message`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${btoa(`${SMSGATE_USER}:${SMSGATE_PASS}`)}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ textMessage: { text: body }, phoneNumbers: [to] }),
-    signal: AbortSignal.timeout(15000),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(`Celular SMS: ${json?.message ?? json?.error ?? `HTTP ${res.status}`}`);
-  }
-  // La app acepta el envío y lo pone en cola en el teléfono; el id sirve para
-  // rastrearlo en la propia app si un comprador dice que no le llegó.
-  return String(json?.id ?? "celular");
+// SMSGATE_SOLO_A (opcional): lista de números E.164 a los que se permite
+// escribir; con ella puesta, cualquier otro destino se rechaza. Es el seguro
+// para pruebas reales (solo el celular de Henry). La lógica vive en smsgate.ts.
+const SMSGATE_SOLO_A = Deno.env.get("SMSGATE_SOLO_A");
+
+function enviarPorCelular(to: string, body: string): Promise<string> {
+  return enviarPorCelularSmsGate(
+    { url: SMSGATE_URL, usuario: SMSGATE_USER!, clave: SMSGATE_PASS!, soloA: SMSGATE_SOLO_A },
+    to,
+    body,
+  );
 }
 
 /**

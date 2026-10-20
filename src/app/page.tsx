@@ -170,10 +170,11 @@ export default function StorefrontPage() {
       <main className="atl-encima max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-8">
         
         {/* Franja / Gancho sutil para Marcas y Comercios Locales */}
-        <div className="pt-1">
+        <div className="pt-1 relative z-20">
           <Link
+            id="banner-gancho-comercios"
             href="/portal-comercios"
-            className="group flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#ff812c]/10 to-orange-500/10 hover:from-amber-500/15 hover:via-[#ff812c]/20 hover:to-orange-500/15 border border-[#ff812c]/20 hover:border-[#ff812c]/40 transition-all duration-200 shadow-sm"
+            className="group flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#ff812c]/10 to-orange-500/10 hover:from-amber-500/15 hover:via-[#ff812c]/20 hover:to-orange-500/15 border border-[#ff812c]/20 hover:border-[#ff812c]/40 transition-all duration-200 shadow-sm cursor-pointer"
           >
             <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200 text-center sm:text-left">
               <span className="text-base shrink-0">💼</span>
@@ -182,7 +183,7 @@ export default function StorefrontPage() {
                 Vende sin estrés contable: conciliación automática de cada venta y recaudos en tu cuenta en 24h.
               </span>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#ff812c] group-hover:translate-x-0.5 transition-transform shrink-0 whitespace-nowrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff812c]/15 text-xs sm:text-sm font-bold text-[#ff812c] group-hover:bg-[#ff812c] group-hover:text-[#1C1C1E] transition-all shrink-0 whitespace-nowrap">
               <span>Conocer beneficios / Portal Comercios</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>

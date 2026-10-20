@@ -34,13 +34,13 @@ export default function PortalComerciosPage() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Vitrina pública</span>
+              <span>← Volver a la vitrina</span>
             </Link>
             <Link
-              href="/login?portal=comercios"
+              href="/login"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-[#ff812c] text-[#1C1C1E] hover:bg-[#ff812c]/90 active:scale-95 transition-all shadow-sm"
             >
-              <span>Ingresar</span>
+              <span>Ya tengo cuenta / Iniciar sesión</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -77,10 +77,10 @@ export default function PortalComerciosPage() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href="/login?portal=comercios"
+                href="/login"
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm sm:text-base font-semibold border border-white/20 transition-all"
               >
-                <span>Ingresar al Portal Comercios</span>
+                <span>Ya tengo cuenta / Iniciar sesión</span>
               </Link>
             </div>
           </div>

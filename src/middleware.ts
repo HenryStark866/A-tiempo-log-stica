@@ -19,6 +19,7 @@ const PUBLIC_PATHS = [
   "/registro",
   // Portal comercial, vitrina pública, catálogo y flujo de compra como invitado
   "/portal-comercios",
+  "/para-comercios",
   "/catalogo",
   "/tienda",
   "/checkout",

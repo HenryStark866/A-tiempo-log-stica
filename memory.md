@@ -49,16 +49,16 @@ Principales capacidades entregadas:
 
 ### Archivos Modificados:
 1. **`src/middleware.ts`**:
-   - Se añadió `/portal-comercios`, `/catalogo`, `/tienda` y `/checkout` a `PUBLIC_PATHS` para acceso público sin login.
+   - Se añadieron `/portal-comercios`, `/para-comercios`, `/catalogo`, `/tienda` y `/checkout` a `PUBLIC_PATHS` para acceso público sin login.
    - Se añadió `https://images.unsplash.com` a la directiva `img-src` de la Content Security Policy (CSP).
 2. **`src/app/page.tsx`**:
    - Reemplazo de la landing previa por la Vitrina Comercial completa.
-   - Inclusión de la franja superior de micro-gancho para marcas locales con redirección a `/portal-comercios`.
+   - Inclusión de la franja superior de micro-gancho para marcas locales con enlace interactivo y accesible (`#banner-gancho-comercios`) hacia `/portal-comercios`.
    - Limpieza del fondo de la vitrina (remoción de las 3 tarjetas pesadas de contabilidad).
    - Banner de captación de comercios regional con enlaces actualizados.
    - Integración de `ProductMarquee` continuo y filtro dinámico de categorías (>5).
 3. **`src/components/storefront/NavbarStorefront.tsx`**:
-   - Enlace "Portal Comercios" dirigido a la nueva experiencia `/portal-comercios`.
+   - Botón "Portal Comercios" unificado para navegar a `/portal-comercios`.
 4. **`src/app/registro/page.tsx`**:
    - Callout informativo sobre conciliación automática y liquidación 24h para clientes e-commerce con enlace al portal.
 5. **`src/app/globals.css`**:
@@ -68,8 +68,10 @@ Principales capacidades entregadas:
 
 ### Archivos Creados:
 1. **`src/app/portal-comercios/page.tsx`**:
-   - Portal de bienvenida, onboarding y conversión para comerciantes y marcas locales.
-2. **`src/components/storefront/BloquePropuestaContable.tsx`**:
+   - Portal de bienvenida, onboarding y conversión para comerciantes y marcas locales. Contiene el Hero B2B ("Crea o migra tu e-commerce con YAM"), el bloque contable SolV de 3 tarjetas, botón de retorno a vitrina ("← Volver a la vitrina") y accesos a registro (`/registro`) y login (`/login`).
+2. **`src/app/para-comercios/page.tsx`**:
+   - Ruta alias que redirige automáticamente a `/portal-comercios` para prevenir cualquier enlace roto.
+3. **`src/components/storefront/BloquePropuestaContable.tsx`**:
    - Módulo reutilizable de 3 pilares contables: Conciliación en tiempo real (SolV), Recaudos liquidados en <24h y Control sincronizado con Shopify.
 
 ### Archivos Creados:

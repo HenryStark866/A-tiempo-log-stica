@@ -48,8 +48,12 @@ Principales capacidades entregadas:
     - Se ocultan temporalmente de la vista pública las opciones "Asesor comercial", "CEDI afiliado" y "Mensajero".
     - Se dejan visibles en la interfaz únicamente:
       1. *"Comprador"* (icono `ShoppingBag`): Para clientes finales de la vitrina. Formulario mínimo (Nombre, WhatsApp / Teléfono, Correo y Contraseña). Oculta por completo el bloque "DATOS DE TU NEGOCIO" y la tarjeta contable de SolV. Asigna el rol correspondiente a comprador/cliente (`'cliente'` con `account_type: "comprador"`).
-      2. *"Comercio / Tienda"* (icono `Store`): Para marcas locales y vendedores. Muestra datos personales + sección "DATOS DE TU NEGOCIO" (Tipo, Marca, NIT, Dirección, Municipio) + tarjeta informativa de SolV/24h con enlace al portal. Asigna el rol comercial existente (`'cliente'` con `account_type: "comercio"`).
+      2. *"Comercio / Tienda"* (icono `Store`): Para marcas locales y vendedores. Muestra datos personales + sección "DATOS DE TU NEGOCIO" (Categoría estandarizada, Marca, NIT, Dirección, Municipio) + tarjeta informativa de SolV/24h con enlace al portal. Asigna el rol comercial existente (`'cliente'` con `account_type: "comercio"`).
       3. *"Personal ATL"* (icono `IdCard`): Conservado para colaboradores operativos (`'operario'`) con aprobación de administración.
+  * **Estandarización del Campo "Categoría" para Comercios:**
+    - Se reemplazó la etiqueta genérica "Tipo" por `"Categoría *"` y el placeholder por `"Selecciona una categoría…"`.
+    - Catálogo depurado y estandarizado alineado con la vitrina pública: *'Moda y Accesorios'*, *'Alimentos y Bebidas'*, *'Belleza y Cuidado Personal'*, *'Hogar y Decoración'*, *'Mascotas'*, *'Deportes y Bienestar'*, *'Tecnología y Gadgets'*, *'Arte, Regalos y Papelería'* y *'Otro'*.
+    - Integrado en el estado del formulario como `categoria` con validación requerida y persistencia a base de datos (`business_type`, `categoria` y `category` en metadatos de usuario).
 - **Auditoría y Mapeo Definitivo de Rutas del Navbar/Header (`NavbarStorefront.tsx` y `Navbar.tsx`):**
   * **Logo YAM:** Envuelto en `<Link href="/">` para volver siempre a la vitrina comercial.
   * **Botón "Portal Comercios" (naranja):** Vinculado a `<Link href="/portal-comercios">` (landing B2B y onboarding).
@@ -79,10 +83,13 @@ Principales capacidades entregadas:
    - Ajuste visual y dinamismo: Selector "¿CÓMO TE VAS A REGISTRAR?" reorganizado para mostrar únicamente "Comprador", "Comercio / Tienda" y "Personal ATL".
    - Ocultamiento condicional mediante feature flags de "Asesor comercial", "CEDI afiliado" y "Mensajero", conservando el 100% de la lógica de backend, tipos y esquemas para la reactivación logística futura.
    - Formulario dinámico: "Comprador" oculta datos de negocio y tarjeta contable; "Comercio" muestra datos de empresa y tarjeta SolV.
+   - Campo de selección de negocio estandarizado a "Categoría *" con placeholder "Selecciona una categoría…" y las 9 categorías oficiales de la vitrina pública.
 5. **`src/app/globals.css`**:
    - Keyframe `@keyframes marquee` y clase `.animate-marquee` con pausa en `:hover`.
 6. **`src/lib/features.ts`**:
    - Feature flags para gobernar visibilidad de mensajería pública (`MOSTRAR_MENSAJERIA_PUBLICO`) y roles logísticos avanzados en registro (`MOSTRAR_ROLES_LOGISTICOS_REGISTRO`).
+7. **`src/lib/constants.ts`**:
+   - Adición de `CATEGORIAS_COMERCIO` con el catálogo depurado de 9 categorías comerciales y alias de retrocompatibilidad `BUSINESS_TYPES`.
 
 ### Archivos Creados:
 1. **`src/app/portal-comercios/page.tsx`**:

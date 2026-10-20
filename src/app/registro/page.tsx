@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
-import { BUSINESS_TYPES } from "@/lib/constants";
+import { CATEGORIAS_COMERCIO } from "@/lib/constants";
 import { CIUDADES_OPERADAS } from "@/lib/zones";
 import { marcaDeAceptacion } from "@/lib/legal";
 import { FondoRegistro } from "@/components/fondos/FondoRegistro";
@@ -51,7 +51,7 @@ export default function RegisterPage() {
   const [verPassword, setVerPassword] = useState(false);
 
   // Datos del negocio (solo para comercio / tienda)
-  const [businessType, setBusinessType] = useState<string>("");
+  const [categoria, setCategoria] = useState<string>("");
   const [businessName, setBusinessName] = useState("");
   const [businessNit, setBusinessNit] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
@@ -82,8 +82,8 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
 
-    if (isClient && !businessType) {
-      setError("Selecciona el tipo de negocio.");
+    if (isClient && !categoria) {
+      setError("Selecciona una categoría para tu negocio.");
       return;
     }
     if (isClient && !businessCity) {
@@ -123,7 +123,9 @@ export default function RegisterPage() {
           ...marcaDeAceptacion(),
           ...(isClient
             ? {
-                business_type: businessType,
+                business_type: categoria,
+                categoria: categoria,
+                category: categoria,
                 business_name: businessName || fullName,
                 business_nit: businessNit || null,
                 business_address: businessAddress || null,
@@ -156,7 +158,7 @@ export default function RegisterPage() {
     "flex items-center px-4 min-h-[52px] border-b border-slate-900/[0.06] dark:border-white/[0.08] focus-within:bg-gray-50/50 dark:focus-within:bg-gray-800/50 transition-colors";
   const fieldInput =
     "flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white";
-  const fieldLabel = "w-[100px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0";
+  const fieldLabel = "w-[110px] text-[16px] font-medium text-slate-900 dark:text-white shrink-0";
 
   // Catálogo completo de opciones con visibilidad gobernada para interfaz pública
   const opcionesSelector: {
@@ -411,19 +413,19 @@ export default function RegisterPage() {
                     </p>
                     <div className="atl-superficie rounded-2xl overflow-hidden flex flex-col shadow-sm transition-colors duration-300">
                       <div className={fieldRow}>
-                        <label className={fieldLabel}>Tipo</label>
+                        <label className={fieldLabel}>Categoría *</label>
                         <select
                           required
-                          value={businessType}
-                          onChange={(e) => setBusinessType(e.target.value)}
+                          value={categoria}
+                          onChange={(e) => setCategoria(e.target.value)}
                           className={`${fieldInput} appearance-none cursor-pointer ${
-                            businessType ? "" : "text-slate-400 dark:text-slate-500"
+                            categoria ? "" : "text-slate-400 dark:text-slate-500"
                           }`}
                         >
-                          <option value="">Selecciona tipo de negocio…</option>
-                          {BUSINESS_TYPES.map((t) => (
-                            <option key={t} value={t} className="text-slate-900">
-                              {t}
+                          <option value="">Selecciona una categoría…</option>
+                          {CATEGORIAS_COMERCIO.map((c) => (
+                            <option key={c} value={c} className="text-slate-900">
+                              {c}
                             </option>
                           ))}
                         </select>

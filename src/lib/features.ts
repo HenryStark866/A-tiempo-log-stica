@@ -24,4 +24,12 @@ export const FEATURES = {
    */
   VITRINA_PUBLICA_ACTIVA:
     process.env.NEXT_PUBLIC_FEATURE_VITRINA_PUBLICA !== "false",
+
+  /**
+   * Roles internos avanzados en registro público (asesores y CEDIs afiliados).
+   * Por defecto: FALSE (ocultos de la interfaz pública para priorizar compradores y comercios).
+   * Todo el código, lógica, validaciones y tablas de asesor y CEDI se mantienen intactos.
+   */
+  MOSTRAR_ROLES_LOGISTICOS_REGISTRO:
+    process.env.NEXT_PUBLIC_FEATURE_ROLES_LOGISTICOS_REGISTRO === "true",
 };

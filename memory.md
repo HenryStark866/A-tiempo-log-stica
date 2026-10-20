@@ -42,12 +42,14 @@ Principales capacidades entregadas:
   * **Limpieza de la Vitrina Principal:** Se retiró el bloque pesado de 3 tarjetas del fondo de `page.tsx` para dejar que el catálogo comercial respire.
   * **Despliegue Completo en el Portal de Comercios (`/portal-comercios`):** Página dedicada de onboarding y propuesta de valor financiero integral para marcas locales, integrando el componente modular `BloquePropuestaContable.tsx` con las 3 tarjetas detalladas (Ledger inmutable con SolV, liquidación en <24h garantizada y sincronización con Shopify/catálogo directo).
   * **Integración en Formulario de Registro (`/registro`):** Callout de respaldo financiero al seleccionar "Comercio / Tienda" con enlace explicativo directo al portal.
-- **Rediseño del Onboarding de Registro por Perfiles (`src/app/registro/page.tsx`):**
-  * **Retiro de opciones obsoletas:** Se eliminaron del selector público las opciones "Asesor comercial" y "CEDI afiliado", simplificando drásticamente el proceso de entrada.
-  * **Segmentación clara en 3 perfiles:**
-    1. *"Comprador"* (icono `ShoppingBag`): Para clientes finales de la vitrina que desean consultar compras y rastrear pedidos. Formulario mínimo (Nombre, WhatsApp, Correo, Contraseña), sin campos comerciales ni fricción. Asigna el rol `'cliente'` (marcado con `account_type: "comprador"`).
-    2. *"Comercio / Tienda"* (icono `Store`): Para marcas locales y vendedores. Incluye campos comerciales (Tipo de negocio, Marca, NIT, Dirección, Municipio) y la tarjeta informativa de respaldo contable SolV con enlace al portal.
-    3. *"Personal ATL"* (icono `IdCard`): Conservado para colaboradores operativos con aprobación de administración.
+- **Ajuste de Visibilidad y Dinamismo en Registro (`src/app/registro/page.tsx`):**
+  * **Regla de Arquitectura y Preservación Logística al 100%:** Bajo ninguna circunstancia se eliminaron tipos, enums (`at_role`), tablas (`at_asesor_comercios`, etc.), funciones RPC (`at_comercios_para_registro`) ni lógica de backend asociadas a `asesor_comercial`, `cedi_afiliado`, `mensajeros` o personal operativo. Todo el código de logística se conserva intacto para la reactivación futura de la flota propia. El ajuste es estrictamente un filtro visual en la interfaz de usuario gobernado condicionalmente por `FEATURES.MOSTRAR_ROLES_LOGISTICOS_REGISTRO`.
+  * **Reorganización del Selector "¿CÓMO TE VAS A REGISTRAR?":**
+    - Se ocultan temporalmente de la vista pública las opciones "Asesor comercial", "CEDI afiliado" y "Mensajero".
+    - Se dejan visibles en la interfaz únicamente:
+      1. *"Comprador"* (icono `ShoppingBag`): Para clientes finales de la vitrina. Formulario mínimo (Nombre, WhatsApp / Teléfono, Correo y Contraseña). Oculta por completo el bloque "DATOS DE TU NEGOCIO" y la tarjeta contable de SolV. Asigna el rol correspondiente a comprador/cliente (`'cliente'` con `account_type: "comprador"`).
+      2. *"Comercio / Tienda"* (icono `Store`): Para marcas locales y vendedores. Muestra datos personales + sección "DATOS DE TU NEGOCIO" (Tipo, Marca, NIT, Dirección, Municipio) + tarjeta informativa de SolV/24h con enlace al portal. Asigna el rol comercial existente (`'cliente'` con `account_type: "comercio"`).
+      3. *"Personal ATL"* (icono `IdCard`): Conservado para colaboradores operativos (`'operario'`) con aprobación de administración.
 - **Auditoría y Mapeo Definitivo de Rutas del Navbar/Header (`NavbarStorefront.tsx` y `Navbar.tsx`):**
   * **Logo YAM:** Envuelto en `<Link href="/">` para volver siempre a la vitrina comercial.
   * **Botón "Portal Comercios" (naranja):** Vinculado a `<Link href="/portal-comercios">` (landing B2B y onboarding).
@@ -74,11 +76,13 @@ Principales capacidades entregadas:
 3. **`src/components/storefront/NavbarStorefront.tsx`**:
    - Botón "Portal Comercios" unificado para navegar a `/portal-comercios`.
 4. **`src/app/registro/page.tsx`**:
-   - Rediseño por perfiles: Comprador (formulario ligero sin datos de negocio), Comercio / Tienda (datos de negocio + SolV) y Personal ATL. Retiro de roles obsoletos Asesor y CEDI.
+   - Ajuste visual y dinamismo: Selector "¿CÓMO TE VAS A REGISTRAR?" reorganizado para mostrar únicamente "Comprador", "Comercio / Tienda" y "Personal ATL".
+   - Ocultamiento condicional mediante feature flags de "Asesor comercial", "CEDI afiliado" y "Mensajero", conservando el 100% de la lógica de backend, tipos y esquemas para la reactivación logística futura.
+   - Formulario dinámico: "Comprador" oculta datos de negocio y tarjeta contable; "Comercio" muestra datos de empresa y tarjeta SolV.
 5. **`src/app/globals.css`**:
    - Keyframe `@keyframes marquee` y clase `.animate-marquee` con pausa en `:hover`.
 6. **`src/lib/features.ts`**:
-   - Feature flags para gobernar visibilidad de mensajería pública (`MOSTRAR_MENSAJERIA_PUBLICO`).
+   - Feature flags para gobernar visibilidad de mensajería pública (`MOSTRAR_MENSAJERIA_PUBLICO`) y roles logísticos avanzados en registro (`MOSTRAR_ROLES_LOGISTICOS_REGISTRO`).
 
 ### Archivos Creados:
 1. **`src/app/portal-comercios/page.tsx`**:

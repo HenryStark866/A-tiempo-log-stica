@@ -29,6 +29,24 @@ Lo mínimo, si no vas a leerlo entero:
 - **Dos proyectos de Supabase activos**: este es `uhbtivaepyhwfdvtpfjq`.
   Confirmar el ref antes de cada migración.
 
+## Estado de producción y reglas para colaboradores (2026-10-20)
+
+Para quien trabaje aquí —persona o agente—, antes de tocar nada:
+
+- **Producción corre en AWS**: una instancia EC2 única con backend propio.
+  Supabase Cloud quedó descartado; `main` es la verdad de lo que está en producción.
+- **Las migraciones ya aplicadas no se editan.** Las nuevas empiezan en la
+  **0143**. `npm run test:db` tiene que quedar en verde.
+- **No toques migraciones ni infraestructura (`supabase/`, `infra/`, workflows,
+  despliegue) sin avisar antes a Henry.**
+- **Los SMS salen por la app SMS Gateway** de un celular propio
+  ([`docs/sms-desde-celular.md`](docs/sms-desde-celular.md)). En pruebas **no se
+  mandan SMS reales**: se prueba con los dobles de los tests.
+- **Todo por rama y PR; nada directo a `main`.** Parte siempre de `origin/main`
+  al día (una rama de semanas atrás vuelve a traer código ya resuelto).
+- **Vercel exige que el autor del commit sea miembro del equipo**; si no, el
+  despliegue de la rama se bloquea. Revisa `git config user.email` antes de commitear.
+
 ## La memoria del proyecto
 
 **Cada quien tiene la suya, y la ruta cambia según el equipo.** No hay una bóveda

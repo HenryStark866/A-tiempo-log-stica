@@ -15,6 +15,7 @@ import {
   ArrowRight,
   ShieldCheck,
   ShoppingBag,
+  Landmark,
 } from "lucide-react";
 import { formatCOP } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -40,7 +41,7 @@ const MUNICIPIOS = [
   "Otro municipio (coordinar con la tienda)",
 ];
 
-type MetodoPago = "interledger" | "puntored" | "acordado_tienda";
+type MetodoPago = "interledger" | "pse_tarjetas" | "puntored" | "acordado_tienda";
 
 export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCheckoutProps) {
   const cantidad = initialQuantity > 0 ? initialQuantity : 1;
@@ -49,7 +50,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
   const [municipio, setMunicipio] = useState(MUNICIPIOS[0]);
   const [direccion, setDireccion] = useState("");
   const [complemento, setComplemento] = useState("");
-  const [metodoPago, setMetodoPago] = useState<MetodoPago>("acordado_tienda");
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("interledger");
 
   // Casilla de registro opcional
   const [crearCuenta, setCrearCuenta] = useState(false);
@@ -188,10 +189,10 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
           `💰 *Total:* ${formatCOP(totalCOP)}\n` +
           `💳 *Método de pago:* ${
             metodoPago === "interledger"
-              ? "Pago digital (En línea e inmediato)"
-              : metodoPago === "puntored"
-              ? "Punto físico Puntored"
-              : "Pago acordado directamente"
+              ? "Pago digital (Billeteras / Nequi / Daviplata)"
+              : metodoPago === "pse_tarjetas"
+              ? "PSE y Tarjetas (Cuentas de ahorro y crédito)"
+              : "Punto físico Puntored (Corresponsal / Efectivo)"
           }\n` +
           `📍 *Entrega:* ${direccion}, ${municipio} (${complemento || "Sin complemento"})\n` +
           `👤 *Comprador:* ${nombre} - Tel: ${telefono}\n\n` +
@@ -299,9 +300,9 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
                 <span className="font-bold text-slate-800 dark:text-white">
                   {metodoPago === "interledger"
                     ? "Pago digital (En línea e inmediato)"
-                    : metodoPago === "puntored"
-                    ? "Punto físico Puntored / Corresponsal"
-                    : "Pago directo acordado con la tienda"}
+                    : metodoPago === "pse_tarjetas"
+                    ? "PSE y Tarjetas (Bancos y tarjetas)"
+                    : "Punto físico Puntored / Corresponsal"}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -312,7 +313,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
               </div>
               <div className="flex justify-between border-t border-slate-200 dark:border-white/10 pt-2 font-bold text-sm">
                 <span className="text-slate-700 dark:text-slate-300">Total a pagar:</span>
-                <span className="text-[#ff812c]">{formatCOP(product.price)}</span>
+                <span className="text-[#ff812c]">{formatCOP(totalCOP)}</span>
               </div>
             </div>
 
@@ -432,7 +433,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 
-                {/* 1. Pago digital (Interledger / SolV subyacente) */}
+                {/* 1. Pago digital (Billeteras / Nequi / Daviplata) */}
                 <button
                   type="button"
                   onClick={() => setMetodoPago("interledger")}
@@ -450,11 +451,33 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
                   </div>
                   <span className="text-xs font-bold block">Pago digital</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Billeteras digitales o cuentas bancarias
+                    Billeteras / Nequi / Daviplata
                   </span>
                 </button>
 
-                {/* 2. Puntored */}
+                {/* 2. PSE y Tarjetas (Bancos / Tarjetas) */}
+                <button
+                  type="button"
+                  onClick={() => setMetodoPago("pse_tarjetas")}
+                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all ${
+                    metodoPago === "pse_tarjetas"
+                      ? "border-[#ff812c] bg-[#ff812c]/10 text-slate-900 dark:text-white shadow-sm ring-1 ring-[#ff812c]"
+                      : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Landmark className="w-4 h-4 text-sky-500" />
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400">
+                      Bancos / PSE
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold block">PSE y Tarjetas</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                    Cuentas de ahorro vía PSE, crédito y débito
+                  </span>
+                </button>
+
+                {/* 3. Punto Puntored (Efectivo / Corresponsal) */}
                 <button
                   type="button"
                   onClick={() => setMetodoPago("puntored")}
@@ -472,29 +495,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
                   </div>
                   <span className="text-xs font-bold block">Punto Puntored</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Corresponsal / Efectivo
-                  </span>
-                </button>
-
-                {/* 3. Acordado con la tienda */}
-                <button
-                  type="button"
-                  onClick={() => setMetodoPago("acordado_tienda")}
-                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all ${
-                    metodoPago === "acordado_tienda"
-                      ? "border-[#ff812c] bg-[#ff812c]/10 text-slate-900 dark:text-white shadow-sm ring-1 ring-[#ff812c]"
-                      : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-600 dark:text-slate-400"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Store className="w-4 h-4 text-sky-500" />
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-600 dark:text-sky-400">
-                      Directo
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold block">Acordar con Tienda</span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Transferencia o entrega
+                    Corresponsal / Efectivo local
                   </span>
                 </button>
               </div>

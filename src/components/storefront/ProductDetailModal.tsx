@@ -7,7 +7,6 @@ import {
   MapPin,
   ShieldCheck,
   ShoppingBag,
-  MessageCircle,
   Plus,
   Minus,
   Sparkles,
@@ -46,12 +45,6 @@ export function ProductDetailModal({
   }, [onClose]);
 
   if (!product) return null;
-
-  const phoneClean = product.store_phone.replace(/[^0-9]/g, "");
-  const waPregunta = encodeURIComponent(
-    `¡Hola ${product.store_name}! Te contacto desde la vitrina YAM. Tengo una consulta sobre el producto "${product.name}" (${formatCOP(product.price)}).`
-  );
-  const waUrl = phoneClean ? `https://wa.me/${phoneClean}?text=${waPregunta}` : "#";
 
   const subtotal = product.price * quantity;
 
@@ -145,10 +138,10 @@ export function ProductDetailModal({
               <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-[#ff812c]/10 border border-amber-500/20 dark:border-[#ff812c]/20 text-xs text-slate-700 dark:text-slate-200 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-[#ff812c]">
                   <Truck className="w-4 h-4 shrink-0" />
-                  <span>Entrega o retiro coordinado directamente</span>
+                  <span>Despacho o retiro coordinado con la tienda</span>
                 </div>
                 <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-normal">
-                  Este producto se despacha desde <strong className="text-slate-900 dark:text-white">{product.store_location}</strong>. Podrás acordar el método de entrega o retiro con la tienda tras la compra.
+                  Este producto se despacha desde <strong className="text-slate-900 dark:text-white">{product.store_location}</strong>. Tu pago está 100% asegurado en plataforma; tras la compra, podrás coordinar el retiro gratuito en punto físico o envío a convenir directamente con la marca.
                 </p>
               </div>
 
@@ -192,8 +185,8 @@ export function ProductDetailModal({
               </div>
             </div>
 
-            {/* Acciones principales */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/10">
+            {/* Acción principal: Todo el tráfico enfocado a la compra en plataforma */}
+            <div className="pt-2 border-t border-slate-100 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => onBuyNow(product, quantity)}
@@ -202,18 +195,6 @@ export function ProductDetailModal({
                 <ShoppingBag className="w-4 h-4 text-[#1C1C1E]" />
                 <span>Comprar ahora {quantity > 1 ? `(${formatCOP(subtotal)})` : ""}</span>
               </button>
-
-              {phoneClean && (
-                <a
-                  href={waUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full min-h-[42px] inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Consultar con la tienda por WhatsApp</span>
-                </a>
-              )}
             </div>
           </div>
         </div>

@@ -18,13 +18,14 @@ Principales capacidades entregadas:
 - **Catálogo y Cuadrícula Responsiva:** Visualización moderna de productos por marcas locales con precios en COP, badges de categoría, filtro por categorías y búsqueda por texto.
 - **Enfoque 100% Vitrina Comercial:** Se retiró el bloque inferior de rastreo logístico de guías ATL de la página principal para centrar toda la experiencia de usuario en la vitrina de compras.
 - **Fallback de Catálogo Local (`mockProducts.ts`):** Garantiza que la vitrina siempre luzca completa (≥6 productos) representando 3 marcas reales locales del Valle de Aburrá y el Oriente si la base de datos viva aún cuenta con pocos productos activos.
-- **Compra como Invitado (Guest Checkout):** Formulario modal ligero con solicitud mínima de datos (Nombre, WhatsApp, Municipio, Dirección y Método de Pago: Interledger, Punto Puntored o Acordado con la tienda).
-- **Mejora de UX en Nomenclatura de Pasarelas:** Refinamiento visual y de redacción en la opción de pago digital para el cliente final en el checkout, preservando la integración subyacente con SolV / Interledger (`metodoPago === "interledger"`):
-  * Badge superior: *"En línea e inmediato"* (en lugar de la marca interna "SolV").
-  * Título principal: *"Pago digital"* (en lugar de "Interledger").
-  * Subtexto descriptivo: *"Billeteras digitales o cuentas bancarias"* (en lugar de "Pago digital abierto").
-- **Provisión Opcional de Cuenta:** Casilla para crear cuenta de comprador en Supabase Auth únicamente si el usuario lo desea expresamente.
-- **Coordinación Directa:** Eliminación de selectores de zona o cobro de mensajería automática en la vitrina; leyenda explícita: *"Entrega o retiro coordinado directamente con [nombre de la tienda]"* y enlace directo a WhatsApp con mensaje pre-armado.
+- **Compra como Invitado (Guest Checkout):** Formulario modal ligero con solicitud mínima de datos (Nombre, WhatsApp, Municipio, Dirección) y pasarela de pagos integrada para retención de comisiones (Pago digital, PSE y Tarjetas, Punto Puntored).
+- **Estandarización y Blindaje de Pasarelas de Pago:**
+  * **Eliminación de "Acordar con Tienda":** Se retiró definitivamente la opción de pago por fuera de la plataforma para asegurar la retención de comisiones del ecosistema y garantizar pagos auditables en el ledger.
+  * **Incorporación de pasarela bancaria "PSE y Tarjetas" (`pse_tarjetas`):** Nueva opción para cuentas de ahorro y corriente vía PSE, tarjetas de crédito y débito.
+  * **Terna de pago equilibrada:**
+    1. *Pago digital:* Billeteras / Nequi / Daviplata (inmediato y en línea).
+    2. *PSE y Tarjetas:* Bancos, transferencias PSE y tarjetas.
+    3. *Punto Puntored:* Pago en efectivo en corresponsal físico.
 - **Copywriting y Tono de Marca en Hero:** Redacción orientada a la experiencia de compra y apoyo al comercio de la región:
   * Badge superior: *"Comercio local: Valle de Aburrá y Oriente antioqueño"*.
   * Título H1: *"Elige, compra y disfruta."*
@@ -60,11 +61,13 @@ Principales capacidades entregadas:
     b) *Botón iconográfico de Carrito / Compra Rápida (🛒)*: Botón destacado en naranja vibrante (`#ff812c`) ubicado en la barra de acciones inferior (y con botón flotante directo en la esquina superior de la foto) que activa inmediatamente el modal de compra express.
   * **Modal de Detalle de Producto (`ProductDetailModal`):**
     - Vista inmersiva responsiva (1 col en móvil, 2 cols en escritorio) con fotografía ampliada en alta resolución, insignias de verificación de comercio, categoría, SKU y municipio de origen.
-    - Descripción extendida, notas claras de entrega/retiro directo con la tienda y selector interactivo de cantidad (`-` y `+`) con actualización reactiva del subtotal en COP.
-    - Botón CTA *"Comprar ahora"* (enlaza fluidamente a `ModalCheckout` transfiriendo producto y cantidad) y acceso directo a WhatsApp para resolver inquietudes previas con el vendedor.
+    - Descripción extendida y bloque de entrega/retiro con garantía de plataforma: *"Despacho o retiro coordinado con la tienda. Este producto se despacha desde {municipio/zona}. Tu pago está 100% asegurado en plataforma; tras la compra, podrás coordinar el retiro gratuito en punto físico o envío a convenir directamente con la marca."*
+    - Selector interactivo de cantidad (`-` y `+`) con actualización reactiva del subtotal en COP.
+    - Enfoque 100% en conversión y retención: Se eliminó el botón previo de WhatsApp pre-compra para prevenir la desintermediación y fuga de ventas antes del cobro, canalizando todo el tráfico directamente al botón principal *"Comprar ahora"*.
   * **Integración y Continuidad con `ModalCheckout`:**
     - `ModalCheckout` adaptado para recibir `initialQuantity` desde la vista detallada o default `1` en compra rápida desde el carrito.
-    - Desglose contable transparente (`cantidad × precio_unitario = total`) reflejado tanto en la cabecera del checkout como en el mensaje pre-armado de WhatsApp y el payload de orden.
+    - Sustitución de "Acordar con Tienda" por "PSE y Tarjetas" (`pse_tarjetas`) para asegurar comisiones de pasarela.
+    - Desglose contable transparente (`cantidad × precio_unitario = total`) reflejado tanto en la cabecera del checkout como en el mensaje post-compra de WhatsApp y el payload de orden.
 - **Auditoría y Mapeo Definitivo de Rutas del Navbar/Header (`NavbarStorefront.tsx` y `Navbar.tsx`):**
   * **Logo YAM:** Envuelto en `<Link href="/">` para volver siempre a la vitrina comercial.
   * **Botón "Portal Comercios" (naranja):** Vinculado a `<Link href="/portal-comercios">` (landing B2B y onboarding).

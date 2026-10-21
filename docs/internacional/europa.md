@@ -33,6 +33,35 @@ prioridad cuando exista, y transparencia sobre que no existe todavía.
 
 ---
 
+## 0 bis. Hay un aliado en Europa (21-10-2026)
+
+Henry tiene un amigo en Europa dispuesto a instalar la app y probar. Eso toca dos cosas
+distintas, y conviene no mezclarlas:
+
+**Lo fácil: probar.** Sirve desde ya, sin trámite ninguno. La app nativa se prueba con Expo Go
+—se le manda un enlace, la abre en su teléfono— y la web ya es pública. Más valioso aún: es el
+primer par de ojos fuera de Colombia sobre latencia real, formatos de teléfono y dirección que
+aquí no se prueban, y sobre el cambio de divisas con una billetera en euros cuando se encienda
+Open Payments (ver `docs/open-payments.md`).
+
+**Lo serio: el bloqueante de la sección 5 tiene nombre.** El Reglamento 1169/2011 exige que la
+etiqueta de un alimento lleve la dirección de un **importador establecido en la UE**, y no
+tenerlo es lo que hoy impide vender café o cacao colombiano allá. Una persona establecida en la
+UE es, en principio, la pieza que falta.
+
+Pero no es un favor que se pide por WhatsApp: el importador es el **operador responsable del
+alimento** ante las autoridades. Responde del etiquetado, de la seguridad alimentaria, de la
+trazabilidad y —desde el 30-12-2026 para medianos y grandes, 30-6-2027 para micro y pequeños— de
+la diligencia debida del EUDR. Si el café sale mal etiquetado, el que responde es él, no ATL.
+
+Así que antes de pedírselo hay que saber: si tiene o puede abrir una figura (autónomo o sociedad)
+en su país, en qué país exactamente —cambia el régimen de IVA y el registro—, y si está dispuesto
+a asumir esa responsabilidad con un contrato de por medio. Esa conversación vale más que los seis
+meses de campaña de la sección 8, porque sin importador la campaña capta comercios para un
+servicio que no se puede prestar.
+
+---
+
 ## 1. Países prioritarios
 
 ### Elegidos

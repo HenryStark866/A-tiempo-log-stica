@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash, timingSafeEqual } from "node:crypto";
 import {
   createAuthenticatedClient,
   isPendingGrant,
@@ -265,7 +266,45 @@ export async function pedirPermisoDePago(args: {
       uri: permiso.continue.uri,
       token: permiso.continue.access_token.value,
     },
+    // El nonce del servidor de autorización y su dirección. Los dos entran en
+    // el hash que hay que recalcular cuando el comprador vuelva, así que hay
+    // que guardarlos ahora: después no se pueden volver a pedir.
+    asNonce: permiso.interact.finish,
+    authServer: pagador.authServer,
   };
+}
+
+/**
+ * ¿Este regreso lo manda de verdad la billetera?
+ *
+ * Cuando el comprador autoriza, su servidor de autorización lo devuelve a
+ * nuestra URL con `interact_ref` y `hash`. Sin comprobar ese hash, cualquiera
+ * que adivine la URL de regreso puede mandarnos un `interact_ref` inventado y
+ * hacernos intentar rematar un pago que nadie autorizó. El hash es
+ * base64url(sha256) de los cuatro datos separados por saltos de línea, en
+ * este orden y sin nada más — lo fija GNAP, no nosotros.
+ *
+ * Se compara en tiempo constante por el mismo motivo que la firma del
+ * gateway de SMS: un `===` filtra, por lo que tarda, cuántos caracteres
+ * acertó quien prueba.
+ */
+export function verificarRegreso(args: {
+  /** El nonce que generamos nosotros y viajó en `finish.nonce`. */
+  nonce: string;
+  /** El que devolvió el servidor de autorización al conceder el permiso. */
+  asNonce: string;
+  interactRef: string;
+  /** La dirección del servidor de autorización, tal como se guardó. */
+  authServer: string;
+  /** El `hash` que trae la URL de regreso. */
+  hash: string;
+}): boolean {
+  const base = `${args.nonce}\n${args.asNonce}\n${args.interactRef}\n${args.authServer}`;
+  const esperado = createHash("sha256").update(base).digest("base64url");
+
+  const a = Buffer.from(esperado, "utf8");
+  const b = Buffer.from(args.hash.trim(), "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /**

@@ -40,22 +40,44 @@ autoriza allá, y vuelve con una referencia con la que rematamos el pago.
 - **Migración `0147`** — `wallet_address` en `at_clients` (donde cobra el
   comercio) y en `at_profiles`. Con `check` de formato mínimo y **fuera** de
   las columnas que la 0143 abrió al público.
+- **Migración `0148`** — `at_pagos_op`, donde vive el permiso mientras el
+  comprador está autorizando. Nace con RLS y **sin una sola política**: la
+  tabla guarda un token portador (`continuar_token`) y solo la toca el cliente
+  de servicio. El comprador no consulta aquí el estado de su pago; el día que
+  haga falta enseñárselo se expone una vista sin los tokens.
+- **Las dos rutas** que parten el flujo en los dos tramos que el estándar
+  obliga:
+  - `POST /api/pagos/openpayments/iniciar` — arma cobro, cotización y permiso,
+    guarda la fila **antes** de devolver el enlace, y contesta con el cambio
+    (`sale` / `llega`) para enseñárselo al comprador antes de que autorice.
+  - `GET /api/pagos/openpayments/volver` — comprueba el `hash` de GNAP
+    (`verificarRegreso`), remata el pago y redirige a `/rastreo`. No pide
+    sesión a propósito: quien autoriza en el móvil lo que empezó en el
+    escritorio volvería a otro navegador, y lo que autoriza es el hash, no la
+    cookie.
+
+**La moneda sale de la billetera del comercio.** `iniciar` toma `assetCode` y
+`assetScale` de la billetera verificada del destino: un comercio cotiza en su
+propia moneda, que es lo que hace cualquiera, y el cambio lo resuelve la red.
+Es un paso intermedio honesto —moneda por comercio, no por fila— y se cae el
+día que un mismo comercio venda en dos monedas.
 
 Lo que **no** está hecho, y hace falta antes de mover un peso real:
 
-1. **Guardar los permisos.** `pedirPermisoDePago` devuelve un `continue` (URI y
-   token) que hay que persistir antes de redirigir al comprador. Sin eso, quien
-   vuelve de autorizar encuentra un pago que no se puede rematar. Falta la
-   tabla y falta la ruta `/api/pagos/openpayments/volver`.
-2. **Conciliar.** Saber que un pago salió no es saber que llegó. Hay que
-   consultar el incoming payment y marcar la guía.
-3. **Idempotencia.** Un `interact_ref` reusado no cobra dos veces —lo rechaza
-   el servidor de autorización— pero el código de arriba tiene que distinguir
-   ese rechazo de un fallo real.
-4. **Multimoneda en la base.** Hoy todo importe en las tablas `at_` es COP sin
-   decirlo. Cobrar en EUR o NGN exige moneda por fila, y eso toca `at_guides`,
-   `at_invoices`, `at_settlements` y el tarifario. **Es el trabajo grande de
-   verdad**, más que el pago en sí.
+1. **Conciliar.** Saber que un pago salió no es saber que llegó. Hay que
+   consultar el incoming payment y marcar la guía. Hoy un remate que falla
+   justo al enterarse deja la fila en `autorizando` a propósito: marcarla
+   fallida invitaría a cobrar dos veces.
+2. **Verificar la billetera al registrarla.** `iniciar` exige
+   `wallet_verified_at`, y todavía no hay pantalla que lo llene: falta el
+   formulario del comercio que resuelva la dirección contra la red y guarde la
+   moneda. **Sin eso, esta ruta no cobra a nadie** — y así tiene que ser.
+3. **Multimoneda en la base.** Hoy todo importe en las tablas `at_` es un
+   número sin moneda. Cobrar en EUR o NGN de verdad exige moneda por fila, y
+   eso toca `at_guides`, `at_invoices`, `at_settlements` y el tarifario. **Es
+   el trabajo grande de verdad**, más que el pago en sí.
+4. **Barrer lo vencido.** `at_op_vencer_pagos()` existe y nadie la llama
+   todavía: hay que colgarla del cron del buzón.
 
 ## Lo que necesito de ti para encenderlo
 

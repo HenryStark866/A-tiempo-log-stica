@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { BuscadorGuia } from "@/components/BuscadorGuia";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
 import { PieMarca } from "@/components/PieMarca";
+import { BloqueBeyondAccess } from "@/components/BeyondAccess";
 import { InstalarApp } from "@/components/InstalarApp";
 import { MARCA } from "@/lib/marca";
 
@@ -181,6 +182,11 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* La alianza. Va después de la historia del nombre y antes del pie:
+            es lo último que se cuenta de nosotros, y quien llegó hasta aquí ya
+            sabe qué es YAM. */}
+        <BloqueBeyondAccess />
 
         {/* Footer */}
         <footer className="border-t border-slate-900/[0.06] dark:border-white/[0.08]">

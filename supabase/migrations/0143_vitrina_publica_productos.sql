@@ -1,26 +1,24 @@
--- ═══════════════════════════════════════════════════════════════════════════
--- 0143: VITRINA PÚBLICA DE PRODUCTOS (STOREFRONT) Y LECTURA ANÓNIMA
---
--- Habilita la consulta pública de productos activos del catálogo para visitantes
--- y compradores no autenticados en la vitrina web (Storefront).
--- ═══════════════════════════════════════════════════════════════════════════
+-- 0143: vitrina pública de productos (storefront) con lectura anónima MÍNIMA.
+-- Solo el rol anon, solo filas activas y solo columnas aptas para el público.
+-- NO se expone NIT, correo, contacto, dirección ni tarifas (billing_cycle, delivery_rate, return_rate).
+-- Los usuarios autenticados siguen con sus políticas actuales (staff / comercio).
 
--- 1. Políticas RLS para at_products
+-- 1. Productos activos
 drop policy if exists "publico lee productos activos" on public.at_products;
 create policy "publico lee productos activos" on public.at_products
-  for select to anon, authenticated
+  for select to anon
   using (active = true);
 
-grant select on public.at_products to anon, authenticated;
+revoke select on public.at_products from anon;
+grant select (id, client_id, sku, name, description, price, extra, active) on public.at_products to anon;
 
--- 2. Lectura pública de nombres y metadatos básicos de comercios activos
--- Permite que la vitrina resuelva el nombre comercial (`business_name`),
--- ciudad y datos de contacto de la tienda que publica el producto.
+-- 2. Comercios activos: solo nombre comercial, ciudad, teléfono público y logo
 drop policy if exists "publico lee comercios activos" on public.at_clients;
 create policy "publico lee comercios activos" on public.at_clients
-  for select to anon, authenticated
+  for select to anon
   using (active = true);
 
-grant select on public.at_clients to anon, authenticated;
+revoke select on public.at_clients from anon;
+grant select (id, business_name, city, phone, logo_url, active) on public.at_clients to anon;
 
 notify pgrst, 'reload schema';

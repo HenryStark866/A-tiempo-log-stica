@@ -90,11 +90,13 @@ De ahí, tres reglas que no se negocian:
   diseño, no un descuido: la lógica del negocio vive en Postgres y cada función
   comprueba el rol por dentro. Lo que hay que vigilar es que la comprobación
   esté, no que la función exista.
-- **7 ejecutables por `anon`**, y las siete tienen que serlo: el rastreo por
+- **8 ejecutables por `anon`**, y las ocho tienen que serlo: el rastreo por
   número y por token, los datos de pago, el registro de eventos de seguridad,
-  el buscador de comercios del registro, las marcas de la portada y el semáforo
-  `at_salud()`. Seis de las siete llevan freno (`at_limitar`, migración 0063);
-  la excepción es `at_landing_brands`, que devuelve 24 nombres de comercios que
+  el buscador de comercios del registro, las marcas de la portada, el catálogo
+  de la vitrina (`at_vitrina_catalogo`, 0143) y el semáforo `at_salud()`. Seis
+  de las ocho llevan freno (`at_limitar`, migración 0063); las excepciones son
+  `at_vitrina_catalogo` (catálogo acotado a 500 filas, mismo motivo) y
+  `at_landing_brands`, que devuelve 24 nombres de comercios que
   pidieron salir en la portada y es `stable` — ponerle freno la volvería
   `volatile` y metería una escritura en cada carga de la portada a cambio de
   nada.

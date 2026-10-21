@@ -16,6 +16,7 @@ import { ProductMarquee } from "@/components/storefront/ProductMarquee";
 import { ModalCheckout } from "@/components/storefront/ModalCheckout";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductDetailModal } from "@/components/storefront/ProductDetailModal";
+import { PedirCuenta } from "@/components/storefront/PedirCuenta";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
 import { PieMarca } from "@/components/PieMarca";
 import { InstalarApp } from "@/components/InstalarApp";
@@ -23,6 +24,11 @@ import { formatCOP, normalizarBusqueda } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { MOCK_PRODUCTS, type MockProduct } from "@/data/mockProducts";
 import { MARCA } from "@/lib/marca";
+
+// Los productos de muestra son inventados: solo sirven para desarrollar. En
+// producción la vitrina muestra lo que de verdad hay, aunque sea poco.
+const CATALOGO_DE_MUESTRA: MockProduct[] =
+  process.env.NODE_ENV === "production" ? [] : MOCK_PRODUCTS;
 
 function StorefrontContent() {
   const searchParams = useSearchParams();
@@ -39,6 +45,22 @@ function StorefrontContent() {
   const [loadingDb, setLoadingDb] = useState(true);
   const [productoDetalle, setProductoDetalle] = useState<MockProduct | null>(null);
   const [checkoutData, setCheckoutData] = useState<{ product: MockProduct; quantity: number } | null>(null);
+  const [tiendaSeleccionada, setTiendaSeleccionada] = useState<string | null>(null);
+  // La vitrina se ve sin cuenta; comprar exige sesión.
+  const [conSesion, setConSesion] = useState(false);
+  const [pidiendoCuenta, setPidiendoCuenta] = useState<MockProduct | null>(null);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setConSesion(Boolean(data.user)))
+      .catch(() => setConSesion(false));
+  }, []);
+
+  function comprar(product: MockProduct, quantity: number) {
+    if (conSesion) setCheckoutData({ product, quantity });
+    else setPidiendoCuenta(product);
+  }
 
   // Carga de productos desde Supabase con fallback automático a mockProducts
   useEffect(() => {
@@ -49,9 +71,9 @@ function StorefrontContent() {
           .from("at_products")
           .select("id, name, sku, description, price, extra, at_clients(business_name, phone, city)")
           .eq("active", true)
-          .limit(20);
+          .limit(200);
 
-        if (!error && data && data.length >= 6) {
+        if (!error && data && data.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mapeados: MockProduct[] = data.map((item: any) => {
             const client = Array.isArray(item.at_clients) ? item.at_clients[0] : item.at_clients;
@@ -76,11 +98,11 @@ function StorefrontContent() {
           });
           setDbProducts(mapeados);
         } else {
-          setDbProducts(MOCK_PRODUCTS);
+          setDbProducts(CATALOGO_DE_MUESTRA);
         }
       } catch (err) {
-        console.warn("Usando catálogo local de fallback:", err);
-        setDbProducts(MOCK_PRODUCTS);
+        console.warn("No se pudo cargar el catálogo:", err);
+        setDbProducts(CATALOGO_DE_MUESTRA);
       } finally {
         setLoadingDb(false);
       }
@@ -100,6 +122,17 @@ function StorefrontContent() {
     return Array.from(cats);
   }, [dbProducts]);
 
+  // Tiendas con productos activos, sacadas del mismo catálogo (sin otra consulta).
+  const tiendas = useMemo(() => {
+    const porNombre = new Map<string, { nombre: string; ciudad: string; productos: number }>();
+    dbProducts.forEach((p) => {
+      const t = porNombre.get(p.store_name);
+      if (t) t.productos += 1;
+      else porNombre.set(p.store_name, { nombre: p.store_name, ciudad: p.store_location, productos: 1 });
+    });
+    return Array.from(porNombre.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [dbProducts]);
+
   // Solo se renderiza la barra de píldoras si existen MÁS DE 5 categorías activas
   const mostrarBarraCategorias = categoriasActivas.length > 5;
 
@@ -108,6 +141,9 @@ function StorefrontContent() {
     return dbProducts.filter((p) => {
       // Filtro por categoría (siempre activo en la lógica)
       if (categoriaSeleccionada !== "Todos" && p.category !== categoriaSeleccionada) {
+        return false;
+      }
+      if (tiendaSeleccionada && p.store_name !== tiendaSeleccionada) {
         return false;
       }
       // Filtro por búsqueda de texto
@@ -120,7 +156,7 @@ function StorefrontContent() {
       }
       return true;
     });
-  }, [dbProducts, categoriaSeleccionada, searchQuery]);
+  }, [dbProducts, categoriaSeleccionada, tiendaSeleccionada, searchQuery]);
 
   return (
     <div className="min-h-screen font-sans text-slate-900 dark:text-white selection:bg-[#ff812c]/20 pb-20 transition-colors duration-300">
@@ -164,7 +200,7 @@ function StorefrontContent() {
               </div>
               <div className="flex items-center gap-1.5 font-medium">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>Compra ágil sin registros obligatorios</span>
+                <span>Mira todo sin cuenta; regístrate al comprar</span>
               </div>
             </div>
           </div>
@@ -202,6 +238,41 @@ function StorefrontContent() {
             </span>
           </Link>
         </div>
+
+        {/* Tiendas: todas las que tienen productos en la vitrina */}
+        {tiendas.length > 0 && (
+          <section aria-labelledby="titulo-tiendas" className="space-y-3">
+            <h2 id="titulo-tiendas" className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pl-1">
+              Tiendas ({tiendas.length})
+            </h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+              {tiendas.map((t) => {
+                const activa = tiendaSeleccionada === t.nombre;
+                return (
+                  <button
+                    key={t.nombre}
+                    type="button"
+                    aria-pressed={activa}
+                    onClick={() => setTiendaSeleccionada(activa ? null : t.nombre)}
+                    className={`shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl border text-left transition-all ${
+                      activa
+                        ? "bg-[#ff812c] border-[#ff812c] text-[#1C1C1E]"
+                        : "bg-white/70 dark:bg-white/5 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    <Store className="w-5 h-5 shrink-0" />
+                    <span>
+                      <span className="block text-sm font-bold">{t.nombre}</span>
+                      <span className="block text-xs opacity-75">
+                        {t.ciudad} · {t.productos} {t.productos === 1 ? "producto" : "productos"}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Barra de Filtros por Categoría: SOLO si hay más de 5 categorías activas */}
         {mostrarBarraCategorias && (
@@ -243,13 +314,16 @@ function StorefrontContent() {
               No se encontraron productos
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-              No hay artículos que coincidan con &laquo;{searchQuery}&raquo;.
+              {dbProducts.length === 0 && !loadingDb
+                ? "Todavía no hay productos publicados. Vuelve pronto."
+                : <>No hay artículos que coincidan con &laquo;{searchQuery}&raquo;.</>}
             </p>
             <button
               type="button"
               onClick={() => {
                 setSearchQuery("");
                 setCategoriaSeleccionada("Todos");
+                setTiendaSeleccionada(null);
               }}
               className="mt-4 px-4 py-2 text-xs font-bold rounded-xl bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white hover:bg-slate-300"
             >
@@ -263,7 +337,7 @@ function StorefrontContent() {
                 key={prod.id}
                 product={prod}
                 onViewDetail={(p) => setProductoDetalle(p)}
-                onQuickBuy={(p) => setCheckoutData({ product: p, quantity: 1 })}
+                onQuickBuy={(p) => comprar(p, 1)}
               />
             ))}
           </div>
@@ -311,16 +385,21 @@ function StorefrontContent() {
           onClose={() => setProductoDetalle(null)}
           onBuyNow={(prod, qty) => {
             setProductoDetalle(null);
-            setCheckoutData({ product: prod, quantity: qty });
+            comprar(prod, qty);
           }}
         />
       )}
 
-      {/* Modal de Checkout / Compra Rápida como Invitado */}
+      {pidiendoCuenta && (
+        <PedirCuenta productName={pidiendoCuenta.name} onClose={() => setPidiendoCuenta(null)} />
+      )}
+
+      {/* Modal de Checkout (solo con sesión) */}
       {checkoutData && (
         <ModalCheckout
           product={checkoutData.product}
           initialQuantity={checkoutData.quantity}
+          conSesion={conSesion}
           onClose={() => setCheckoutData(null)}
         />
       )}

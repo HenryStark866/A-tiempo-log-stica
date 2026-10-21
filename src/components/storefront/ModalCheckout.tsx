@@ -25,6 +25,8 @@ export interface ModalCheckoutProps {
   product: MockProduct | null;
   onClose: () => void;
   initialQuantity?: number;
+  /** Con sesión no se ofrece crear cuenta dentro del pago. */
+  conSesion?: boolean;
 }
 
 const MUNICIPIOS = [
@@ -43,7 +45,7 @@ const MUNICIPIOS = [
 
 type MetodoPago = "interledger" | "pse_tarjetas" | "puntored" | "acordado_tienda";
 
-export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCheckoutProps) {
+export function ModalCheckout({ product, onClose, initialQuantity = 1, conSesion = false }: ModalCheckoutProps) {
   const cantidad = initialQuantity > 0 ? initialQuantity : 1;
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -221,7 +223,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {ordenCompletada
                   ? "Coordinación directa con el comercio"
-                  : "Sin registro obligatorio — Modo Invitado"}
+                  : conSesion ? "Compra con tu cuenta de YAM" : "Sin registro obligatorio — Modo Invitado"}
               </p>
             </div>
           </div>
@@ -501,7 +503,8 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
               </div>
             </div>
 
-            {/* CASILLA OPCIONAL: Registro de cuenta para historial */}
+            {/* CASILLA OPCIONAL: Registro de cuenta para historial (solo sin sesión) */}
+            {!conSesion && (
             <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] space-y-3">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -556,6 +559,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
                 </div>
               )}
             </div>
+            )}
 
             {/* Aviso de coordinación directa */}
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-100/50 dark:bg-white/[0.02] p-2.5 rounded-xl">

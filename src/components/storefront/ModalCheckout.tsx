@@ -321,6 +321,8 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1, conSesion
 
             {/* Acción de Contacto por WhatsApp con la Tienda */}
             <div className="pt-2 space-y-3">
+              {/* El teléfono del comercio no es público (0143): sin él no hay botón. */}
+              {product.store_phone && (
               <a
                 href={linkWhatsApp}
                 target="_blank"
@@ -330,6 +332,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1, conSesion
                 <MessageCircle className="w-5 h-5" />
                 <span>Contactar a {product.store_name} por WhatsApp</span>
               </a>
+              )}
 
               <button
                 type="button"

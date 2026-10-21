@@ -67,35 +67,39 @@ function StorefrontContent() {
     async function cargarCatalogo() {
       try {
         const supabase = createClient();
-        const { data, error } = await supabase
-          .from("at_products")
-          .select("id, name, sku, description, price, extra, at_clients(business_name, phone, city)")
-          .eq("active", true)
-          .limit(200);
+        // Catálogo público por función (0143): solo columnas de vitrina y solo
+        // comercios que aceptaron salir en la portada.
+        const { data, error } = await supabase.rpc("at_vitrina_catalogo");
 
         if (!error && data && data.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mapeados: MockProduct[] = data.map((item: any) => {
-            const client = Array.isArray(item.at_clients) ? item.at_clients[0] : item.at_clients;
-            const extra = item.extra || {};
-            return {
-              id: item.id,
-              name: item.name,
-              sku: item.sku || "SKU-PROD",
-              description: item.description || "Producto disponible en tienda local.",
-              price: Number(item.price) || 0,
-              image_url:
-                extra.image_url ||
-                extra.foto ||
-                "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
-              store_name: client?.business_name || "Comercio Aliado",
-              store_slug: "tienda",
-              store_badge: "Comercio Verificado",
-              category: extra.category || "General",
-              store_phone: client?.phone || "+573000000000",
-              store_location: client?.city || "Medellín, Antioquia",
-            };
-          });
+          const filas = data as Array<{
+            id: string;
+            nombre: string;
+            sku: string | null;
+            descripcion: string | null;
+            precio: number | string;
+            imagen_url: string | null;
+            categoria: string;
+            tienda: string;
+            ciudad: string | null;
+          }>;
+          const mapeados: MockProduct[] = filas.map((item) => ({
+            id: item.id,
+            name: item.nombre,
+            sku: item.sku || "SKU-PROD",
+            description: item.descripcion || "Producto disponible en tienda local.",
+            price: Number(item.precio) || 0,
+            image_url:
+              item.imagen_url ||
+              "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
+            store_name: item.tienda,
+            store_slug: "tienda",
+            store_badge: "Comercio Verificado",
+            category: item.categoria,
+            // El teléfono del comercio no es público: el contacto va por YAM.
+            store_phone: "",
+            store_location: item.ciudad || "Valle de Aburrá",
+          }));
           setDbProducts(mapeados);
         } else {
           setDbProducts(CATALOGO_DE_MUESTRA);

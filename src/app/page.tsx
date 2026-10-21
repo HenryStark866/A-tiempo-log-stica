@@ -52,6 +52,7 @@ function StorefrontContent() {
           .limit(20);
 
         if (!error && data && data.length >= 6) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const mapeados: MockProduct[] = data.map((item: any) => {
             const client = Array.isArray(item.at_clients) ? item.at_clients[0] : item.at_clients;
             const extra = item.extra || {};

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { clienteDeLaPersona } from "@/lib/supabase/portador";
 import { clienteDeServicio } from "@/lib/supabase/servicio";
 import { ok, fallo } from "@/lib/api/respuesta";
 import { frenar } from "@/lib/api/freno";
@@ -29,16 +29,25 @@ import {
  *     dirección que nadie resolvió contra la red es la forma más fácil de
  *     mandar dinero a ninguna parte.
  *
- * ── La moneda sale de la billetera del comercio ──────────────────────────
- * Hoy los importes de las tablas `at_` son números sin moneda, y eran pesos
- * porque todos los comercios estaban en Medellín. Aquí se toma la moneda de
- * la billetera verificada del comercio: un comercio cotiza en SU moneda, que
- * es lo que hace cualquiera. El cambio lo resuelve la red en la cotización, y
- * es el número que hay que enseñarle al comprador antes de que autorice.
+ * ── La moneda del pedido, y por qué esto se niega a cobrar en euros ──────
+ * Los importes de las tablas `at_` son números SIN moneda, y son pesos porque
+ * hasta hoy todos los comercios estaban en Medellín. Un `cod_amount` de
+ * 50.000 contra una billetera en euros no son 50.000 euros: son ~11, y
+ * etiquetar ese número con la moneda de la billetera es pedir cuatro mil
+ * veces el precio. Por eso aquí se comprueba, y si la billetera del comercio
+ * cobra en otra cosa que `MONEDA_IMPLICITA` la ruta NO cobra: contesta que no
+ * puede y se queda quieta.
  *
- * Esto es un paso, no la solución: el día que un mismo comercio venda en dos
- * monedas, la moneda tendrá que estar en la fila y no en el comercio (ver
- * docs/open-payments.md, punto 4).
+ * Es un cerrojo, no una solución. La solución es moneda por fila —el plan
+ * está en docs/multimoneda.md— y mientras no exista, la única salida honesta
+ * es no cobrar: un cobro cuatro mil veces mayor no se descubre revisando
+ * logs, se descubre cuando alguien reclama su dinero.
+ *
+ * El cambio de divisas sí funciona, y es lo que distingue a YAM: lo resuelve
+ * la cotización entre la billetera del COMPRADOR y la del comercio. Alguien
+ * con euros le paga a un comercio que cobra en pesos, y la red hace el
+ * cambio. Lo que falta es lo otro: que el comercio pueda poner su precio en
+ * su propia moneda.
  *
  * ── Lo que esta ruta guarda ──────────────────────────────────────────────
  * La fila de `at_pagos_op` (migración 0148) con la URI de continuación y su
@@ -53,6 +62,13 @@ const PAGOS_POR_MINUTO = 6;
 
 /** Cuánto vale una cotización antes de volver a pedirla. Igual que la 0148. */
 const VIGENCIA_MIN = 60;
+
+/**
+ * La moneda en la que están escritos los importes de las tablas `at_`, sin
+ * que ninguna columna lo diga. Mientras siga siendo una suposición y no un
+ * dato, esta ruta no cobra contra una billetera que cobre en otra cosa.
+ */
+const MONEDA_IMPLICITA = "COP";
 
 interface Cuerpo {
   guia?: string;
@@ -85,7 +101,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
+  // Cookies si viene del navegador, `Authorization: Bearer` si viene de la
+  // app del teléfono. En los dos casos manda RLS.
+  const supabase = await clienteDeLaPersona(request);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -149,6 +167,22 @@ export async function POST(request: NextRequest) {
     // La escala la manda la red, no nosotros: COP suele ser 2 y hay monedas
     // con 0 y con 9. Tomarla de la billetera evita cobrar cien veces de más.
     const destino = await resolverBilletera(comercio.wallet_address);
+
+    // El cerrojo de la moneda (ver la cabecera). Se comprueba contra lo que
+    // dice la RED, no contra `wallet_asset_code`, que es una copia que pudo
+    // quedarse vieja si el comercio cambió su billetera de moneda.
+    if (destino.assetCode !== MONEDA_IMPLICITA) {
+      console.error("[op-iniciar] billetera en otra moneda", {
+        comercio: pedido.client_id,
+        moneda: destino.assetCode,
+      });
+      return fallo(
+        `Este comercio cobra en ${destino.assetCode} y los precios de la ` +
+          "plataforma todavía están en pesos. No podemos cobrarte hasta que " +
+          "eso quede resuelto, para no cobrarte de más.",
+        409
+      );
+    }
 
     const importe = {
       value: aImporteEntero(monto, destino.assetScale),

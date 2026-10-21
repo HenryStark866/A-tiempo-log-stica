@@ -56,32 +56,53 @@ autoriza allá, y vuelve con una referencia con la que rematamos el pago.
     escritorio volvería a otro navegador, y lo que autoriza es el hash, no la
     cookie.
 
-**La moneda sale de la billetera del comercio.** `iniciar` toma `assetCode` y
-`assetScale` de la billetera verificada del destino: un comercio cotiza en su
-propia moneda, que es lo que hace cualquiera, y el cambio lo resuelve la red.
-Es un paso intermedio honesto —moneda por comercio, no por fila— y se cae el
-día que un mismo comercio venda en dos monedas.
+**Por ahora solo se cobra en pesos, y a propósito.** Esto estuvo escrito al
+revés durante unas horas: decía que la moneda la pone la billetera del
+comercio, «un comercio cotiza en su moneda». Suena bien y es falso, porque los
+importes de las tablas `at_` son números sin moneda y son pesos. Un
+`cod_amount` de 50.000 etiquetado con la moneda de una billetera en euros no
+son 50.000 euros: son unos once, y cobrar 50.000 EUR es pedir cuatro mil veces
+el precio. `iniciar` ahora lo comprueba contra lo que dice la red y **se niega
+a cobrar** (409) si el comercio no cobra en COP.
+
+Lo que sí funciona desde ya es el cambio de divisas, que es el diferenciador:
+alguien con euros le paga a un comercio que cobra en pesos y la red resuelve
+la conversión en la cotización. Lo que falta es lo otro —que el comercio ponga
+su precio en su propia moneda— y eso exige moneda por fila:
+**[`docs/multimoneda.md`](multimoneda.md)** tiene el plan, con la Fase 0 que
+es exactamente este cerrojo.
 
 Lo que **no** está hecho, y hace falta antes de mover un peso real:
 
-1. **Conciliar.** Saber que un pago salió no es saber que llegó. Hay que
-   consultar el incoming payment y marcar la guía. Hoy un remate que falla
-   justo al enterarse deja la fila en `autorizando` a propósito: marcarla
-   fallida invitaría a cobrar dos veces.
-2. **Verificar la billetera al registrarla.** `iniciar` exige
-   `wallet_verified_at`, y todavía no hay pantalla que lo llene: falta el
-   formulario del comercio que resuelva la dirección contra la red y guarde la
-   moneda. **Sin eso, esta ruta no cobra a nadie** — y así tiene que ser.
-3. **Multimoneda en la base.** Hoy todo importe en las tablas `at_` es un
+1. **Marcar la guía con lo conciliado.** La conciliación ya está escrita:
+   `consultarCobro` pregunta a la billetera de destino cuánto tiene de verdad
+   (`incomingAmount` contra `receivedAmount`), la migración **`0149`** lo anota
+   en `at_pagos_op` (`recibido_*`, `cobro_completado`, `conciliado_at`,
+   `conciliaciones`) y añade los estados `conciliado` y `discrepancia`, y
+   `POST /api/pagos/openpayments/conciliar` hace el barrido. Lo llama el cron
+   con el secreto `OP_CONCILIAR_SECRETO` en `x-conciliar-secreto` (sin esa
+   variable contesta 503), y revisa como máximo 25 pagos por llamada —el tope
+   se topa dentro de `at_op_por_conciliar()`, no en la ruta—. Si lo recibido no
+   cuadra con lo cotizado la fila queda en `discrepancia` y la mira una
+   persona: no se inventa un cobro parcial. **Lo que falta es el otro lado:**
+   nada de esto toca todavía `at_guides`, así que un pago conciliado no cambia
+   el estado del pedido.
+2. **Multimoneda en la base.** Hoy todo importe en las tablas `at_` es un
    número sin moneda. Cobrar en EUR o NGN de verdad exige moneda por fila, y
    eso toca `at_guides`, `at_invoices`, `at_settlements` y el tarifario. **Es
    el trabajo grande de verdad**, más que el pago en sí.
-4. **Barrer lo vencido.** `at_op_vencer_pagos()` existe y nadie la llama
-   todavía: hay que colgarla del cron del buzón.
+3. **Colgar las dos del cron.** Ni `at_op_vencer_pagos()` ni
+   `/api/pagos/openpayments/conciliar` las llama nadie todavía: hay que
+   colgarlas del cron del buzón, **y el orden importa**. La `0149` cambió
+   `at_op_vencer_pagos()` para que un pago en `autorizando` solo venza cuando
+   la conciliación ya probó que al otro lado no entró nada
+   (`recibido_value = '0'`); antes marcaba fallido todo lo vencido, que es
+   justo perder la pista del pago que sí se cobró. Conciliar va antes de
+   vencer.
 
 ## Lo que necesito de ti para encenderlo
 
-Tres variables de entorno. Ninguna va al repo: se cargan en el entorno del
+Cuatro variables de entorno. Ninguna va al repo: se cargan en el entorno del
 servidor (Vercel hoy, SSM en la instancia).
 
 | Variable | Qué es |
@@ -89,6 +110,7 @@ servidor (Vercel hoy, SSM en la instancia).
 | `OP_WALLET_ADDRESS` | la dirección de billetera **de YAM** |
 | `OP_KEY_ID` | el identificador de la llave que registraste en esa billetera |
 | `OP_PRIVATE_KEY` | la llave privada Ed25519, en base64 |
+| `OP_CONCILIAR_SECRETO` | ≥16 caracteres, inventado por ti. Es lo que prueba que quien pide conciliar es el cron y no cualquiera. Sin ella esa ruta contesta 503 |
 
 Para probar sin dinero real existe la
 [billetera de pruebas de Interledger](https://wallet.interledger-test.dev):

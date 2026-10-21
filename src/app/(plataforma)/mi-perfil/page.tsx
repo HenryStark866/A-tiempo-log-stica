@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   SquareArrowOutUpRight,
   TriangleAlert,
+  Wallet,
   X as IconoX,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -36,7 +37,7 @@ import {
   SOCIAL_PLATFORMS,
 } from "@/lib/constants";
 import { signedDocUrl, uploadCourierDoc } from "@/lib/courierDocs";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import type { CourierDocument, CourierType, DocType, SocialPlatform } from "@/lib/types";
 
 const ICONO_RED: Record<SocialPlatform, typeof Instagram> = {
@@ -153,6 +154,192 @@ function TuRedSocial() {
   );
 }
 
+/** Lo que la ruta contesta cuando la billetera resolvió contra la red. */
+interface BilleteraVerificada {
+  direccion: string;
+  moneda: string | null;
+  verificadaEn: string;
+}
+
+/**
+ * Dónde cobra el comercio: su dirección de billetera de Open Payments.
+ *
+ * Es la pantalla que le faltaba al pago internacional. `POST
+ * /api/pagos/openpayments/iniciar` exige que la billetera esté verificada
+ * —`wallet_verified_at` no nulo, migración 0147— y hasta ahora nada la
+ * llenaba, así que el cobro entre monedas estaba escrito y apagado.
+ *
+ * Guardar aquí NO es escribir un texto: la ruta resuelve la dirección contra
+ * la red y solo guarda si existe. De ahí sale también la moneda, que no se le
+ * pregunta a nadie — la dice la billetera.
+ *
+ * Solo tiene sentido para quien tiene comercio, así que la pinta el dueño y
+ * nadie más (lo mismo que decide la ruta por su lado).
+ */
+function TuBilletera() {
+  const profile = useProfile();
+  const clientId = profile.client_id;
+
+  const [direccion, setDireccion] = useState("");
+  const [verificada, setVerificada] = useState<BilleteraVerificada | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // La billetera propia sí la puede leer su dueño: la 0147 revocó esas
+  // columnas de `anon`, no de quien tiene sesión, y la política de la 0003 le
+  // deja ver la fila de SU comercio.
+  useEffect(() => {
+    if (!clientId) return;
+    let vivo = true;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("at_clients")
+        .select("wallet_address, wallet_asset_code, wallet_verified_at")
+        .eq("id", clientId)
+        .maybeSingle();
+      if (!vivo) return;
+      if (data?.wallet_address) {
+        setDireccion(data.wallet_address);
+        if (data.wallet_verified_at) {
+          setVerificada({
+            direccion: data.wallet_address,
+            moneda: data.wallet_asset_code,
+            verificadaEn: data.wallet_verified_at,
+          });
+        }
+      }
+      setCargando(false);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [clientId]);
+
+  async function guardar(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setGuardando(true);
+    try {
+      const respuesta = await fetch("/api/pagos/openpayments/billetera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ billetera: direccion.trim() }),
+      });
+      const datos = (await respuesta.json()) as {
+        ok: boolean;
+        motivo?: string;
+        billetera?: string;
+        moneda?: string;
+        verificada_en?: string;
+      };
+      // El `motivo` de la ruta ya viene escrito para enseñarlo tal cual.
+      if (!datos.ok || !datos.billetera) {
+        throw new Error(datos.motivo ?? "No se pudo verificar tu billetera");
+      }
+      setDireccion(datos.billetera);
+      setVerificada({
+        direccion: datos.billetera,
+        moneda: datos.moneda ?? null,
+        verificadaEn: datos.verificada_en ?? new Date().toISOString(),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo verificar tu billetera");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  const sinCambios = verificada !== null && direccion.trim() === verificada.direccion;
+
+  return (
+    <Card className="mb-4">
+      <form onSubmit={guardar} className="p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#ff812c]/10 text-[#ff812c]">
+            <Wallet className="size-5" />
+          </span>
+          <div>
+            <p className="font-semibold text-slate-900 dark:text-white">Tu billetera</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Donde tu negocio recibe los pagos.
+            </p>
+          </div>
+        </div>
+
+        {cargando ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">Cargando…</p>
+        ) : (
+          <>
+            {verificada ? (
+              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
+                <BadgeCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-emerald-800 dark:text-emerald-300">
+                    Verificada {verificada.moneda ? `· cobra en ${verificada.moneda}` : null}
+                  </p>
+                  <p className="mt-0.5 break-all text-sm text-emerald-700 dark:text-emerald-400">
+                    {verificada.direccion}
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-400">
+                    La red la reconoció el {formatDateTime(verificada.verificadaEn)}.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-white/[0.04] dark:text-slate-300">
+                <p>
+                  Una dirección de billetera es una URL pública, como un correo pero
+                  para dinero: <span className="break-all font-medium">https://billetera.example/tu-negocio</span>.
+                </p>
+                <p className="mt-2">
+                  Con ella tus clientes te pagan desde cualquier país, de su billetera
+                  a la tuya y en su propia moneda, sin pasarela ni contrato por país.
+                  Te la da tu proveedor de billetera; mientras no esté aquí, no se te
+                  puede cobrar nada por este medio.
+                </p>
+              </div>
+            )}
+
+            <Field label="Dirección de billetera">
+              <input
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                inputMode="url"
+                placeholder="https://billetera.example/tu-negocio"
+                className={inputCls}
+              />
+            </Field>
+
+            {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={guardando || !direccion.trim() || sinCambios}
+              className={cn(
+                "mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#ff812c] px-4",
+                "text-sm font-bold text-[#1C1C1E] active:scale-[0.98] disabled:opacity-60"
+              )}
+            >
+              {guardando ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              {guardando
+                ? "Preguntándole a la red…"
+                : verificada
+                  ? "Cambiar billetera"
+                  : "Verificar y guardar"}
+            </button>
+            <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
+              Al guardar preguntamos a la red si esa dirección existe. Si no responde,
+              no se guarda nada.
+            </p>
+          </>
+        )}
+      </form>
+    </Card>
+  );
+}
+
 export default function MyProfilePage() {
   const profile = useProfile();
   /**
@@ -257,6 +444,15 @@ export default function MyProfilePage() {
       {profile.role === "cliente" && (
         <div className="mt-8">
           <MiComercioPanel />
+          {/* Dónde cobra el negocio va junto a lo del negocio, no arriba con
+              los datos personales: es la misma pregunta que los medios de pago
+              que ya están en este panel, solo que para cobrar de otro país.
+              Un perfil sin comercio no tiene nada que verificar aquí. */}
+          {profile.client_id && (
+            <div className="mt-4">
+              <TuBilletera />
+            </div>
+          )}
         </div>
       )}
 

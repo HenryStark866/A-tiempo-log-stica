@@ -48,8 +48,9 @@ import {
  *     `interact_ref`, el segundo intento falla en el servidor de autorización
  *     —no cobra dos veces—, pero el código de arriba tiene que distinguir ese
  *     fallo de uno de verdad.
- *   · No concilia. Saber que un pago salió no es saber que llegó: eso se
- *     consulta sobre el incoming payment, y esa parte está por escribir.
+ *   · No decide nada sobre lo que consulta. `consultarCobro` dice qué se
+ *     esperaba y qué llegó de verdad al otro lado; quién mira ese dato y cada
+ *     cuánto es asunto de la ruta de conciliación, no de aquí.
  *
  * ── La llave ─────────────────────────────────────────────────────────────
  * Firma cada petición. Es Ed25519, vive en SSM/Vercel como base64 y no se
@@ -164,6 +165,126 @@ export async function crearCobro(args: {
       metadata: { descripcion: args.descripcion, ...args.referencia },
     }
   );
+}
+
+/**
+ * ¿Llegó de verdad? — el estado de un cobro contra la red.
+ *
+ * Saber que un pago SALIÓ no es saber que LLEGÓ. Son dos cosas distintas y la
+ * que importa es la segunda: el outgoing payment puede quedar creado y el
+ * dinero atascado en un tramo intermedio, y el remate puede fallar justo al
+ * enterarse —el pago se hizo, la respuesta se perdió— y dejarnos creyendo que
+ * no pasó nada. La única fuente que no miente sobre lo segundo es el incoming
+ * payment, que vive en la billetera de quien cobra: él sabe cuánto tiene.
+ *
+ * Por eso esta función devuelve los dos importes y no uno: `esperado` es lo
+ * que se pidió al crear el cobro y `recibido` es lo que hay en la cuenta. Que
+ * no coincidan no es un error del que haya que recuperarse solo —puede ser un
+ * pago parcial, o un segundo pago al mismo cobro—, es un dato que tiene que
+ * ver una persona. Aquí no se interpreta: se informa.
+ *
+ * El permiso es de tipo `incoming-payment` con acción `read` y se le pide al
+ * servidor de autorización DEL DESTINO, no al nuestro ni al del pagador: el
+ * recurso es suyo. Sin interacción, igual que al crearlo: leer un cobro no
+ * mueve el dinero de nadie.
+ */
+export interface EstadoDelCobro {
+  /** La URL del cobro, tal como la devolvió la red al crearlo. */
+  cobro: string;
+  /** Lo que se pidió. Null si el cobro se creó sin importe fijo. */
+  esperado: Importe | null;
+  /** Lo que hay de verdad en la cuenta de quien cobra. */
+  recibido: Importe;
+  /** La billetera de destino lo dio por cerrado: no va a entrar más. */
+  completado: boolean;
+  /** Entró al menos lo esperado. Sin importe esperado no se puede decir. */
+  cubierto: boolean;
+  /**
+   * Llegó algo que no cuadra: otra moneda, o de más. Hay que mirarlo a mano;
+   * ninguna regla automática debería decidir sobre esto.
+   */
+  discrepancia: boolean;
+  /** Cuándo deja de aceptar dinero, si la billetera lo dijo. */
+  expiraAt: string | null;
+}
+
+/**
+ * Los importes de Open Payments son entero + escala, así que comparar dos
+ * exige llevarlos antes a la misma escala. Pasar por `Number` aquí sería
+ * meter coma flotante justo donde el estándar se esforzó en no tenerla: en
+ * COP con escala 2, un redondeo de un centavo multiplicado por un lote de
+ * pagos es una diferencia de caja que nadie sabe de dónde salió.
+ */
+function compararImportes(a: Importe, b: Importe): number {
+  const escala = Math.max(a.assetScale, b.assetScale);
+  const subir = (x: Importe) =>
+    BigInt(x.value) * BigInt(10) ** BigInt(escala - x.assetScale);
+  const ia = subir(a);
+  const ib = subir(b);
+  return ia === ib ? 0 : ia < ib ? -1 : 1;
+}
+
+export async function consultarCobro(args: {
+  /** La URL del incoming payment (columna `cobro_url`). */
+  cobro: string;
+  /**
+   * La billetera donde vive ese cobro. Hace falta para saber a qué servidor
+   * de autorización pedirle el permiso: el cobro no lo dice, y deducirlo de
+   * su URL sería adivinar.
+   */
+  billeteraDestino: string;
+}): Promise<EstadoDelCobro> {
+  const op = await clienteOpenPayments();
+  const destino = await op.walletAddress.get({ url: args.billeteraDestino });
+
+  const permiso = await op.grant.request(
+    { url: destino.authServer },
+    {
+      access_token: {
+        access: [{ type: "incoming-payment", actions: ["read"] }],
+      },
+    }
+  );
+
+  const cobro = await op.incomingPayment.get({
+    url: args.cobro,
+    accessToken: tokenDe(permiso, `leer el cobro de ${args.billeteraDestino}`),
+  });
+
+  const esperado = cobro.incomingAmount
+    ? {
+        value: cobro.incomingAmount.value,
+        assetCode: cobro.incomingAmount.assetCode,
+        assetScale: cobro.incomingAmount.assetScale,
+      }
+    : null;
+
+  const recibido: Importe = {
+    value: cobro.receivedAmount.value,
+    assetCode: cobro.receivedAmount.assetCode,
+    assetScale: cobro.receivedAmount.assetScale,
+  };
+
+  // La moneda se compara antes que el número: 50 de una moneda y 50 de otra
+  // no son comparables, y tratarlos como iguales daría por bueno un cobro
+  // que llegó en la divisa equivocada.
+  const monedaDistinta =
+    esperado !== null && esperado.assetCode !== recibido.assetCode;
+  const contra = esperado && !monedaDistinta ? compararImportes(recibido, esperado) : null;
+
+  return {
+    cobro: cobro.id,
+    esperado,
+    recibido,
+    completado: cobro.completed === true,
+    cubierto: contra !== null && contra >= 0,
+    // De menos NO es discrepancia: un cobro a medio llenar es lo normal
+    // mientras el pago está en vuelo, y marcarlo así llenaría la bandeja de
+    // una persona con pagos que se iban a completar solos. De más sí, y otra
+    // moneda también.
+    discrepancia: monedaDistinta || contra === 1,
+    expiraAt: cobro.expiresAt ?? null,
+  };
 }
 
 /**

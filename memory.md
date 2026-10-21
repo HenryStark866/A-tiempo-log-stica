@@ -231,10 +231,51 @@ Con el fin de preservar la estabilidad operativa del sistema y evitar cruces de 
 - Se aplicó `git rebase origin/main` sobre `feat/vitrina-publica-storefront`, garantizando un historial lineal y limpio basado en `ccb22ff`. Cero conflictos.
 
 ### C. Empaquetado y Push al Repositorio Remoto:
-- **Mensaje de commit:** `"feat(storefront): reubicar propuesta contable a portal comercios, micro-gancho b2b y pulir checkout"`
-- **Hash de commit consolidado:** `4fff3b8`
 - **Base upstream:** `origin/main` (`ccb22ff`)
 - **Rama remota:** `origin/feat/vitrina-publica-storefront`
-- **Estado:** Push exitoso con tracking upstream configurado (`-u origin feat/vitrina-publica-storefront`).
+- **Estado:** Sincronizado y al día con upstream.
+
+---
+
+## 7. Registro de Cierre de Sesión y Estado Final del Repositorio
+
+> **Fecha:** 20 de Octubre de 2026 — 19:35  
+> **Rama de trabajo:** `feat/vitrina-publica-storefront`  
+> **Base sincronizada:** `origin/main` (`ccb22ff`)  
+> **Estado de compilación:** 0 errores (`npm run typecheck`)
+
+### Resumen Consolidado de Optimizaciones Entregadas:
+
+1. **Blindaje de Comisiones y Pasarelas de Pago Oficiales:**
+   - **Retiro de "Acordar con Tienda":** Eliminación definitiva de opciones por fuera de la plataforma para garantizar que el 100% de las ventas pasen por el ledger y retengan la comisión del ecosistema YAM.
+   - **Incorporación de "PSE y Tarjetas" (`pse_tarjetas`):** Pasarela bancaria directa para cuentas de ahorro, transferencias PSE y tarjetas de crédito/débito.
+   - **Ajuste fino de Microcopy en "Pago digital":** Descripción delimitada exclusivamente a *"Billeteras digitales como Nequi o Daviplata"*, retirando *"o cuentas bancarias"* para una diferenciación cristalina frente a PSE.
+   - **Terna de pago equilibrada y 100% transaccional:**
+     1. *Pago digital:* Billeteras / Nequi / Daviplata (en línea e inmediato).
+     2. *PSE y Tarjetas:* Bancos, transferencias PSE y tarjetas.
+     3. *Punto Puntored:* Efectivo en corresponsal físico.
+
+2. **Desacoplamiento de Detalle vs. Compra Rápida y Eliminación de Fuga Pre-Compra:**
+   - **Tarjetas de Producto (`ProductCard.tsx`):** Sustitución del botón único por dos acciones diferenciadas: botón principal *"Ver detalle"* y botón iconográfico de Carrito / Compra Rápida (🛒).
+   - **Modal de Detalle (`ProductDetailModal.tsx`):** Vista inmersiva en 2 columnas con imagen HD, badges de verificación, nota de despacho con garantía de plataforma, y selector interactivo de cantidad (`-` y `+`) con subtotal dinámico en COP.
+   - **Retiro Definitivo de WhatsApp Pre-Compra:** Eliminación de enlaces `wa.me` previos a la compra en el detalle para canalizar todo el tráfico hacia el botón principal *"Comprar ahora"*.
+   - **Integración con `ModalCheckout.tsx`:** Soporte de `initialQuantity`, desglose de precio total y mensajes post-compra con resumen detallado.
+   - **Proxies de compatibilidad:** Creados `src/components/ProductCard.tsx` y `src/components/ProductDetailModal.tsx`.
+
+3. **Reorganización del Registro y Preservación Arquitectónica al 100%:**
+   - **Preservación total de logística:** Se conservan intactos en código y base de datos todos los tipos, tablas y funciones para `asesor`, `cedi` y `mensajeros`.
+   - **Filtro visual de roles:** Selector público reducido a *Comprador*, *Comercio / Tienda* y *Personal ATL*.
+   - **Formulario dinámico:** Ocultamiento de datos comerciales para compradores finales.
+   - **Estandarización de Categoría Comercial:** Selector obligatorio con el catálogo oficial de 9 categorías alineadas con la vitrina.
+
+4. **Navegación y Propuesta de Valor Contable:**
+   - **Micro-gancho contable en vitrina (`page.tsx`):** Franja superior con enlace interactivo a `/portal-comercios`.
+   - **Landing B2B de comercios (`portal-comercios/page.tsx`):** Propuesta de valor integral con las 3 tarjetas de SolV (ledger, liquidación <24h y Shopify sync).
+   - **Navbar Storefront:** Enlaces funcionales hacia `/`, `/portal-comercios` y `/login`.
+
+---
+
+### Estado para Próxima Sesión:
+El repositorio queda 100% estable, compilando sin errores, con la vitrina pública operando en desarrollo sobre `http://localhost:3001` y con todos los cambios integrados y respaldados en la rama remota `feat/vitrina-publica-storefront`.
 
 

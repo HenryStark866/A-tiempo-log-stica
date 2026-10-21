@@ -18,6 +18,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductDetailModal } from "@/components/storefront/ProductDetailModal";
 import { FondoInicio } from "@/components/fondos/FondoInicio";
 import { PieMarca } from "@/components/PieMarca";
+import { BloqueBeyondAccess } from "@/components/BeyondAccess";
 import { InstalarApp } from "@/components/InstalarApp";
 import { formatCOP, normalizarBusqueda } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -302,6 +303,11 @@ function StorefrontContent() {
             </div>
           </div>
         </section>
+
+        {/* La alianza. Va al final de la vitrina y antes del pie: es lo
+            ultimo que se cuenta de nosotros, y quien llego hasta aqui ya vio
+            de que se trata YAM. */}
+        <BloqueBeyondAccess className="mt-16" />
       </main>
 
       {/* Modal de Detalle de Producto */}

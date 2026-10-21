@@ -5,10 +5,15 @@ import type { NextConfig } from "next";
  * Vercel garantiza igual en compilación y en ejecución — y que cambia solo,
  * sin que nadie tenga que acordarse de subir un número a mano.
  *
- * Fuera de Vercel queda en "local": ahí no hay despliegues que detectar y un
+ * Vercel lo da en VERCEL_GIT_COMMIT_SHA y AWS Amplify en AWS_COMMIT_ID (solo
+ * durante el build, que es cuando `env` de abajo lo congela).
+ *
+ * Fuera de ambos queda en "local": ahí no hay despliegues que detectar y un
  * valor cambiante haría que la app se recargara sola sin motivo.
  */
-const VERSION = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? "local";
+const VERSION =
+  (process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.AWS_COMMIT_ID)?.slice(0, 8) ||
+  "local";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

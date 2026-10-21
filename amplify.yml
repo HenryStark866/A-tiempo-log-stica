@@ -1,0 +1,38 @@
+# AWS Amplify Hosting (Next.js SSR, plataforma WEB_COMPUTE). Ver docs/migracion-aws/amplify-1b.md
+#
+# Amplify NO pasa sus variables de entorno al servidor en ejecución: solo las ve el build.
+# Por eso el build las vuelca a .env.production (Next las lee desde ahí en SSR). Se
+# copian solo las de esta lista y por nombre; nunca se imprime ningún valor.
+# Las secretas llegan por SSM (JSON en la variable `secrets`) o, como plan B, por variable.
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - nvm install 22 && nvm use 22
+        - node -v
+        - npm ci
+        # npm run build ya ejecuta `prebuild` (copiar-worker-maplibre.mjs)
+    build:
+      commands:
+        - |
+          for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_PUBLIC_APP_URL \
+                   NEXT_PUBLIC_SENTRY_DSN NEXT_PUBLIC_SENTRY_ENV MANTENIMIENTO POLAR_SERVER \
+                   POLAR_PRODUCT_ID POLAR_ORGANIZATION_ID OPENWA_API_URL OPENWA_SESSION_NAME; do
+            if [ -n "${!v}" ]; then printf '%s=%s\n' "$v" "${!v}" >> .env.production; fi
+          done
+        - |
+          for v in SUPABASE_SERVICE_ROLE_KEY POLAR_ACCESS_TOKEN POLAR_WEBHOOK_SECRET OPENWA_API_KEY; do
+            val="${!v}"
+            if [ -z "$val" ] && [ -n "$secrets" ]; then val=$(printf '%s' "$secrets" | jq -r --arg k "$v" '.[$k] // empty'); fi
+            if [ -n "$val" ]; then printf '%s=%s\n' "$v" "$val" >> .env.production; fi
+          done
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*

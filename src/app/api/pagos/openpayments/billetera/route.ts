@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, type NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { clienteDeServicio } from "@/lib/supabase/servicio";
 import { ok, fallo } from "@/lib/api/respuesta";
@@ -54,6 +54,70 @@ interface Cuerpo {
   billetera?: string;
 }
 
+/**
+ * Quién llama, y de qué comercio es. Devuelve o el comercio, o la respuesta
+ * que hay que darle a quien no puede estar aquí.
+ *
+ * Está fuera de los dos manejadores porque los dos necesitan exactamente las
+ * mismas tres comprobaciones, y una comprobación de permisos duplicada es una
+ * comprobación que algún día solo se arregla en uno de los dos sitios.
+ */
+async function duenioDelComercio(): Promise<
+  { clientId: string } | { respuesta: NextResponse }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { respuesta: fallo("Tu sesión venció.", 401) };
+  }
+
+  if (!frenar("op-billetera", `uid:${user.id}`, VERIFICACIONES_POR_MINUTO).pasa) {
+    return {
+      respuesta: fallo(
+        "Vas muy rápido. Espera un momento y vuelve a intentarlo.",
+        429
+      ),
+    };
+  }
+
+  // De qué comercio es quien llama lo decide RLS sobre su propio perfil: la
+  // política de la 0003 solo le deja ver la fila cuyo `id` es su `auth.uid()`.
+  const { data: perfil, error: errorPerfil } = await supabase
+    .from("at_profiles")
+    .select("client_id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (errorPerfil || !perfil) {
+    return { respuesta: fallo("No pudimos leer tu perfil.", 404) };
+  }
+  if (!perfil.client_id) {
+    return {
+      respuesta: fallo(
+        "La billetera es de un comercio, y tu cuenta no tiene uno asociado.",
+        403
+      ),
+    };
+  }
+  // `client_id` no basta: un asesor lleva el `client_id` de su jefe para que
+  // RLS le abra los pedidos de ese comercio (ver src/lib/types.ts). Dónde cobra
+  // el negocio lo decide su dueño, igual que los medios de pago y la
+  // facturación, que la base tampoco le abre al asesor.
+  if (perfil.role !== "cliente") {
+    return {
+      respuesta: fallo(
+        "Solo el dueño del comercio puede cambiar su billetera.",
+        403
+      ),
+    };
+  }
+
+  return { clientId: perfil.client_id as string };
+}
+
 export async function POST(request: NextRequest) {
   let cuerpo: Cuerpo;
   try {
@@ -75,43 +139,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return fallo("Tu sesión venció.", 401);
-  }
-
-  if (!frenar("op-billetera", `uid:${user.id}`, VERIFICACIONES_POR_MINUTO).pasa) {
-    return fallo("Vas muy rápido. Espera un momento y vuelve a intentarlo.", 429);
-  }
-
-  // De qué comercio es quien llama lo decide RLS sobre su propio perfil: la
-  // política de la 0003 solo le deja ver la fila cuyo `id` es su `auth.uid()`.
-  const { data: perfil, error: errorPerfil } = await supabase
-    .from("at_profiles")
-    .select("client_id, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (errorPerfil || !perfil) {
-    return fallo("No pudimos leer tu perfil.", 404);
-  }
-  if (!perfil.client_id) {
-    return fallo(
-      "La billetera es de un comercio, y tu cuenta no tiene uno asociado.",
-      403
-    );
-  }
-  // `client_id` no basta: un asesor lleva el `client_id` de su jefe para que
-  // RLS le abra los pedidos de ese comercio (ver src/lib/types.ts). Dónde cobra
-  // el negocio lo decide su dueño, igual que los medios de pago y la
-  // facturación, que la base tampoco le abre al asesor.
-  if (perfil.role !== "cliente") {
-    return fallo("Solo el dueño del comercio puede cambiar su billetera.", 403);
-  }
+  const quien = await duenioDelComercio();
+  if ("respuesta" in quien) return quien.respuesta;
 
   let moneda: string;
   try {
@@ -146,7 +175,7 @@ export async function POST(request: NextRequest) {
       wallet_verified_at: verificadaEn,
     })
     // El `where` que RLS no va a poner: el comercio de quien llama, y nada más.
-    .eq("id", perfil.client_id)
+    .eq("id", quien.clientId)
     .select("id")
     .maybeSingle();
 
@@ -163,4 +192,46 @@ export async function POST(request: NextRequest) {
     moneda,
     verificada_en: verificadaEn,
   });
+}
+
+/**
+ * DELETE — el comercio deja de cobrar por billetera.
+ *
+ * Hacía falta por una razón práctica: una billetera escrita mal pero que
+ * resuelve —la de otra cuenta del mismo proveedor, por ejemplo— no se podía
+ * quitar, solo reemplazar por otra que también resolviera. Y hacía falta por
+ * una razón de fondo: un comercio tiene que poder dejar de recibir pagos sin
+ * pedirle permiso a nadie.
+ *
+ * Borra las tres columnas juntas. Dejar la dirección y quitar solo
+ * `wallet_verified_at` sería peor que no borrar nada: la dirección seguiría
+ * ahí, pareciendo configurada, sin cobrar.
+ */
+export async function DELETE() {
+  const quien = await duenioDelComercio();
+  if ("respuesta" in quien) return quien.respuesta;
+
+  const servicio = clienteDeServicio();
+  const { data: guardado, error } = await servicio
+    .from("at_clients")
+    .update({
+      wallet_address: null,
+      wallet_asset_code: null,
+      wallet_verified_at: null,
+    })
+    .eq("id", quien.clientId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !guardado) {
+    console.error(
+      "[op-billetera] no se pudo quitar la billetera",
+      error?.message ?? "ninguna fila"
+    );
+    return fallo("No se pudo quitar tu billetera. Vuelve a intentarlo.", 502);
+  }
+
+  // Los pagos que ya estaban en curso no se tocan: se armaron contra la
+  // billetera de entonces y esa sigue siendo la que los tiene que recibir.
+  return ok({ billetera: null });
 }

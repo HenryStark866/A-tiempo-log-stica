@@ -184,6 +184,7 @@ function TuBilletera() {
   const [verificada, setVerificada] = useState<BilleteraVerificada | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [quitando, setQuitando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // La billetera propia sí la puede leer su dueño: la 0147 revocó esas
@@ -251,6 +252,26 @@ function TuBilletera() {
     }
   }
 
+  async function quitar() {
+    setError(null);
+    setQuitando(true);
+    try {
+      const respuesta = await fetch("/api/pagos/openpayments/billetera", {
+        method: "DELETE",
+      });
+      const datos = (await respuesta.json()) as { ok: boolean; motivo?: string };
+      if (!datos.ok) {
+        throw new Error(datos.motivo ?? "No se pudo quitar tu billetera");
+      }
+      setDireccion("");
+      setVerificada(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo quitar tu billetera");
+    } finally {
+      setQuitando(false);
+    }
+  }
+
   const sinCambios = verificada !== null && direccion.trim() === verificada.direccion;
 
   return (
@@ -314,21 +335,42 @@ function TuBilletera() {
 
             {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={guardando || !direccion.trim() || sinCambios}
-              className={cn(
-                "mt-4 inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#ff812c] px-4",
-                "text-sm font-bold text-[#1C1C1E] active:scale-[0.98] disabled:opacity-60"
-              )}
-            >
-              {guardando ? <LoaderCircle className="size-4 animate-spin" /> : null}
-              {guardando
-                ? "Preguntándole a la red…"
-                : verificada
-                  ? "Cambiar billetera"
-                  : "Verificar y guardar"}
-            </button>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                type="submit"
+                disabled={guardando || quitando || !direccion.trim() || sinCambios}
+                className={cn(
+                  "inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#ff812c] px-4",
+                  "text-sm font-bold text-[#1C1C1E] active:scale-[0.98] disabled:opacity-60"
+                )}
+              >
+                {guardando ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                {guardando
+                  ? "Preguntándole a la red…"
+                  : verificada
+                    ? "Cambiar billetera"
+                    : "Verificar y guardar"}
+              </button>
+
+              {/* Una billetera mal escrita que resuelve —la de otra cuenta del
+                  mismo proveedor— no se puede corregir cambiándola: hay que
+                  poder dejar de cobrar por este medio. */}
+              {verificada ? (
+                <button
+                  type="button"
+                  onClick={quitar}
+                  disabled={guardando || quitando}
+                  className={cn(
+                    "inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-4 text-sm font-semibold",
+                    "text-slate-600 hover:bg-slate-100 active:scale-[0.98] disabled:opacity-60",
+                    "dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                  )}
+                >
+                  {quitando ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                  {quitando ? "Quitando…" : "Dejar de cobrar aquí"}
+                </button>
+              ) : null}
+            </div>
             <p className="mt-2 text-[13px] text-slate-500 dark:text-slate-400">
               Al guardar preguntamos a la red si esa dirección existe. Si no responde,
               no se guarda nada.

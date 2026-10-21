@@ -141,7 +141,9 @@ export async function POST(request: NextRequest) {
   const servicio = clienteDeServicio();
   const { data: comercio } = await servicio
     .from("at_clients")
-    .select("business_name, wallet_address, wallet_asset_code, wallet_verified_at")
+    .select(
+      "business_name, wallet_address, wallet_asset_code, wallet_verified_at, billing_currency"
+    )
     .eq("id", pedido.client_id)
     .maybeSingle();
 
@@ -168,18 +170,33 @@ export async function POST(request: NextRequest) {
     // con 0 y con 9. Tomarla de la billetera evita cobrar cien veces de más.
     const destino = await resolverBilletera(comercio.wallet_address);
 
-    // El cerrojo de la moneda (ver la cabecera). Se comprueba contra lo que
-    // dice la RED, no contra `wallet_asset_code`, que es una copia que pudo
-    // quedarse vieja si el comercio cambió su billetera de moneda.
-    if (destino.assetCode !== MONEDA_IMPLICITA) {
-      console.error("[op-iniciar] billetera en otra moneda", {
+    // El cerrojo de la moneda (ver la cabecera). Tienen que coincidir LAS
+    // TRES: lo que dice la red ahora mismo, la copia que guardamos al
+    // verificar la billetera, y la moneda en la que están escritos los
+    // precios de ese comercio. Que la red no cuadre con la copia significa
+    // que el comercio cambió su billetera de moneda y nadie se enteró, y ese
+    // caso tiene que frenar igual que el otro.
+    const monedas = new Set([
+      destino.assetCode,
+      comercio.wallet_asset_code ?? destino.assetCode,
+      comercio.billing_currency ?? MONEDA_IMPLICITA,
+    ]);
+
+    if (monedas.size > 1 || destino.assetCode !== MONEDA_IMPLICITA) {
+      console.error("[op-iniciar] las monedas no cuadran", {
         comercio: pedido.client_id,
-        moneda: destino.assetCode,
+        red: destino.assetCode,
+        guardada: comercio.wallet_asset_code,
+        precios: comercio.billing_currency,
       });
       return fallo(
-        `Este comercio cobra en ${destino.assetCode} y los precios de la ` +
-          "plataforma todavía están en pesos. No podemos cobrarte hasta que " +
-          "eso quede resuelto, para no cobrarte de más.",
+        monedas.size > 1
+          ? "La moneda de la billetera de este comercio no coincide con la " +
+              "de sus precios. No podemos cobrarte hasta que lo corrijan, " +
+              "para no cobrarte de más."
+          : `Este comercio cobra en ${destino.assetCode} y los precios de la ` +
+              "plataforma todavía están en pesos. No podemos cobrarte hasta " +
+              "que eso quede resuelto, para no cobrarte de más.",
         409
       );
     }

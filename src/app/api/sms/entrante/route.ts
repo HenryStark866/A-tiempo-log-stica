@@ -3,6 +3,8 @@ import { type NextRequest } from "next/server";
 import { clienteDeServicio } from "@/lib/supabase/servicio";
 import { frenar } from "@/lib/api/freno";
 import { ok, fallo } from "@/lib/api/respuesta";
+import { procesar } from "@/lib/canales/motor";
+import { fuenteSupabase } from "@/lib/canales/fuente-supabase";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -10,13 +12,16 @@ import { ok, fallo } from "@/lib/api/respuesta";
  *
  * La puerta de entrada para quien no tiene internet. El celular Android de la
  * empresa (SMS Gateway for Android, el mismo que despacha los códigos de
- * entrega) reenvía aquí cada mensaje recibido, y la conversación —el menú, las
- * preguntas, el alta— la gobierna la base en `at_sms_recibir` (migración
- * 0145). Esta ruta hace solo las dos cosas que SQL no puede hacer:
+ * entrega) reenvía aquí cada mensaje recibido. Esta ruta es el adaptador de
+ * SMS del motor de canales (src/lib/canales/motor.ts, migración 0150): firma,
+ * traduce y le pasa el mensaje. El motor decide si es una consulta (GUIA,
+ * CATALOGO, PEDIR…) o si le toca al alta por SMS de la 0145, que sigue
+ * funcionando igual: la conversación la lleva `at_sms_recibir` y, al
+ * confirmar, se crea el usuario en `auth` (el hash de la clave lo gobierna
+ * GoTrue y no nosotros).
  *
- *   1. Comprobar que quien llama es de verdad el celular y no cualquiera.
- *   2. Crear el usuario en `auth`, porque el hash de la clave lo gobierna
- *      GoTrue y no nosotros.
+ * Un mismo mensaje del gateway se atiende una sola vez (por `messageId`): el
+ * reintento de un «SI» no crea dos pedidos.
  *
  * ── Quién puede llamar ────────────────────────────────────────────────────
  * El gateway firma cada webhook: HMAC-SHA256 de `id + payload + timestamp` con
@@ -39,6 +44,7 @@ interface WebhookSms {
   id?: string;
   event?: string;
   payload?: {
+    messageId?: string;
     message?: string;
     phoneNumber?: string;
     receivedAt?: string;
@@ -129,58 +135,32 @@ export async function POST(request: NextRequest) {
     return ok({ atendido: false });
   }
 
-  const supabase = clienteDeServicio();
-
-  const { data, error } = await supabase.rpc("at_sms_recibir", {
-    p_telefono: telefono,
-    p_texto: texto,
-  });
-
-  if (error) {
-    console.error("[sms-entrante] at_sms_recibir falló", error.message);
+  try {
+    const r = await procesar(fuenteSupabase(clienteDeServicio()), {
+      canal: "sms",
+      telefono,
+      texto,
+      // El id del SMS es la llave de idempotencia; el del evento, si no viene.
+      proveedorId: cuerpo.payload?.messageId ?? cuerpo.id ?? null,
+    });
+    // Las respuestas ya quedaron en at_message_outbox: salen por el celular.
+    return ok({
+      atendido: r.ruta === "motor" || r.ruta === "alta",
+      ruta: r.ruta,
+      creado: r.creado ?? false,
+      rol: r.rol ?? null,
+    });
+  } catch (e) {
+    if ((e as { codigo?: string }).codigo === "PT429") {
+      // Un número que escribe de más. 200 para que el gateway no reintente,
+      // y sin respuesta: contestarle sería seguirle el juego.
+      return ok({ atendido: false, frenado: true });
+    }
+    // El mensaje quedó sin marcar como atendido: el reintento lo vuelve a
+    // intentar entero (y el alta que falló al crear el usuario se remata).
+    console.error("[sms-entrante] no se pudo atender", (e as Error).message);
     return fallo("No se pudo atender el mensaje.", 502);
   }
-
-  const paso = (data ?? {}) as {
-    crear?: boolean;
-    alta_id?: string;
-    rol?: string;
-  };
-
-  if (!paso.crear || !paso.alta_id) {
-    // Conversación en curso: la base ya encoló la pregunta siguiente.
-    return ok({ atendido: true, creado: false });
-  }
-
-  // ── Confirmó: toca crear la cuenta ──────────────────────────────────────
-  // El teléfono es la identidad (no hay correo: quien llega por aquí puede no
-  // tener uno). La clave es aleatoria y nadie la ve: a esta cuenta se entra
-  // por código de un solo uso, no escribiéndola.
-  const { data: creado, error: errorAlta } = await supabase.auth.admin.createUser({
-    phone: telefono.replace(/[^0-9+]/g, ""),
-    phone_confirm: true, // el SMS llegó DESDE ese número: el número está probado
-    password: crypto.randomUUID() + crypto.randomUUID(),
-    user_metadata: { alta: "sms", rol_pedido: paso.rol ?? "comprador" },
-  });
-
-  if (errorAlta || !creado?.user) {
-    console.error("[sms-entrante] no se pudo crear el usuario", errorAlta?.message);
-    // La conversación se queda en 'listo': cuando se arregle lo de abajo, el
-    // siguiente SI la remata sin volver a preguntarle nada a la persona.
-    return fallo("No se pudo crear la cuenta.", 502);
-  }
-
-  const { error: errorRemate } = await supabase.rpc("at_sms_confirmar_alta", {
-    p_alta_id: paso.alta_id,
-    p_user_id: creado.user.id,
-  });
-
-  if (errorRemate) {
-    console.error("[sms-entrante] at_sms_confirmar_alta falló", errorRemate.message);
-    return fallo("La cuenta quedó a medias.", 502);
-  }
-
-  return ok({ atendido: true, creado: true, rol: paso.rol ?? null });
 }
 
 /**

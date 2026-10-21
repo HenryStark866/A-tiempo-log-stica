@@ -58,6 +58,33 @@ interface PagoPorConciliar {
   conciliaciones: number;
 }
 
+/**
+ * Deja el hecho escrito en la línea de tiempo del pedido (migración 0150).
+ *
+ * Lo que la 0149 averigua se quedaba dentro de `at_pagos_op`, que no la lee
+ * nadie: quien abre el pedido —el comercio, el CEDI, la persona que espera—
+ * no veía ni que el pago se había confirmado ni que no cuadraba.
+ *
+ * Si esto falla no se deshace la conciliación: el dato del dinero ya quedó
+ * guardado y es el que importa. Se registra el fallo y se sigue, porque una
+ * nota perdida es mucho menos grave que un barrido que se detiene a medias y
+ * deja la mitad de los pagos sin revisar.
+ */
+async function anotarEnLaGuia(
+  servicio: ReturnType<typeof clienteDeServicio>,
+  pagoId: string
+): Promise<void> {
+  const { error } = await servicio.rpc("at_op_anotar_en_la_guia", {
+    p_pago_id: pagoId,
+  });
+  if (error) {
+    console.error("[op-conciliar] no se pudo anotar en la guía", {
+      pago: pagoId,
+      motivo: error.message,
+    });
+  }
+}
+
 /** Clave de 16+ caracteres que comparten el cron y esta ruta. */
 function secreto(): string | null {
   const s = process.env.OP_CONCILIAR_SECRETO;
@@ -148,6 +175,7 @@ export async function POST(request: NextRequest) {
               `(escala ${pago.receive_asset_scale}).`,
           })
           .eq("id", pago.id);
+        await anotarEnLaGuia(servicio, pago.id);
         discrepancias++;
         continue;
       }
@@ -169,6 +197,7 @@ export async function POST(request: NextRequest) {
             continuar_token: null,
           })
           .eq("id", pago.id);
+        await anotarEnLaGuia(servicio, pago.id);
         conciliados++;
         continue;
       }

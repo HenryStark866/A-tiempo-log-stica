@@ -358,10 +358,16 @@ conciliación, recién salida y todavía sin aplicar; la última ya aplicada es 
 0148). Hay 135 archivos en `supabase/migrations/`, con huecos en la
 numeración. Esto empieza en la **0150**.
 
-### Fase 0 — tapar el agujero (0150) · reversible
+### Fase 0 — tapar el agujero (0150) · reversible · **HECHA**
 
 Lo único de este documento que **no puede esperar**, porque es un fallo de cobro
 latente, no una mejora.
+
+Está hecha, en la migración `0150` y en `iniciar/route.ts`: existen
+`at_monedas` y `at_clients.billing_currency` (con `fk`, toda fila en `'COP'`),
+y la ruta compara las tres monedas —la que dice la red, la copia que se guardó
+al verificar la billetera y la de los precios del comercio— y contesta 409 si
+alguna no cuadra. **Falta aplicarla**: la 0150 sigue siendo un archivo.
 
 1. `at_clients.billing_currency text not null default 'COP'`, con `fk` a una
    `at_monedas` nueva (`codigo`, `escala`, `decimales_visibles`, `nombre`).

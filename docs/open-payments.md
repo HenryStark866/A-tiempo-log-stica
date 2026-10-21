@@ -84,9 +84,16 @@ Lo que **no** está hecho, y hace falta antes de mover un peso real:
    variable contesta 503), y revisa como máximo 25 pagos por llamada —el tope
    se topa dentro de `at_op_por_conciliar()`, no en la ruta—. Si lo recibido no
    cuadra con lo cotizado la fila queda en `discrepancia` y la mira una
-   persona: no se inventa un cobro parcial. **Lo que falta es el otro lado:**
-   nada de esto toca todavía `at_guides`, así que un pago conciliado no cambia
-   el estado del pedido.
+   persona: no se inventa un cobro parcial. La **`0150`** cierra el otro lado:
+   `at_op_anotar_en_la_guia` escribe el hecho en la línea de tiempo del
+   pedido, que es donde ya mira todo el mundo, y `at_mi_pago` deja que el
+   comprador vea cómo acabó su pago sin abrirle la tabla de los tokens.
+
+   **Lo que queda es una decisión tuya, no código:** esa función *no* apaga el
+   contraentrega (`is_cod`) ni mueve el estado del pedido. Un mensajero que
+   deja de cobrar en efectivo porque una fila cambió sola es un problema de
+   operación. Si quieres que un pago conciliado apague el cobro al recibir,
+   dilo y se hace en una línea.
 2. **Multimoneda en la base.** Hoy todo importe en las tablas `at_` es un
    número sin moneda. Cobrar en EUR o NGN de verdad exige moneda por fila, y
    eso toca `at_guides`, `at_invoices`, `at_settlements` y el tarifario. **Es

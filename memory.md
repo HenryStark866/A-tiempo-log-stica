@@ -121,8 +121,8 @@ Principales capacidades entregadas:
    - Módulo reutilizable de 3 pilares contables: Conciliación en tiempo real (SolV), Recaudos liquidados en <24h y Control sincronizado con Shopify.
 4. **`src/components/storefront/ProductCard.tsx`** (y proxy en **`src/components/ProductCard.tsx`**):
    - Tarjeta responsiva y accesible con dos acciones separadas: botón "Ver detalle" (abre `ProductDetailModal`) y botón iconográfico de carrito/compra rápida 🛒 (abre `ModalCheckout` directo).
-5. **`src/components/storefront/ProductDetailModal.tsx`**:
-   - Modal de detalle inmersivo en 2 columnas: imagen en alta resolución, badges, ubicación de despacho, descripción completa, nota de entrega directa, selector de cantidad (`-` y `+` con cálculo de subtotal) y botón "Comprar ahora".
+5. **`src/components/storefront/ProductDetailModal.tsx`** (y proxy en **`src/components/ProductDetailModal.tsx`**):
+   - Modal de detalle inmersivo en 2 columnas: imagen en alta resolución, badges, ubicación de despacho, descripción completa, nota de entrega directa con garantía de plataforma, selector de cantidad (`-` y `+` con cálculo de subtotal) y botón único de conversión "Comprar ahora" (sin botón de WhatsApp pre-compra).
 6. **`src/data/mockProducts.ts`**:
    - Base de datos en memoria con 9 productos representativos de 3 marcas locales:
      * *Café Origen Antioquia* (Jericó / Fredonia).

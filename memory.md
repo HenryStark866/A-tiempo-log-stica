@@ -23,7 +23,7 @@ Principales capacidades entregadas:
   * **Eliminación de "Acordar con Tienda":** Se retiró definitivamente la opción de pago por fuera de la plataforma para asegurar la retención de comisiones del ecosistema y garantizar pagos auditables en el ledger.
   * **Incorporación de pasarela bancaria "PSE y Tarjetas" (`pse_tarjetas`):** Nueva opción para cuentas de ahorro y corriente vía PSE, tarjetas de crédito y débito.
   * **Terna de pago equilibrada:**
-    1. *Pago digital:* Billeteras / Nequi / Daviplata (inmediato y en línea).
+    1. *Pago digital:* Billeteras digitales como Nequi o Daviplata (en línea e inmediato, sin mención a cuentas bancarias para evitar solapamiento).
     2. *PSE y Tarjetas:* Bancos, transferencias PSE y tarjetas.
     3. *Punto Puntored:* Pago en efectivo en corresponsal físico.
 - **Copywriting y Tono de Marca en Hero:** Redacción orientada a la experiencia de compra y apoyo al comercio de la región:
@@ -109,6 +109,8 @@ Principales capacidades entregadas:
 8. **`src/components/storefront/ModalCheckout.tsx`**:
    - Soporte para `initialQuantity` proveniente del selector de cantidad en el modal de detalle o compra express por unidad.
    - Cálculo automático del precio total (`cantidad × precio_unitario`), reflejado en cabecera, payload y mensaje de WhatsApp.
+   - Sustitución de "Acordar con Tienda" por "PSE y Tarjetas" (`pse_tarjetas`) para asegurar comisiones de pasarela.
+   - Ajuste fino de microcopy en "Pago digital": descripción delimitada exclusivamente a *"Billeteras digitales como Nequi o Daviplata"* (eliminando "o cuentas bancarias" para evitar confusión con PSE).
 
 ### Archivos Creados:
 1. **`src/app/portal-comercios/page.tsx`**:

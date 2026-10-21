@@ -189,7 +189,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
           `💰 *Total:* ${formatCOP(totalCOP)}\n` +
           `💳 *Método de pago:* ${
             metodoPago === "interledger"
-              ? "Pago digital (Billeteras / Nequi / Daviplata)"
+              ? "Pago digital (Billeteras digitales como Nequi o Daviplata)"
               : metodoPago === "pse_tarjetas"
               ? "PSE y Tarjetas (Cuentas de ahorro y crédito)"
               : "Punto físico Puntored (Corresponsal / Efectivo)"
@@ -451,7 +451,7 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
                   </div>
                   <span className="text-xs font-bold block">Pago digital</span>
                   <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Billeteras / Nequi / Daviplata
+                    Billeteras digitales como Nequi o Daviplata
                   </span>
                 </button>
 

@@ -17,6 +17,12 @@ const PUBLIC_PATHS = [
   "/",
   "/login",
   "/registro",
+  // Portal comercial, vitrina pública, catálogo y flujo de compra como invitado
+  "/portal-comercios",
+  "/para-comercios",
+  "/catalogo",
+  "/tienda",
+  "/checkout",
   // Los términos y la política de datos: hay que poder leerlos ANTES de tener
   // cuenta, que es justo el momento en que se aceptan.
   "/legal",
@@ -134,7 +140,7 @@ function buildCsp(nonce: string): string {
     // La regla se rompió sola cuando alguien cambió el proveedor de teselas sin
     // que nada obligara a actualizar esta línea. Si mañana se cambia otra vez,
     // hay que volver aquí.
-    `img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://tiles.openfreemap.org https://s3.amazonaws.com ${SUPABASE_ORIGIN}`,
+    `img-src 'self' data: blob: https://tile.openstreetmap.org https://*.basemaps.cartocdn.com https://server.arcgisonline.com https://tiles.openfreemap.org https://s3.amazonaws.com https://images.unsplash.com ${SUPABASE_ORIGIN}`,
     "font-src 'self' data:",
     // El mapa de la flota (MapLibre) pide por fetch lo que antes eran solo
     // imágenes: el estilo, las teselas vectoriales, las tipografías de las

@@ -677,14 +677,20 @@ export const SECURITY_SEVERITY_COLORS: Record<SecuritySeverity, string> = {
   critico: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
-// Catálogo inicial de tipos de negocio para clientes e-commerce (editable).
-export const BUSINESS_TYPES = [
-  "Moda / Ropa",
-  "Tecnología",
-  "Alimentos",
-  "Belleza y cuidado",
-  "Hogar",
-  "Accesorios",
+// Catálogo estandarizado de categorías de comercio alineado con la vitrina pública y registro.
+export const CATEGORIAS_COMERCIO = [
+  "Moda y Accesorios",
+  "Alimentos y Bebidas",
+  "Belleza y Cuidado Personal",
+  "Hogar y Decoración",
+  "Mascotas",
+  "Deportes y Bienestar",
+  "Tecnología y Gadgets",
+  "Arte, Regalos y Papelería",
   "Otro",
 ] as const;
+export type CategoriaComercio = (typeof CATEGORIAS_COMERCIO)[number];
+
+// Retrocompatibilidad con nomenclatura previa de tipos de negocio
+export const BUSINESS_TYPES = CATEGORIAS_COMERCIO;
 export type BusinessType = (typeof BUSINESS_TYPES)[number];

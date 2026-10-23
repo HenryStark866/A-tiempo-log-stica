@@ -1,8 +1,9 @@
 "use client";
 
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { formatCOP } from "@/lib/utils";
 import type { MockProduct } from "@/data/mockProducts";
+import { alFallarImagen } from "@/components/storefront/InsigniasProducto";
 
 interface ProductMarqueeProps {
   products: MockProduct[];
@@ -51,6 +52,7 @@ export function ProductMarquee({ products, onSelectProduct }: ProductMarqueeProp
                   src={prod.image_url}
                   alt={prod.name}
                   loading="lazy"
+                  onError={alFallarImagen}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
@@ -64,7 +66,7 @@ export function ProductMarquee({ products, onSelectProduct }: ProductMarqueeProp
                   {prod.name}
                 </h3>
                 <div className="flex items-center justify-between pt-0.5">
-                  <span className="text-xs font-black text-slate-800 dark:text-slate-100">
+                  <span className="text-xs font-black text-slate-800 dark:text-slate-100 tabular-nums">
                     {formatCOP(prod.price)}
                   </span>
                   <span className="inline-flex items-center text-[10px] font-bold text-[#ff812c] opacity-0 group-hover:opacity-100 transition-opacity">

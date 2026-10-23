@@ -5,7 +5,6 @@ import {
   X,
   Store,
   MapPin,
-  ShieldCheck,
   ShoppingBag,
   Plus,
   Minus,
@@ -14,6 +13,14 @@ import {
 } from "lucide-react";
 import { formatCOP } from "@/lib/utils";
 import type { MockProduct } from "@/data/mockProducts";
+import {
+  InsigniaOferta,
+  InsigniasInventario,
+  PrecioProducto,
+  alFallarImagen,
+  infoProductoVitrina,
+} from "@/components/storefront/InsigniasProducto";
+import { textoBajoPedido } from "@/lib/inventario";
 
 export interface ProductDetailModalProps {
   product: MockProduct | null;
@@ -27,6 +34,25 @@ export function ProductDetailModal({
   onBuyNow,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
+  const { info, disp } = product
+    ? infoProductoVitrina(product)
+    : {
+        info: {
+          modo: "stock" as const,
+          diasElaboracion: 0,
+          stock: null,
+          vendidos: 0,
+          enOferta: false,
+          precioOriginal: 0,
+          descuentoPct: 0,
+        },
+        disp: {
+          agotado: false,
+          ultimasUnidades: false,
+          bajoPedido: false,
+          maxCantidad: 99,
+        },
+      };
 
   // Reiniciar cantidad cada vez que cambia el producto
   useEffect(() => {
@@ -77,7 +103,10 @@ export function ProductDetailModal({
               <img
                 src={product.image_url}
                 alt={product.name}
-                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                onError={alFallarImagen}
+                className={`w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ${
+                  disp.agotado ? "grayscale opacity-75" : ""
+                }`}
               />
               {product.store_badge && (
                 <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold bg-[#1C1C1E]/90 text-[#ff812c] backdrop-blur-md border border-white/10 shadow-sm flex items-center gap-1.5">
@@ -85,6 +114,8 @@ export function ProductDetailModal({
                   <span>{product.store_badge}</span>
                 </span>
               )}
+              {/* Insignia de oferta flotante */}
+              <InsigniaOferta info={info} className="absolute top-12 left-3" />
               <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white/90 dark:bg-[#1C1C1E]/90 text-slate-700 dark:text-slate-300 backdrop-blur-md shadow-sm">
                 {product.category}
               </span>
@@ -114,14 +145,18 @@ export function ProductDetailModal({
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-tight">
                   {product.name}
                 </h2>
+                {/* Insignias de inventario y prueba social */}
+                <div className="pt-1">
+                  <InsigniasInventario info={info} disp={disp} />
+                </div>
               </div>
 
               {/* Precio destacado */}
-              <div className="py-2 border-y border-slate-100 dark:border-white/10 flex items-baseline justify-between">
-                <span className="text-xs text-slate-400 font-medium">Precio unitario</span>
-                <span className="text-2xl sm:text-3xl font-black text-[#ff812c]">
-                  {formatCOP(product.price)}
+              <div className="py-2 border-y border-slate-100 dark:border-white/10 flex items-baseline justify-between gap-3">
+                <span className="text-xs text-slate-400 font-medium">
+                  {info.enOferta ? "Precio de oferta" : "Precio unitario"}
                 </span>
+                <PrecioProducto product={product} info={info} tamano="modal" />
               </div>
 
               {/* Descripción completa */}
@@ -133,6 +168,18 @@ export function ProductDetailModal({
                   {product.description}
                 </p>
               </div>
+
+              {/* Insignia destacada si es hecho bajo pedido */}
+              {disp.bajoPedido && (
+                <div className="p-3.5 rounded-2xl bg-sky-500/10 dark:bg-sky-500/15 border border-sky-500/25 text-xs text-sky-900 dark:text-sky-200 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-sky-700 dark:text-sky-300">
+                    <span>🕒 {textoBajoPedido(info.diasElaboracion)}</span>
+                  </div>
+                  <p className="text-[11px] opacity-90 leading-normal">
+                    Este producto es artesanal y se elabora exclusivamente para ti. El tiempo de producción comienza una vez confirmada la orden.
+                  </p>
+                </div>
+              )}
 
               {/* Nota de coordinación y despacho directo */}
               <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-[#ff812c]/10 border border-amber-500/20 dark:border-[#ff812c]/20 text-xs text-slate-700 dark:text-slate-200 space-y-1">
@@ -146,54 +193,65 @@ export function ProductDetailModal({
               </div>
 
               {/* Selector de cantidad */}
-              <div className="pt-2 flex items-center justify-between gap-4">
-                <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Cantidad:
-                </span>
+              {!disp.agotado ? (
+                <div className="pt-2 flex items-center justify-between gap-4">
+                  <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                    Cantidad:
+                  </span>
 
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/[0.04] p-1">
-                    <button
-                      type="button"
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
-                      className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      aria-label="Disminuir cantidad"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-10 text-center font-bold text-sm text-slate-900 dark:text-white">
-                      {quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setQuantity((q) => Math.min(99, q + 1))}
-                      disabled={quantity >= 99}
-                      className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      aria-label="Aumentar cantidad"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <div className="inline-flex items-center rounded-xl border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/[0.04] p-1">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        disabled={quantity <= 1}
+                        className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Disminuir cantidad"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-10 text-center font-bold text-sm text-slate-900 dark:text-white">
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.min(disp.maxCantidad, q + 1))}
+                        disabled={quantity >= disp.maxCantidad}
+                        className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        aria-label="Aumentar cantidad"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {quantity > 1 && (
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        = {formatCOP(subtotal)}
+                      </span>
+                    )}
                   </div>
-
-                  {quantity > 1 && (
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                      = {formatCOP(subtotal)}
-                    </span>
-                  )}
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
+                  Este artículo se encuentra actualmente agotado
+                </div>
+              )}
             </div>
 
             {/* Acción principal: Todo el tráfico enfocado a la compra en plataforma */}
             <div className="pt-2 border-t border-slate-100 dark:border-white/10">
               <button
                 type="button"
+                disabled={disp.agotado}
                 onClick={() => onBuyNow(product, quantity)}
-                className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#ff812c] text-[#1C1C1E] text-sm font-bold shadow-md hover:bg-[#ff812c]/90 active:scale-[0.98] transition-all"
+                className="w-full min-h-[48px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#ff812c] text-[#1C1C1E] text-sm font-bold shadow-md hover:bg-[#ff812c]/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-white/10 dark:disabled:text-slate-500 transition-all"
               >
                 <ShoppingBag className="w-4 h-4 text-[#1C1C1E]" />
-                <span>Comprar ahora {quantity > 1 ? `(${formatCOP(subtotal)})` : ""}</span>
+                <span>
+                  {disp.agotado
+                    ? "Agotado"
+                    : `Comprar ahora ${quantity > 1 ? `(${formatCOP(subtotal)})` : ""}`}
+                </span>
               </button>
             </div>
           </div>

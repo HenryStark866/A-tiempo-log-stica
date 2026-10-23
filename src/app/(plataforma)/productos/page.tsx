@@ -33,6 +33,14 @@ import {
 import { formatCOP, cn, normalizarBusqueda } from "@/lib/utils";
 import { reportarError } from "@/lib/observabilidad";
 import type { Product, SyncRecipientsResult } from "@/lib/types";
+import {
+  fusionarExtra,
+  leerInventarioOferta,
+  esLlaveInventarioOferta,
+  precioConDescuento,
+  porcentajeEntre,
+  textoBajoPedido,
+} from "@/lib/inventario";
 
 // El tamaño de lote lo decide lotesQueQuepan() por peso del JSON.
 
@@ -42,7 +50,19 @@ const PLANTILLA = [
   '"Bolso cuero","BC-014","145000","Cuero natural, negro"',
 ].join("\n");
 
-const FORM_VACIO = { name: "", sku: "", price: "", description: "" };
+const FORM_VACIO = {
+  name: "",
+  sku: "",
+  price: "",
+  description: "",
+  inventory_mode: "stock" as "stock" | "pedido",
+  stock_quantity: "",
+  lead_time_days: "3",
+  units_sold: "",
+  is_on_sale: false,
+  original_price: "",
+  discount_percent: "",
+};
 
 export default function ProductsPage() {
   const { clientId, loading: cargandoComercio, error: errorComercio } = useMyClient();
@@ -109,11 +129,19 @@ export default function ProductsPage() {
 
   function abrirEdicion(p: Product) {
     setEditing(p);
+    const info = leerInventarioOferta(p.extra, p.price);
     setForm({
       name: p.name,
       sku: p.sku ?? "",
       price: String(p.price ?? 0),
       description: p.description ?? "",
+      inventory_mode: info.modo,
+      stock_quantity: info.stock !== null ? String(info.stock) : "",
+      lead_time_days: String(info.diasElaboracion || 3),
+      units_sold: info.vendidos > 0 ? String(info.vendidos) : "",
+      is_on_sale: info.enOferta,
+      original_price: info.enOferta ? String(info.precioOriginal) : "",
+      discount_percent: info.enOferta ? String(info.descuentoPct) : "",
     });
     setFormError(null);
   }
@@ -125,12 +153,49 @@ export default function ProductsPage() {
     setFormError(null);
     const supabase = createClient();
 
+    const precioFinal = Number(form.price.replace(/[^\d.]/g, "")) || 0;
+    const precioOriginalNum = form.is_on_sale
+      ? Number(form.original_price.replace(/[^\d.]/g, "")) || 0
+      : 0;
+    const pctDesc = form.is_on_sale
+      ? Number(form.discount_percent.replace(/[^\d.]/g, "")) || 0
+      : 0;
+
+    const extraActualizado = fusionarExtra(
+      editing === "nuevo" ? {} : (editing as Product).extra,
+      {
+        is_made_to_order: form.inventory_mode === "pedido",
+        lead_time_days:
+          form.inventory_mode === "pedido"
+            ? Math.max(1, Number(form.lead_time_days) || 1)
+            : undefined,
+        stock_quantity:
+          form.inventory_mode === "stock" && form.stock_quantity.trim() !== ""
+            ? Math.max(0, Number(form.stock_quantity) || 0)
+            : undefined,
+        units_sold:
+          form.units_sold.trim() !== ""
+            ? Math.max(0, Number(form.units_sold) || 0)
+            : undefined,
+        is_on_sale: form.is_on_sale && precioOriginalNum > precioFinal,
+        original_price:
+          form.is_on_sale && precioOriginalNum > precioFinal
+            ? precioOriginalNum
+            : undefined,
+        discount_percent:
+          form.is_on_sale && precioOriginalNum > precioFinal
+            ? pctDesc || porcentajeEntre(precioOriginalNum, precioFinal)
+            : undefined,
+      }
+    );
+
     const payload = {
       client_id: clientId,
       name: form.name.trim(),
       sku: form.sku.trim() || null,
-      price: Number(form.price.replace(/[^\d.]/g, "")) || 0,
+      price: precioFinal,
       description: form.description.trim() || null,
+      extra: extraActualizado,
     };
 
     const { data, error } =
@@ -499,14 +564,51 @@ export default function ProductsPage() {
                         SKU {p.sku}
                       </span>
                     )}
-                    {Object.entries(p.extra ?? {}).map(([k, v]) => (
-                      <span
-                        key={k}
-                        className="rounded-md atl-relleno  px-2 py-0.5 text-[11px] text-slate-500 dark:text-slate-400"
-                      >
-                        {k}: <span className="font-medium text-slate-600 dark:text-slate-300">{v}</span>
-                      </span>
-                    ))}
+                    {(() => {
+                      const info = leerInventarioOferta(p.extra, p.price);
+                      return (
+                        <>
+                          {info.enOferta && (
+                            <span className="rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 px-2 py-0.5 text-[11px] font-bold">
+                              Oferta {info.descuentoPct}% OFF (Antes {formatCOP(info.precioOriginal)})
+                            </span>
+                          )}
+                          {info.modo === "pedido" ? (
+                            <span className="rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20 px-2 py-0.5 text-[11px] font-semibold">
+                              🕒 Bajo pedido ({info.diasElaboracion}d)
+                            </span>
+                          ) : info.stock !== null ? (
+                            <span
+                              className={cn(
+                                "rounded-md px-2 py-0.5 text-[11px] font-semibold",
+                                info.stock === 0
+                                  ? "bg-rose-500/10 text-rose-600 border border-rose-500/20"
+                                  : info.stock <= 3
+                                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20"
+                                  : "atl-relleno text-slate-600 dark:text-slate-300"
+                              )}
+                            >
+                              {info.stock === 0 ? "Agotado" : `Stock: ${info.stock} un.`}
+                            </span>
+                          ) : null}
+                          {info.vendidos > 0 && (
+                            <span className="rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium">
+                              {info.vendidos} vendidos
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
+                    {Object.entries(p.extra ?? {})
+                      .filter(([k]) => !esLlaveInventarioOferta(k))
+                      .map(([k, v]) => (
+                        <span
+                          key={k}
+                          className="rounded-md atl-relleno  px-2 py-0.5 text-[11px] text-slate-500 dark:text-slate-400"
+                        >
+                          {k}: <span className="font-medium text-slate-600 dark:text-slate-300">{v}</span>
+                        </span>
+                      ))}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -588,6 +690,215 @@ export default function ProductsPage() {
                     className="flex-1 bg-transparent text-[17px] py-3 focus:outline-none placeholder-slate-400 text-slate-900 dark:text-white resize-none"
                   />
                 </div>
+              </div>
+
+              {/* FASE 2: Modalidad de Inventario (Híbrido: Stock Contado vs Hecho Bajo Pedido) */}
+              <div className="atl-superficie rounded-2xl p-4 shadow-sm space-y-3 border border-slate-200/60 dark:border-white/10">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    ¿Cómo manejas este producto?
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, inventory_mode: "stock" }))}
+                      className={cn(
+                        "p-3 rounded-xl text-left border text-xs font-bold transition-all",
+                        form.inventory_mode === "stock"
+                          ? "border-[#ff812c] bg-[#ff812c]/10 text-slate-900 dark:text-white ring-1 ring-[#ff812c]"
+                          : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                      )}
+                    >
+                      <span>📦 Stock físico listo</span>
+                      <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                        Unidades contadas para despacho inmediato
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, inventory_mode: "pedido" }))}
+                      className={cn(
+                        "p-3 rounded-xl text-left border text-xs font-bold transition-all",
+                        form.inventory_mode === "pedido"
+                          ? "border-sky-500 bg-sky-500/10 text-slate-900 dark:text-white ring-1 ring-sky-500"
+                          : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                      )}
+                    >
+                      <span>🕒 Hecho bajo pedido</span>
+                      <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">
+                        Artesanos, repostería o personalización
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {form.inventory_mode === "stock" ? (
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                        Unidades en stock
+                      </label>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        0 = Agotado · 1 a 3 = ¡Últimas unidades!
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.stock_quantity}
+                      onChange={(e) => setForm((f) => ({ ...f, stock_quantity: e.target.value }))}
+                      placeholder="Ilimitado si se deja vacío"
+                      className="w-36 text-right px-3 py-2 text-sm rounded-xl atl-relleno text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
+                    />
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/5 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-sky-700 dark:text-sky-300 block">
+                          Días hábiles de elaboración
+                        </label>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Tiempo de preparación antes del despacho
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={form.lead_time_days}
+                          onChange={(e) => setForm((f) => ({ ...f, lead_time_days: e.target.value }))}
+                          className="w-20 text-center px-3 py-2 text-sm rounded-xl atl-relleno font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        />
+                        <span className="text-xs text-slate-500">días</span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-sky-700 dark:text-sky-300 bg-sky-500/10 p-2.5 rounded-xl">
+                      Insignia en vitrina: &laquo;{textoBajoPedido(Number(form.lead_time_days) || 1)}&raquo;
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                      Métrica social (Unidades vendidas)
+                    </label>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Muestra &laquo;Más de X vendidos&raquo; en vitrina
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.units_sold}
+                    onChange={(e) => setForm((f) => ({ ...f, units_sold: e.target.value }))}
+                    placeholder="Ej. 25"
+                    className="w-28 text-right px-3 py-2 text-sm rounded-xl atl-relleno text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#ff812c]"
+                  />
+                </div>
+              </div>
+
+              {/* FASE 3: Promociones y Precio de Oferta */}
+              <div className="atl-superficie rounded-2xl p-4 shadow-sm space-y-3 border border-slate-200/60 dark:border-white/10">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white block">
+                      🔥 Precio de Oferta / Descuento
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Muestra precio anterior tachado y badge &laquo;-% OFF&raquo; en la vitrina
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={form.is_on_sale}
+                    onChange={(e) => {
+                      const activar = e.target.checked;
+                      setForm((f) => {
+                        if (activar && !f.original_price && f.price) {
+                          return { ...f, is_on_sale: true, original_price: f.price };
+                        }
+                        return { ...f, is_on_sale: activar };
+                      });
+                    }}
+                    className="h-4 w-4 rounded border-slate-300 text-[#ff812c] focus:ring-[#ff812c]"
+                  />
+                </label>
+
+                {form.is_on_sale && (
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/5 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                          Precio original (tachado)
+                        </label>
+                        <div className="flex items-center px-3 py-2 rounded-xl atl-relleno">
+                          <span className="text-xs text-slate-400 mr-1">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={form.original_price}
+                            onChange={(e) => {
+                              const orig = e.target.value;
+                              setForm((f) => {
+                                const origNum = Number(orig) || 0;
+                                const descNum = Number(f.discount_percent) || 0;
+                                const nuevoPrecio =
+                                  descNum > 0 && origNum > 0
+                                    ? String(precioConDescuento(origNum, descNum))
+                                    : f.price;
+                                return { ...f, original_price: orig, price: nuevoPrecio };
+                              });
+                            }}
+                            placeholder="Ej. 58000"
+                            className="w-full bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                          % de descuento
+                        </label>
+                        <div className="flex items-center px-3 py-2 rounded-xl atl-relleno">
+                          <input
+                            type="number"
+                            min="1"
+                            max="90"
+                            value={form.discount_percent}
+                            onChange={(e) => {
+                              const desc = e.target.value;
+                              setForm((f) => {
+                                const descNum = Number(desc) || 0;
+                                const origNum = Number(f.original_price) || 0;
+                                const nuevoPrecio =
+                                  descNum > 0 && origNum > 0
+                                    ? String(precioConDescuento(origNum, descNum))
+                                    : f.price;
+                                return { ...f, discount_percent: desc, price: nuevoPrecio };
+                              });
+                            }}
+                            placeholder="Ej. 15"
+                            className="w-full bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none"
+                          />
+                          <span className="text-xs text-slate-400 ml-1">%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 text-[11px] text-slate-700 dark:text-slate-300 space-y-1">
+                      <p>
+                        <strong>Precio final neto:</strong> {formatCOP(Number(form.price) || 0)}. Este es el valor que se cobrará por pasarela.
+                      </p>
+                      <p className="text-slate-500 dark:text-slate-400">
+                        La comisión de YAM (7%) se liquida sobre este valor neto cobrado al cliente.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {formError && (

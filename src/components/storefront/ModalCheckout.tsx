@@ -8,7 +8,6 @@ import {
   MessageCircle,
   CreditCard,
   Building2,
-  Store,
   UserCheck,
   AlertCircle,
   Loader2,
@@ -20,6 +19,7 @@ import {
 import { formatCOP } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { MockProduct } from "@/data/mockProducts";
+import { leerInventarioOferta, liquidarVenta, textoBajoPedido } from "@/lib/inventario";
 
 export interface ModalCheckoutProps {
   product: MockProduct | null;
@@ -135,14 +135,24 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
       const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
       const codigoOrden = `PED-${timestamp}-${randomHex}`;
 
+      // Inventario y liquidación contable de la orden
+      const infoProd = leerInventarioOferta(product.extra, product.price);
+      const liq = liquidarVenta(product.price, cantidad, infoProd.precioOriginal);
+
       // Simular guardado de la intención de compra (Guest o registrado)
       const ordenPayload = {
         codigo: codigoOrden,
         producto_id: product.id,
         producto_nombre: product.name,
         cantidad,
-        precio_unitario: product.price,
-        precio: product.price * cantidad,
+        precio_unitario: product.price, // Precio final neto cobrado
+        precio_unitario_original: infoProd.precioOriginal,
+        total_neto: liq.total,
+        comision_yam_7pct: liq.comisionYam, // Liquidada sobre el valor neto final cobrado
+        neto_comercio: liq.netoComercio,
+        es_bajo_pedido: infoProd.modo === "pedido",
+        dias_elaboracion: infoProd.diasElaboracion,
+        en_oferta: infoProd.enOferta,
         comercio: product.store_name,
         comprador: {
           nombre: nombre.trim(),
@@ -180,13 +190,18 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
     }
   }
 
+  // Inventario y valores calculados para la vista
+  const info = product ? leerInventarioOferta(product.extra, product.price) : null;
+  const liq = product ? liquidarVenta(product.price, cantidad, info?.precioOriginal ?? product.price) : { total: 0, comisionYam: 0, netoComercio: 0, ahorro: 0 };
+  const totalCOP = liq.total;
+
   // Enlace para WhatsApp con mensaje pre-armado
-  const totalCOP = product ? product.price * cantidad : 0;
   const mensajeWa = product
     ? encodeURIComponent(
         `¡Hola ${product.store_name}! 👋 Acabo de generar la orden *${ordenCompletada?.codigo || ""}* en la vitrina YAM.\n\n` +
           `📦 *Producto:* ${product.name}${cantidad > 1 ? ` (x${cantidad})` : ""}\n` +
-          `💰 *Total:* ${formatCOP(totalCOP)}\n` +
+          (info?.modo === "pedido" ? `🕒 *Tipo:* ${textoBajoPedido(info.diasElaboracion)}\n` : "") +
+          `💰 *Total Neto:* ${formatCOP(totalCOP)}${info?.enOferta ? ` (Oferta especial con ahorro de ${formatCOP(liq.ahorro)})` : ""}\n` +
           `💳 *Método de pago:* ${
             metodoPago === "interledger"
               ? "Pago digital (Billeteras digitales como Nequi o Daviplata)"
@@ -238,9 +253,16 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
         {/* Resumen del producto en cabecera */}
         <div className="px-6 py-3.5 bg-amber-500/10 dark:bg-[#ff812c]/10 border-b border-amber-500/15 dark:border-[#ff812c]/20 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[#ff812c] uppercase tracking-wider">
-              {product.store_name}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold text-[#ff812c] uppercase tracking-wider">
+                {product.store_name}
+              </p>
+              {info?.modo === "pedido" && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-700 dark:text-sky-300">
+                  Bajo pedido ({info.diasElaboracion}d)
+                </span>
+              )}
+            </div>
             <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
               {product.name}
             </p>
@@ -251,6 +273,11 @@ export function ModalCheckout({ product, onClose, initialQuantity = 1 }: ModalCh
           <div className="text-right shrink-0">
             <span className="text-xs text-slate-500 dark:text-slate-400 block">
               {cantidad > 1 ? `${cantidad} un. × ${formatCOP(product.price)}` : "Total"}
+              {info?.enOferta && (
+                <s className="ml-1 text-[11px] text-slate-400">
+                  {formatCOP(info.precioOriginal * cantidad)}
+                </s>
+              )}
             </span>
             <span className="text-base font-black text-slate-900 dark:text-white">
               {formatCOP(totalCOP)}

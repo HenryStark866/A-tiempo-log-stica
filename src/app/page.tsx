@@ -20,10 +20,21 @@ import { FondoInicio } from "@/components/fondos/FondoInicio";
 import { PieMarca } from "@/components/PieMarca";
 import { BloqueBeyondAccess } from "@/components/BeyondAccess";
 import { InstalarApp } from "@/components/InstalarApp";
-import { formatCOP, normalizarBusqueda } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { normalizarBusqueda } from "@/lib/utils";
+// El cliente con sesión ya no se usa para la vitrina: con alguien logueado la
+// consulta corría como `authenticated` y la 0143 solo abre la lectura a `anon`.
+// Se deja la importación comentada por si se necesita para otra lectura.
+// import { createClient } from "@/lib/supabase/client";
+import { createVitrinaClient } from "@/lib/supabase/vitrina";
+import {
+  SELECT_VITRINA_PUBLICA,
+  LIMITE_VITRINA,
+  MIN_PRODUCTOS_REALES,
+  mapearFilaVitrina,
+  type FilaVitrina,
+} from "@/lib/vitrina";
+import { FEATURES } from "@/lib/features";
 import { MOCK_PRODUCTS, type MockProduct } from "@/data/mockProducts";
-import { MARCA } from "@/lib/marca";
 
 function StorefrontContent() {
   const searchParams = useSearchParams();
@@ -41,47 +52,44 @@ function StorefrontContent() {
   const [productoDetalle, setProductoDetalle] = useState<MockProduct | null>(null);
   const [checkoutData, setCheckoutData] = useState<{ product: MockProduct; quantity: number } | null>(null);
 
-  // Carga de productos desde Supabase con fallback automático a mockProducts
+  // Carga de productos desde Supabase con fallback automático a mockProducts.
+  //
+  // Por qué la portada salía sin los productos reales en producción:
+  //  1. El umbral era `data.length >= 6`. Producción tiene 5 productos activos,
+  //     así que la respuesta (200, correcta) se descartaba y se pintaban las
+  //     marcas de muestra.
+  //  2. Con sesión abierta la consulta iba como `authenticated`, y la 0143 solo
+  //     abre la vitrina a `anon`: un comercio veía solo lo suyo y un comprador
+  //     nada. Ahora se lee con un cliente sin sesión (createVitrinaClient).
+  //  3. Se piden SOLO columnas de la lista blanca de la 0143 (ver
+  //     src/lib/vitrina.ts). `select("*")` responde 401 a `anon`.
   useEffect(() => {
     async function cargarCatalogo() {
+      const usarDemo = () => setDbProducts(FEATURES.VITRINA_CATALOGO_DEMO ? MOCK_PRODUCTS : []);
       try {
-        const supabase = createClient();
+        const supabase = createVitrinaClient();
         const { data, error } = await supabase
           .from("at_products")
-          .select("id, name, sku, description, price, extra, at_clients(business_name, phone, city)")
+          .select(SELECT_VITRINA_PUBLICA)
           .eq("active", true)
-          .limit(20);
+          .order("name")
+          .limit(LIMITE_VITRINA);
 
-        if (!error && data && data.length >= 6) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mapeados: MockProduct[] = data.map((item: any) => {
-            const client = Array.isArray(item.at_clients) ? item.at_clients[0] : item.at_clients;
-            const extra = item.extra || {};
-            return {
-              id: item.id,
-              name: item.name,
-              sku: item.sku || "SKU-PROD",
-              description: item.description || "Producto disponible en tienda local.",
-              price: Number(item.price) || 0,
-              image_url:
-                extra.image_url ||
-                extra.foto ||
-                "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80",
-              store_name: client?.business_name || "Comercio Aliado",
-              store_slug: "tienda",
-              store_badge: "Comercio Verificado",
-              category: extra.category || "General",
-              store_phone: client?.phone || "+573000000000",
-              store_location: client?.city || "Medellín, Antioquia",
-            };
-          });
-          setDbProducts(mapeados);
+        if (error) {
+          console.warn("La vitrina no pudo leer el catálogo público:", error.message);
+          usarDemo();
+          return;
+        }
+
+        const filas = (data ?? []) as unknown as FilaVitrina[];
+        if (filas.length >= MIN_PRODUCTOS_REALES) {
+          setDbProducts(filas.map(mapearFilaVitrina));
         } else {
-          setDbProducts(MOCK_PRODUCTS);
+          usarDemo();
         }
       } catch (err) {
         console.warn("Usando catálogo local de fallback:", err);
-        setDbProducts(MOCK_PRODUCTS);
+        usarDemo();
       } finally {
         setLoadingDb(false);
       }
@@ -237,7 +245,31 @@ function StorefrontContent() {
         )}
 
         {/* Cuadrícula (Grid) de Productos de la Vitrina */}
-        {productosFiltrados.length === 0 ? (
+        {loadingDb ? (
+          // Mientras llega la respuesta no se dice «No se encontraron productos»:
+          // en una conexión lenta eso se leía como una portada vacía.
+          <div
+            id="vitrina-cargando"
+            aria-busy="true"
+            aria-label="Cargando productos"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={`esqueleto-${i}`}
+                className="rounded-3xl overflow-hidden bg-white/60 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/10 animate-pulse"
+              >
+                <div className="aspect-[4/3] bg-slate-200/70 dark:bg-white/[0.06]" />
+                <div className="p-5 space-y-3">
+                  <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-white/10" />
+                  <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-white/10" />
+                  <div className="h-3 w-full rounded bg-slate-200/70 dark:bg-white/[0.06]" />
+                  <div className="h-10 w-full rounded-xl bg-slate-200/70 dark:bg-white/[0.06]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : productosFiltrados.length === 0 ? (
           <div className="text-center py-16 px-4 bg-white/40 dark:bg-white/[0.02] backdrop-blur-md rounded-3xl border border-slate-200 dark:border-white/10">
             <ShoppingBag className="w-12 h-12 text-slate-400 mx-auto mb-3 opacity-60" />
             <h3 className="text-lg font-bold text-slate-800 dark:text-white">

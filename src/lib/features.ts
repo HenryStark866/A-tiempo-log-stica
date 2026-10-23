@@ -32,4 +32,23 @@ export const FEATURES = {
    */
   MOSTRAR_ROLES_LOGISTICOS_REGISTRO:
     process.env.NEXT_PUBLIC_FEATURE_ROLES_LOGISTICOS_REGISTRO === "true",
+
+  /**
+   * Catálogo de muestra (src/data/mockProducts.ts) cuando la base no devuelve
+   * NINGÚN producto real o la consulta falla.
+   * Por defecto: TRUE (comportamiento que ya tenía la portada).
+   * Con `NEXT_PUBLIC_FEATURE_VITRINA_CATALOGO_DEMO=false` la portada muestra el
+   * estado vacío en lugar de marcas de ejemplo.
+   */
+  VITRINA_CATALOGO_DEMO:
+    process.env.NEXT_PUBLIC_FEATURE_VITRINA_CATALOGO_DEMO !== "false",
+
+  /**
+   * Insignias de inventario (Agotado, Últimas unidades, Bajo pedido, vendidos)
+   * y precios de oferta en la vitrina. Por defecto: TRUE.
+   * Apagarlo deja las tarjetas como estaban (precio único, sin insignias); el
+   * checkout sigue cobrando la columna `price`, que es el precio final.
+   */
+  VITRINA_INVENTARIO_Y_OFERTAS:
+    process.env.NEXT_PUBLIC_FEATURE_VITRINA_INVENTARIO_OFERTAS !== "false",
 };

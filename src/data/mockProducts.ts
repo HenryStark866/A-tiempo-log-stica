@@ -1,8 +1,11 @@
 /**
  * Catálogo de prueba para la vitrina pública (Storefront).
- * Se utiliza como fallback cuando la base de datos tiene menos de 6 productos activos.
+ * Se utiliza como fallback cuando la base de datos no devuelve productos
+ * activos (o falla), si `FEATURES.VITRINA_CATALOGO_DEMO` está encendido.
  * Representa 3 marcas locales del Valle de Aburrá y el Oriente Antioqueño.
  */
+
+import type { ExtraProducto } from "@/lib/inventario";
 
 export interface MockProduct {
   id: string;
@@ -17,6 +20,13 @@ export interface MockProduct {
   category: string;
   store_phone: string;
   store_location: string;
+  /** Comercio dueño (solo en productos reales). */
+  client_id?: string;
+  /**
+   * JSONB `extra` del producto: inventario híbrido, oferta y lo que traiga
+   * el CSV. Se interpreta con `leerInventarioOferta` (src/lib/inventario.ts).
+   */
+  extra?: ExtraProducto;
 }
 
 export const MOCK_PRODUCTS: MockProduct[] = [
@@ -34,6 +44,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     category: "Alimentos y Bebidas",
     store_phone: "+573004567890",
     store_location: "Jericó / Medellín, Antioquia",
+    extra: { stock_quantity: 2, units_sold: 37 },
   },
   {
     id: "prod-mock-02",
@@ -84,7 +95,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     name: "Morral Urbano de Lona Pesada & Detalles de Cuero",
     sku: "MSP-MOR-02",
     description: "Diseño ergonómico para portátiles de hasta 15.6 pulgadas. Lona impermeable de alto calibre con herrajes pavonados y correas acolchadas.",
-    price: 185000,
+    price: 157250,
     image_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80",
     store_name: "Marroquinería San Pedro",
     store_slug: "marroquineria-san-pedro",
@@ -92,13 +103,21 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     category: "Moda y Accesorios",
     store_phone: "+573123456789",
     store_location: "El Poblado, Medellín",
+    extra: {
+      is_made_to_order: true,
+      lead_time_days: 5,
+      units_sold: 124,
+      is_on_sale: true,
+      original_price: 185000,
+      discount_percent: 15,
+    },
   },
   {
     id: "prod-mock-06",
     name: "Cinturón de Cuero Nobuk Doble Faz",
     sku: "MSP-CIN-03",
     description: "Cuero nobuk curtido al vegetal. Hebilla metálica giratoria de ajuste rápido en acabados café tabaco y negro mate.",
-    price: 58000,
+    price: 49300,
     image_url: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=800&q=80",
     store_name: "Marroquinería San Pedro",
     store_slug: "marroquineria-san-pedro",
@@ -106,6 +125,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     category: "Moda y Accesorios",
     store_phone: "+573123456789",
     store_location: "El Poblado, Medellín",
+    extra: { stock_quantity: 14, is_on_sale: true, original_price: 58000, discount_percent: 15 },
   },
 
   // Marca 3: Botánica & Esencias del Valle (Santa Elena)
@@ -136,6 +156,7 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     category: "Hogar y Bienestar",
     store_phone: "+573187654321",
     store_location: "Santa Elena / Envigado",
+    extra: { is_made_to_order: true, lead_time_days: 3, units_sold: 8 },
   },
   {
     id: "prod-mock-09",
@@ -150,5 +171,6 @@ export const MOCK_PRODUCTS: MockProduct[] = [
     category: "Bienestar y Cuidado",
     store_phone: "+573187654321",
     store_location: "Santa Elena / Envigado",
+    extra: { stock_quantity: 0, units_sold: 260 },
   },
 ];

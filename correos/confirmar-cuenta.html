@@ -10,6 +10,13 @@
 
       Confirma tu correo y empieza a mover paquetes con YAM
 
+  ⚠ IMPORTANTE — dominio oficial de producción: yam.cdhmaker.com
+  En Supabase Dashboard → Authentication → URL Configuration:
+      Site URL:               https://yam.cdhmaker.com
+      Redirect URLs (añadir): https://yam.cdhmaker.com/auth/confirmar
+  Si el Site URL sigue apuntando a atiempo-logistica.vercel.app, los enlaces
+  del correo llegarán al sitio viejo que ya no responde.
+
   Se versiona aquí porque una plantilla que solo existe en un panel web se
   pierde: nadie la revisa, nadie sabe quién la cambió y no hay a qué volver si
   alguien la daña. Si se edita en el panel, hay que editarla también aquí.
@@ -41,7 +48,7 @@
         <!-- Cabecera -->
         <tr>
           <td align="center" style="background-color:#1c1c1e;padding:32px 24px;">
-            <img src="https://atiempo-logistica.vercel.app/icons/icon-192.png"
+            <img src="https://yam.cdhmaker.com/icons/icon-192.png"
                  width="56" height="56" alt="YAM"
                  style="display:block;border:0;border-radius:14px;margin-bottom:14px;">
             <div style="font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;line-height:1.2;">

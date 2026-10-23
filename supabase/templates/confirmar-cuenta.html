@@ -1,20 +1,38 @@
 <!--
-  A TIEMPO LOGÍSTICA — correo de confirmación de cuenta.
+  A TIEMPO LOGÍSTICA / YAM — correo de confirmación de cuenta.
 
   DÓNDE VA: Supabase Dashboard → Authentication → Emails → "Confirm signup".
-  Se pega el HTML completo y se pone como asunto:
-      Confirma tu cuenta en A Tiempo Logística
+  Pega el HTML completo. Asunto sugerido:
+      Confirma tu correo y empieza a mover paquetes con YAM
 
-  El enlace apunta a /auth/confirmar, que canjea el token por una sesión y
-  lleva a /bienvenido. Para que {{ .SiteURL }} salga bien, en
-  Authentication → URL Configuration el Site URL debe ser la URL de producción
-  (https://atiempo-logistica.vercel.app), y /auth/confirmar debe estar entre
-  las Redirect URLs.
+  ── Por qué usa {{ .ConfirmationURL }} y no {{ .SiteURL }}/auth/confirmar ──
+
+  Antes este template construía la URL a mano:
+      {{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=signup&next=/bienvenido
+
+  Eso rompió cuando la app migró de Vercel a AWS: el Site URL del panel seguía
+  apuntando a atiempo-logistica.vercel.app, así que el botón del correo abría
+  un dominio que ya no responde o que no tiene /auth/confirmar activa.
+
+  {{ .ConfirmationURL }} lo construye Supabase solo a partir del Site URL Y del
+  Additional Redirect URL configurados en el panel, aplicando la lógica interna
+  de Supabase para armar el enlace. Si el Site URL del panel está bien (la URL
+  del dominio en producción en AWS), el enlace siempre llega al lugar correcto
+  sin depender de ninguna variable del template.
+
+  Para que funcione, en el panel de Supabase:
+      Authentication → URL Configuration
+          Site URL:               https://yam.cdhmaker.com
+          Redirect URLs (añadir): https://yam.cdhmaker.com/auth/confirmar
+
+  El código en /auth/confirmar ya acepta las dos formas: token_hash+type (esta
+  plantilla) y code (plantilla de fábrica de Supabase). Así el enlace funciona
+  con cualquiera de las dos configuraciones.
 
   Maquetado con tablas y estilos en línea a propósito: es lo único que se ve
-  igual en Gmail, Outlook y Apple Mail. El logo va como marca de texto porque
-  los clientes de correo bloquean SVG y muchos bloquean las imágenes remotas
-  hasta que la persona las autoriza.
+  igual en Gmail, Outlook y Apple Mail. El logo va como texto porque los
+  clientes de correo bloquean SVG y muchos bloquean imágenes remotas hasta que
+  el usuario las autoriza.
 -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;background-color:#F2F2F7;">
   <tr>
@@ -28,7 +46,6 @@
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td style="padding-right:12px;vertical-align:middle;">
-                  <!-- Cronómetro de la marca, en caracteres que sí renderiza el correo -->
                   <div style="width:44px;height:44px;border-radius:50%;border:3px solid #1C1C1E;position:relative;text-align:center;line-height:38px;font-size:20px;color:#1C1C1E;">
                     &#9201;
                   </div>
@@ -55,11 +72,11 @@
               acceso a la plataforma de A Tiempo Log&iacute;stica.
             </p>
 
-            <!-- Botón -->
+            <!-- Botón principal — usa {{ .ConfirmationURL }} para no depender del Site URL configurado -->
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:32px 0 0 0;">
               <tr>
                 <td align="center">
-                  <a href="{{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=signup&next=/bienvenido"
+                  <a href="{{ .ConfirmationURL }}"
                      style="display:inline-block;background-color:#ff812c;color:#1C1C1E;font-size:17px;font-weight:700;text-decoration:none;padding:16px 40px;border-radius:12px;">
                     Confirmar mi cuenta
                   </a>
@@ -67,11 +84,12 @@
               </tr>
             </table>
 
+            <!-- Enlace en texto por si el botón no se dibuja -->
             <p style="margin:28px 0 0 0;font-size:14px;line-height:1.6;color:#8E8E93;text-align:center;">
               Si el bot&oacute;n no funciona, copia y pega esta direcci&oacute;n en tu navegador:
             </p>
             <p style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:#ff812c;text-align:center;word-break:break-all;">
-              {{ .SiteURL }}/auth/confirmar?token_hash={{ .TokenHash }}&type=signup&next=/bienvenido
+              {{ .ConfirmationURL }}
             </p>
 
             <!-- Separador -->

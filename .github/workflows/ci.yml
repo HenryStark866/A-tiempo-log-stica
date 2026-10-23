@@ -86,3 +86,44 @@ jobs:
       # abierto) y avisa si el JavaScript de arranque engordó de golpe.
       - name: El paquete no lleva el código fuente dentro
         run: node scripts/verificar-paquete.mjs
+
+  # Tests contra una base real (tests/db). Corren en el runner de GitHub, que
+  # trae Docker: nadie necesita Docker en su equipo para validar una migración.
+  # Las migraciones locales no reconstruyen todo lo de producción, así que se
+  # añaden los stubs de docs/migracion-aws/staging-stubs antes de arrancar.
+  tests-base:
+    name: Tests contra la base
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Añadir los stubs de staging
+        run: cp docs/migracion-aws/staging-stubs/*.sql supabase/migrations/
+
+      - name: Levantar la base de pruebas
+        run: npx supabase@latest start -x studio,imgproxy,edge-runtime,logflare,vector,mailpit,supavisor
+
+      - name: Exportar credenciales de la base de pruebas
+        run: |
+          eval "$(npx supabase@latest status -o env)"
+          {
+            echo "SUPABASE_TEST_URL=$API_URL"
+            echo "SUPABASE_TEST_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_TEST_SERVICE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Tests de base
+        run: npm run test:db
+
+      - name: Apagar la base
+        if: always()
+        run: npx supabase@latest stop --no-backup

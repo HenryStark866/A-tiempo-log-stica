@@ -19,6 +19,13 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   // supabase/functions corre en Deno, no en Node: usa imports jsr: y el global
   // Deno, que este tsconfig no conoce. Sin excluirlo, rompe el build de Next.
-  // Lo mismo el enrutador del edge-runtime de la instancia de AWS.
-  "exclude": ["node_modules", "supabase/functions", "infra/aws/3-instancia/instancia/functions"]
+  "exclude": [
+    "node_modules",
+    "supabase/functions",
+    "infra/aws/3-instancia/instancia/functions",
+    "SolV",
+    "yam-ci-wt",
+    "yam-movil",
+    "yam-vitrina-wt"
+  ]
 }

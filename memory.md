@@ -1,8 +1,37 @@
-# 📝 Memory — Hito: Vitrina Pública y Experiencia de Compra (Storefront)
+# 📝 Memory — Estado de Producción y Entregas
 
-> **Documento de entrega para Henry Taborda**  
-> **Rama:** `feat/vitrina-publica-storefront`  
-> **Fecha:** 20 de Octubre de 2026  
+> **Documento de entrega para Henry Taborda**
+> **Última actualización:** 23 de Octubre de 2026
+
+---
+
+## 0. Estado de Producción (siempre leer primero)
+
+| Dato | Valor |
+| --- | --- |
+| **Dominio oficial** | `https://yam.cdhmaker.com` |
+| **Infraestructura** | AWS Amplify (Next.js SSR, `WEB_COMPUTE`) |
+| **Supabase proyecto** | `uhbtivaepyhwfdvtpfjq` |
+| **Site URL en Supabase** | Debe ser `https://yam.cdhmaker.com` |
+| **Redirect URL en Supabase** | `https://yam.cdhmaker.com/auth/confirmar` |
+| **Rama en producción** | `main` |
+| **Rama activa de trabajo** | `comercio/mundial-sms-y-pagos` |
+
+> ⚠️ **Correos de confirmación y reset de contraseña:**
+> El Site URL en Supabase Dashboard → Authentication → URL Configuration **debe**
+> apuntar a `https://yam.cdhmaker.com`. Si sigue en `atiempo-logistica.vercel.app`,
+> los enlaces del correo llegarán a un sitio que ya no responde y las cuentas
+> nuevas quedan en el limbo sin poder confirmarse.
+>
+> Los templates en `supabase/templates/` usan `{{ .ConfirmationURL }}` (construido
+> por Supabase, no a mano) para que el enlace siempre sea correcto.
+
+---
+
+## 1. Hito: Vitrina Pública y Experiencia de Compra (Storefront)
+
+> **Rama:** `feat/vitrina-publica-storefront`
+> **Fecha:** 20 de Octubre de 2026
 > **Autor:** Equipo de Desarrollo / Pair Programming
 
 ---

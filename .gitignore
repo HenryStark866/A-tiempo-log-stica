@@ -42,3 +42,10 @@ supabase/.temp/
 
 # Ajustes personales de Claude Code: cada quien los suyos
 .claude/settings.local.json
+
+# Carpetas y worktrees locales de desarrollo
+/SolV/
+/yam-ci-wt/
+/yam-movil/
+/yam-vitrina-wt/
+

@@ -1,0 +1,123 @@
+<!--
+  A TIEMPO LOGÍSTICA / YAM — correo de recuperación de contraseña.
+
+  ⚠ Este archivo NO lo usa la app. Las plantillas de correo viven en el panel
+  de Supabase, así que hay que PEGARLO a mano en:
+
+      Authentication → Emails → Reset password
+
+  y poner como asunto:
+
+      Restablece tu contraseña de YAM
+
+  ⚠ IMPORTANTE — dominio oficial de producción: yam.cdhmaker.com
+  En Supabase Dashboard → Authentication → URL Configuration:
+      Site URL:               https://yam.cdhmaker.com
+      Redirect URLs (añadir): https://yam.cdhmaker.com/auth/confirmar
+  Si el Site URL sigue apuntando a atiempo-logistica.vercel.app, los enlaces
+  del correo llegarán al sitio viejo que ya no responde.
+
+  Se versiona aquí porque una plantilla que solo existe en un panel web se
+  pierde: nadie la revisa, nadie sabe quién la cambió y no hay a qué volver si
+  alguien la daña. Si se edita en el panel, hay que editarla también aquí.
+
+  {{ .ConfirmationURL }} lo reemplaza Supabase por el enlace real.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f2f2f7;margin:0;padding:24px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:20px;overflow:hidden;">
+
+        <!-- Cabecera -->
+        <tr>
+          <td align="center" style="background-color:#1c1c1e;padding:32px 24px;">
+            <img src="https://yam.cdhmaker.com/icons/icon-192.png"
+                 width="56" height="56" alt="YAM"
+                 style="display:block;border:0;border-radius:14px;margin-bottom:14px;">
+            <div style="font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;line-height:1.2;">
+              YAM
+            </div>
+            <div style="font-size:12px;font-weight:600;color:#ff812c;letter-spacing:3px;margin-top:6px;">
+              MENSAJERÍA
+            </div>
+            <div style="font-size:13px;color:#8e8e93;margin-top:10px;">
+              por A Tiempo Logística
+            </div>
+          </td>
+        </tr>
+
+        <!-- Contenido -->
+        <tr>
+          <td style="padding:32px 32px 8px 32px;">
+            <h1 style="margin:0 0 14px 0;font-size:24px;line-height:1.25;font-weight:700;color:#1c1c1e;letter-spacing:-0.4px;">
+              ¿Olvidaste tu contraseña? Sin problema.
+            </h1>
+            <p style="margin:0;font-size:16px;line-height:1.6;color:#3a3a3c;">
+              Toca el botón para elegir una contraseña nueva y recuperar el
+              acceso a tu cuenta.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Botón -->
+        <tr>
+          <td align="center" style="padding:28px 32px 12px 32px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" bgcolor="#ff812c" style="border-radius:12px;">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;padding:16px 36px;font-size:17px;font-weight:700;color:#1c1c1e;text-decoration:none;border-radius:12px;">
+                    Cambiar mi contraseña
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- El enlace en texto, por si el botón no se dibuja -->
+        <tr>
+          <td style="padding:0 32px 28px 32px;">
+            <p style="margin:0;font-size:13px;line-height:1.6;color:#8e8e93;text-align:center;">
+              ¿No ves el botón? Copia y pega este enlace en tu navegador:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#ff812c;word-break:break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Aviso de seguridad -->
+        <tr>
+          <td style="padding:0 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fff5ee;border-radius:16px;">
+              <tr>
+                <td style="padding:20px 24px;">
+                  <p style="margin:0;font-size:15px;line-height:1.6;color:#3a3a3c;">
+                    &#128274; Este enlace vence en <strong style="color:#1c1c1e;">1 hora</strong>.
+                    Si no lo usas a tiempo, pide uno nuevo desde la pantalla de
+                    recuperación en la app.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Pie -->
+        <tr>
+          <td style="padding:24px 32px 32px 32px;">
+            <div style="border-top:1px solid #e5e5ea;padding-top:18px;">
+              <p style="margin:0 0 8px 0;font-size:13px;line-height:1.6;color:#8e8e93;">
+                Si tú no pediste cambiar la contraseña, ignora este mensaje.
+                Tu clave actual sigue funcionando.
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.6;color:#aeaeb2;">
+                YAM es una plataforma de A Tiempo Logística · Medellín, Colombia
+              </p>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
